@@ -157,6 +157,11 @@ pub fn home(props: &HomeProps) -> Html {
 				.post-content {
 					padding: 8px 12px;
 					position: relative;
+					max-height: 240px;
+					overflow: hidden;
+				}
+				.post-content img {
+					max-width: 100%;
 				}
 				.post-content::after {
 					content: \"\";

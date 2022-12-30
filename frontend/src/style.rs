@@ -31,6 +31,18 @@ pub fn shared_style() -> Html {
 				border-radius: 4px;
 				color: var(--main-text)
 			}
+			input, textarea {
+				background-color: var(--secondary-background);
+				border: 1px solid var(--border-color);
+				border-radius: 4px;
+				color: var(--main-text);
+			}
+			button {
+				background-color: var(--main-background);
+				border: 1px solid var(--main-background);
+				border-radius: 4px;
+				padding: 6px 8px;
+			}
 			"#
 		}</style>
 	}

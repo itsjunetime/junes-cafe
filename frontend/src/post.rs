@@ -97,6 +97,9 @@ pub fn view_post(props: &PostProps) -> Html {
 					padding: 12px 12px;
 					border-radius: 4px;
 				}
+				#article-text img {
+					max-width: 100%;
+				}
 				"
 			}
 			</style>

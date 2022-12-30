@@ -73,6 +73,10 @@ impl Reducible for PostDetails {
 	// to the API and internal workings, and they just threw `R(ef)?C(ell)?` around everything and
 	// called it good. There's gotta be a better way to do this.
 	fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
+		macro_rules! clone_self{ ($item:ident) => {
+			Self { $item, ..(*self).clone() }.into()
+		}}
+
 		match action {
 			EditMsg::SetInitial(tags, content, title) => Self {
 				id: self.id,
@@ -80,14 +84,8 @@ impl Reducible for PostDetails {
 				content,
 				title,
 			}.into(),
-			EditMsg::Title(title) => Self {
-				title,
-				..(*self).clone()
-			}.into(),
-			EditMsg::Content(content) => Self {
-				content,
-				..(*self).clone()
-			}.into(),
+			EditMsg::Title(title) => clone_self!(title),
+			EditMsg::Content(content) => clone_self!(content),
 			EditMsg::AddTag(tag) => if !tag.is_empty() {
 
 				let mut tags = self.tags.clone();
@@ -104,10 +102,7 @@ impl Reducible for PostDetails {
 					log!("new-tag-input is not actually an input, something is wrong");
 				}
 
-				Self {
-					tags,
-					..(*self).clone()
-				}.into()
+				clone_self!(tags)
 			} else {
 				self
 			},
@@ -115,10 +110,7 @@ impl Reducible for PostDetails {
 				let mut tags = self.tags.clone();
 				tags.remove(&tag);
 
-				Self {
-					tags,
-					..(*self).clone()
-				}.into()
+				clone_self!(tags)
 			}
 		}
 	}
@@ -243,8 +235,6 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 
 	let image_clone = image.clone();
 	let on_image_drop = Callback::from(move |e: DragEvent| {
-		log!(&e);
-
 		e.prevent_default();
 
 		let Some(transfer) = e.data_transfer() else {
@@ -253,8 +243,6 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 			image_clone.set(ImageUploadState::PreflightError(formatted));
 			return;
 		};
-
-		log!(&transfer);
 
 		upload_image(transfer.files(), image_clone.clone());
 	});
@@ -283,12 +271,6 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 						margin-right: -4px;
 						margin-left: 4px;
 					}
-					input, textarea {
-						background-color: var(--secondary-background);
-						border: 1px solid var(--border-color);
-						border-radius: 4px;
-						color: var(--main-text);
-					}
 					textarea {
 						width: 100%;
 						height: 300px;
@@ -299,12 +281,6 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 						border-radius: 4px;
 						padding: 8px 10px;
 						width: max-content;
-					}
-					#submit-button {
-						background-color: var(--main-background);
-						border: 1px solid var(--main-background);
-						border-radius: 4px;
-						padding: 6px 8px;
 					}
 					#submit-button:hover {
 						background-color: #00000000;
@@ -547,8 +523,6 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 		fail!("DataTransfer's file list is None");
 	};
 
-	log!(&files);
-
 	let len = files.length();
 	if len != 1 {
 		fail!("Only 1 file can be uploaded at a time ({len} were submitted)");
@@ -557,8 +531,6 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 	let Some(file) = files.item(0) else {
 		fail!("files.item(0) returned None despite verifying one existed in the list");
 	};
-
-	log!(&file);
 
 	let form = match gloo_net::http::FormData::new() {
 		Ok(f) => f,

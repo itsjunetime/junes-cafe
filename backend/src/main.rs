@@ -1,6 +1,6 @@
 use axum::{
 	routing::{get, post},
-	extract::{Path, Query, Multipart},
+	extract::{Path, Query, Multipart, DefaultBodyLimit},
 	error_handling::HandleErrorLayer,
 	http::StatusCode,
 	Router,
@@ -137,6 +137,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/api/post_image", post(upload_image))
 		.route("/api/images/:id", get(get_image))
 		.route("/api/login", get(login))
+		// I want to be able to upload 10mb images if I so please.
+		.layer(DefaultBodyLimit::max(10 * 1024 * 1024))
 		.layer(SessionLayer::new(session_store, &secret))
 		.layer(
 			ServiceBuilder::new()
@@ -324,7 +326,7 @@ async fn upload_image(session: ReadableSession, mut form: Multipart) -> (StatusC
 				// And then make sure we can actually get the data of the file
 				let image_data = match field.bytes().await {
 					Ok(b) if !b.is_empty() => b,
-					Err(e) => print_and_ret!("Couldn't get form['file'] data: {e:?}"),
+					Err(e) => print_and_ret!("Couldn't get image data; you may have exceeded the 10mb limit ({e:?})"),
 					_ => print_and_ret!(StatusCode::BAD_REQUEST, "Sent an empty image")
 				};
 
@@ -398,16 +400,23 @@ pub async fn login(
 	AuthBasic((username, password)): AuthBasic,
 	mut session: WritableSession
 ) -> (StatusCode, String) {
-	println!("User trying to login with session {}", session.id());
-
 	// Just in case they've already logged in
 	if check_authentication(&*session).is_ok() {
 		return (StatusCode::OK, String::new());
 	};
 
-	let Some(pass) = password else {
+	// Only get the pass if it's not empty
+	let Some(pass) = password.and_then(|p| (!p.is_empty()).then_some(p)) else {
+		eprintln!("Session {} sent a login request with an empty password", session.id());
 		return (StatusCode::PRECONDITION_FAILED, "Please include a password".into())
 	};
+
+	if username.is_empty() {
+		eprintln!("Session {} sent a login request with an empty username", session.id());
+		return (StatusCode::PRECONDITION_FAILED, "Please include a username".into())
+	}
+
+	println!("User trying to login with session {} and username {username}", session.id());
 
 	let unauth = || (StatusCode::UNAUTHORIZED, "Incorrect username or password".into());
 
@@ -440,6 +449,7 @@ pub async fn login(
 }
 
 // Result<Username, UnauthenticatedReason>
+// I know it's simple but at least it's uniform?
 pub fn check_authentication<S: Deref<Target = Session>>(session: &S) -> Result<String, String> {
 	session.get(USERNAME_KEY)
 		.ok_or_else(|| "User did not log in (/api/login) first".into())

@@ -14,6 +14,7 @@ mod auth;
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
+	#[not_found]
 	#[at("/")]
 	Home,
 	#[at("/page/:page")]
