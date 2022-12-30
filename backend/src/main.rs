@@ -9,7 +9,6 @@ use axum::{
 };
 use axum_auth::AuthBasic;
 use axum_sessions::{
-	async_session::Session,
 	async_session::MemoryStore,
 	extractors::{WritableSession, ReadableSession},
 	SessionLayer,
@@ -21,6 +20,7 @@ use serde::Deserialize;
 use shared_data::{
 	Post,
 	PostReq,
+	sqlx,
 	sqlx::{
 		query,
 		query_as,
@@ -31,7 +31,6 @@ use shared_data::{
 };
 use std::{
 	net::SocketAddr,
-	ops::Deref,
 	time::{SystemTime, UNIX_EPOCH}
 };
 use tower::ServiceBuilder;
@@ -43,6 +42,19 @@ macro_rules! print_and_ret{
 	}};
 	($ret_str:expr) => {
 		print_and_ret!(StatusCode::INTERNAL_SERVER_ERROR, $ret_str)
+	}
+}
+
+macro_rules! check_auth{
+	($session:ident) => {
+		match check_auth!($session, noret) {
+			Ok(user) => user,
+			Err(err) => return (StatusCode::UNAUTHORIZED, err)
+		}
+	};
+	($session:ident, noret) => {
+		$session.get::<String>(USERNAME_KEY)
+			.ok_or_else(|| "User did not log in (/api/login) first".to_string())
 	}
 }
 
@@ -183,7 +195,10 @@ async fn get_post_list(
 		.map(Json)
 		.map_err(|e| {
 			eprintln!("Couldn't retrieve posts {offset},{count}: {e:?}");
-			(StatusCode::BAD_REQUEST, format!("Could not retrieve posts: {e:?}"))
+			match e {
+				sqlx::Error::RowNotFound => (StatusCode::BAD_REQUEST, format!("The specified offset,limit of {offset},{count} corresponds to no posts")),
+				_ => (StatusCode::INTERNAL_SERVER_ERROR, format!("Couldn't retrieve posts: {e:?}"))
+			}
 		})
 }
 
@@ -199,7 +214,10 @@ async fn get_post(mut tx: Tx<Postgres>, Path(id): Path<i32>) -> Result<Json<Post
 		.map(Json)
 		.map_err(|e| {
 			eprintln!("Couldn't get post {id}: {e:?}");
-			(StatusCode::NOT_FOUND, format!("Not found: {e:?}"))
+			match e {
+				sqlx::Error::RowNotFound => (StatusCode::NOT_FOUND, "Post not found".into()),
+				_ => (StatusCode::INTERNAL_SERVER_ERROR, format!("Couldn't retrieve post: {e:?}"))
+			}
 		})
 }
 
@@ -210,10 +228,7 @@ pub async fn submit_post(
 	mut tx: Tx<Postgres>,
 	Json(payload): Json<PostReq>
 ) -> (StatusCode, String) {
-	let username = match check_authentication(&*session) {
-		Err(reason) => return (StatusCode::UNAUTHORIZED, reason),
-		Ok(user) => user
-	};
+	let username = check_auth!(session);
 
 	println!("New post being submitted by user {username}");
 
@@ -262,9 +277,7 @@ pub async fn edit_post(
 	Path(id): Path<i32>,
 	Json(payload): Json<PostReq>
 ) -> (StatusCode, String) {
-	if let Err(reason) = check_authentication(&*session) {
-		return (StatusCode::UNAUTHORIZED, reason);
-	};
+	_ = check_auth!(session);
 
 	let (content, html_content, title, tags) = post_details(payload);
 
@@ -299,9 +312,7 @@ fn post_details(payload: PostReq) -> (String, String, String, String) {
 }
 
 async fn upload_image(session: ReadableSession, mut form: Multipart) -> (StatusCode, String) {
-	if let Err(reason) = check_authentication(&*session) {
-		return (StatusCode::UNAUTHORIZED, reason);
-	};
+	_ = check_auth!(session);
 
 	// We need to loop over each field of the form
 	loop {
@@ -401,7 +412,7 @@ pub async fn login(
 	mut session: WritableSession
 ) -> (StatusCode, String) {
 	// Just in case they've already logged in
-	if check_authentication(&*session).is_ok() {
+	if check_auth!(session, noret).is_ok() {
 		return (StatusCode::OK, String::new());
 	};
 
@@ -446,11 +457,4 @@ pub async fn login(
 					}
 				)
 		)
-}
-
-// Result<Username, UnauthenticatedReason>
-// I know it's simple but at least it's uniform?
-pub fn check_authentication<S: Deref<Target = Session>>(session: &S) -> Result<String, String> {
-	session.get(USERNAME_KEY)
-		.ok_or_else(|| "User did not log in (/api/login) first".into())
 }

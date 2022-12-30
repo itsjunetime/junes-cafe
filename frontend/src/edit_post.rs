@@ -40,12 +40,6 @@ enum ImageUploadState {
 	Resolved(Result<(u64, bool), (u16, String)>)
 }
 
-impl ImageUploadState {
-	fn is_loading(&self) -> bool {
-		matches!(self, Self::UploadingImage | Self::Resolved(Ok((_, false))))
-	}
-}
-
 #[derive(Debug)]
 pub enum EditMsg {
 	SetInitial(HashSet<String>, String, String),
@@ -296,7 +290,9 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 						placeholder="what's goin on? :)"
 						oninput={ content_callback }
 						value={ details.content.to_owned() }
-						disabled={ image.is_loading() }
+						disabled={
+							matches!(*image, ImageUploadState::UploadingImage | ImageUploadState::Resolved(Ok((_, false))))
+						}
 					>{
 						&details.content
 					}</textarea>

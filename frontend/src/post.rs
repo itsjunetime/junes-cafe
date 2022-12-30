@@ -41,13 +41,7 @@ pub fn view_post(props: &PostProps) -> Html {
 								.unwrap_or_else(|| "an unknown time".into())
 						}</strong>
 						{ " by " }
-						<strong>{
-							if post.username.is_empty() {
-								"Unknown"
-							} else {
-								post.username.as_str()
-							}
-						}</strong>
+						<strong>{ post.display_user() }</strong>
 						{ "; " }{ &post.reading_time }{ " minute read" }
 					</span>
 				</span>

@@ -56,13 +56,7 @@ pub fn home(props: &HomeProps) -> Html {
 						<span class="post-subtitle-box">
 							<span class="post-subtitle">
 								{ "by " }
-								<strong>{
-									if post.username.is_empty() {
-										"Unknown"
-									} else {
-										post.username.as_str()
-									}
-								}</strong>
+								<strong>{ post.display_user() }</strong>
 								{ ", " }
 								<strong>{ post.reading_time.to_string() }</strong>
 								{ " minute read " }
@@ -124,6 +118,10 @@ pub fn home(props: &HomeProps) -> Html {
 				"
 				body {
 					font-family: Arial
+				}
+				#posts {
+					margin: 0px auto;
+					max-width: max-content;
 				}
 				.post, .home-title, .page-selector {
 					max-width: 900px;
@@ -190,7 +188,9 @@ pub fn home(props: &HomeProps) -> Html {
 			<div class="home-title">
 				<h1>{ "June's Cafe" }</h1>
 			</div>
-			{ posts_html }
+			<div id="posts">
+				{ posts_html }
+			</div>
 			<div class="page-selector">
 				{ button_html }
 			</div>

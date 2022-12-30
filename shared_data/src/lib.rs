@@ -23,6 +23,16 @@ pub struct Post {
 	pub reading_time: u16
 }
 
+impl Post {
+	pub fn display_user(&self) -> &str {
+		if self.username.is_empty() {
+			"Unknown"
+		} else {
+			self.username.as_str()
+		}
+	}
+}
+
 // We can thankfully just derive Deserialize for this because when it's returned
 // through JSON, it'll be given to us with the tags in an array, not a string,
 // but when it's given from a row, it'll be in text.
