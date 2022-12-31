@@ -55,5 +55,6 @@ impl FromRow<'_, PgRow> for Tags {
 pub struct PostReq {
 	pub title: String,
 	pub content: String,
-	pub tags: Vec<String>
+	pub tags: Vec<String>,
+	pub draft: bool
 }
