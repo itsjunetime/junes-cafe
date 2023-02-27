@@ -132,11 +132,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	println!("Set up posts table in DB...");
 
+	// We just assume that if you have an account, you can post. Maybe we can add more fine-grained
+	// controls later. Doesn't really matter for now tho.
 	query("CREATE TABLE IF NOT EXISTS users (
 		id serial PRIMARY KEY,
 		username text NOT NULL,
-		hashed_pass text NOT NULL,
-		can_post bool NOT NULL
+		hashed_pass text NOT NULL
 	);").execute(&pool)
 		.await?;
 
@@ -186,13 +187,22 @@ struct PostListParams {
 }
 
 async fn get_post_list(
+	session: ReadableSession,
 	mut tx: Tx<Postgres>,
 	Query(PostListParams { count, offset }): Query<PostListParams>
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
+	// If the user is logged in, then they can see all draft posts as well.
+	let draft_clause = if check_auth!(session, noret).is_ok() {
+		""
+	} else {
+		"WHERE p.draft IS NOT TRUE"
+	};
+
 	query_as::<_, Post>(&format!("SELECT \
 		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, u.username \
-		FROM \
-		posts p LEFT JOIN users u ON u.id = p.created_by_user \
+		FROM posts p \
+		LEFT JOIN users u ON u.id = p.created_by_user \
+		{draft_clause} \
 		ORDER BY id DESC \
 		LIMIT {count} \
 		OFFSET {offset} \
@@ -208,13 +218,28 @@ async fn get_post_list(
 		})
 }
 
-async fn get_post(mut tx: Tx<Postgres>, Path(id): Path<i32>) -> Result<Json<Post>, (StatusCode, String)> {
-	query_as::<_, Post>("SELECT \
+async fn get_post(
+	session: ReadableSession,
+	mut tx: Tx<Postgres>,
+	Path(id): Path<i32>
+) -> Result<Json<Post>, (StatusCode, String)> {
+	// If they're logged in, they should be able to view drafts
+	let where_clause = if check_auth!(session, noret).is_ok() {
+		"WHERE p.id = $1"
+	} else {
+		"WHERE (p.id = $1 AND p.draft IS NOT TRUE)"
+	};
+
+	let query_str = format!("SELECT \
 		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, u.username \
 		FROM \
 		posts p LEFT JOIN users u ON u.id = p.created_by_user \
-		WHERE p.id = $1 \
-	;").bind(id)
+		{where_clause}\
+	;");
+
+	println!("Querying: '{query_str}'");
+
+	query_as::<_, Post>(&query_str).bind(id)
 		.fetch_one(&mut *tx)
 		.await
 		.map(Json)
@@ -227,8 +252,6 @@ async fn get_post(mut tx: Tx<Postgres>, Path(id): Path<i32>) -> Result<Json<Post
 		})
 }
 
-// For some reason, this exact order of parameters is necessary to get this to impl `Handler<...>`
-// so that it can be used in axum. Don't change them.
 pub async fn submit_post(
 	session: ReadableSession,
 	mut tx: Tx<Postgres>,

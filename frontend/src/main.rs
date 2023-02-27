@@ -11,6 +11,7 @@ mod home;
 mod edit_post;
 mod style;
 mod auth;
+mod admin;
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {

@@ -42,11 +42,12 @@ enum ImageUploadState {
 
 #[derive(Debug)]
 pub enum EditMsg {
-	SetInitial(HashSet<String>, String, String),
+	SetInitial(HashSet<String>, String, String, bool),
 	Title(String),
 	Content(String),
 	AddTag(String),
 	RemoveTag(String),
+	Draft(bool)
 }
 
 #[derive(Properties, PartialEq, Eq, Default, Clone)]
@@ -54,7 +55,8 @@ pub struct PostDetails {
 	pub id: u32,
 	pub title: String,
 	pub content: String,
-	pub tags: HashSet<String>
+	pub tags: HashSet<String>,
+	pub draft: bool
 }
 
 impl Reducible for PostDetails {
@@ -72,11 +74,12 @@ impl Reducible for PostDetails {
 		}}
 
 		match action {
-			EditMsg::SetInitial(tags, content, title) => Self {
+			EditMsg::SetInitial(tags, content, title, draft) => Self {
 				id: self.id,
 				tags,
 				content,
 				title,
+				draft
 			}.into(),
 			EditMsg::Title(title) => clone_self!(title),
 			EditMsg::Content(content) => clone_self!(content),
@@ -105,7 +108,8 @@ impl Reducible for PostDetails {
 				tags.remove(&tag);
 
 				clone_self!(tags)
-			}
+			},
+			EditMsg::Draft(draft) => clone_self!(draft)
 		}
 	}
 }
@@ -139,8 +143,12 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 	if props.id != NO_POST && details.title.is_empty() {
 		let retrieved_post = match post.as_ref() {
 			None => return html! { <p>{ "Checking if post exists to edit..." }</p> },
-			Some(Err(GetPostErr::Other(err))) => return html! { <p>{ format!("Failed to check if post exists: {err}") }</p> },
-			Some(Err(GetPostErr::NotFound)) => return html! { <p>{ "The post you are trying to edit does not exist" }</p> },
+			Some(Err(GetPostErr::Other(err))) => return html! {
+				<p>{ format!("Failed to check if post exists: {err}") }</p>
+			},
+			Some(Err(GetPostErr::NotFound)) => return html! {
+				<p>{ "The post you are trying to edit does not exist" }</p>
+			},
 			Some(Ok(post)) => post
 		};
 
@@ -150,7 +158,7 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 		let content = retrieved_post.orig_markdown.to_owned();
 		let title = retrieved_post.title.to_owned();
 
-		details.dispatch(EditMsg::SetInitial(tags, content, title));
+		details.dispatch(EditMsg::SetInitial(tags, content, title, retrieved_post.draft));
 	}
 
 	// Prepare things for submitting the post to the backend
@@ -180,7 +188,8 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 			let post_req = shared_data::PostReq {
 				title: details_clone.title.clone(),
 				content: details_clone.content.clone(),
-				tags: Vec::from_iter(details_clone.tags.clone())
+				tags: Vec::from_iter(details_clone.tags.clone()),
+				draft: details_clone.draft
 			};
 
 			// Create the request

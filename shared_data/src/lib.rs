@@ -20,7 +20,8 @@ pub struct Post {
 	#[cfg_attr(feature = "sqlx", sqlx(flatten))]
 	pub tags: Tags,
 	#[cfg_attr(feature = "sqlx", sqlx(try_from = "i32"))]
-	pub reading_time: u16
+	pub reading_time: u16,
+	pub draft: bool
 }
 
 impl Post {
