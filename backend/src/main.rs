@@ -80,7 +80,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let db_table = dotenv::var("DB_TABLE").unwrap_or_else(|_| "barista".into());
 	let db_host = dotenv::var("DB_HOST").unwrap_or_else(|_| "localhost".into());
-	let db_user = dotenv::var("DB_USER")?;
+	let Ok(db_user) = dotenv::var("DB_USER") else {
+		eprintln!("DB_USER is not set in .env, and is necessary to connect to postgres. Please set it and retry.");
+		return Ok(());
+	};
 
 	// Verifying that IMAGE_DIR is a valid directory and is not readonly
 	let Some(dir) = dotenv::var("IMAGE_DIR").ok().and_then(|d| (!d.is_empty()).then_some(d)) else {
@@ -162,8 +165,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.layer(
 			ServiceBuilder::new()
 				.layer(HandleErrorLayer::new(|err| async move {
-					eprintln!("Couldn't commit transaction: {err:?}");
-					(StatusCode::INTERNAL_SERVER_ERROR, format!("Postgres Transaction failed: {err:?}"))
+					print_and_ret!("Postgres Transaction failed: {err:?}")
 				}))
 				.layer(axum_sqlx_tx::Layer::new(pool))
 		);
@@ -271,7 +273,7 @@ pub async fn submit_post(
 	// I know this conversion (`as i64`) is not safe, technically, but I doubt this site
 	// will survive long enough that we'll get a timestamp higher than i64::MAX
 	let Ok(created_at) = SystemTime::now().duration_since(UNIX_EPOCH).map(|c| c.as_secs() as i64) else {
-		return (StatusCode::INTERNAL_SERVER_ERROR, "Time has gone backwards?? what the fuck".into())
+		print_and_ret!("Time has gone backwards?? what the fuck")
 	};
 
 	// we're just assuming the average wpm for these articles is 220

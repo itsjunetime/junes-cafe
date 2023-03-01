@@ -9,11 +9,11 @@ edition = "2021"
 dotenv = "0.15.0"
 gloo-net = { version = "0.2.4", default-features = false, features = ["futures-core", "futures-sink", "http", "json", "serde", "serde_json", "pin-project"] }
 wasm-bindgen-futures = "0.4.33"
-wasm-bindgen = "0.2.83"
+wasm-bindgen = "0.2.84"
 yew = { git = "https://github.com/yewstack/yew.git", features = ["csr"] }
 yew-router = { git = "https://github.com/yewstack/yew.git" }
 shared_data = { path = "../shared_data" }
-web-sys = { version = "0.3.60", features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument"] }
+web-sys = { version = "0.3.60", features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument", "HtmlButtonElement"] }
 gloo-console = "0.2.3"
 chrono = "0.4.23"
 js-sys = "0.3.60"

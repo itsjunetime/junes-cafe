@@ -5,6 +5,7 @@ use post::ViewPost;
 use edit_post::{EditPostParent, NO_POST};
 use auth::AuthView;
 use shared_data::Post;
+use admin::Admin;
 
 mod post;
 mod home;
@@ -12,6 +13,7 @@ mod edit_post;
 mod style;
 mod auth;
 mod admin;
+mod post_list;
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
@@ -25,12 +27,16 @@ enum Route {
 	#[at("/edit_post/:id")]
 	EditPost { id: u32 },
 	#[at("/new_post")]
-	NewPost
+	NewPost,
+	#[at("/admin/:page")]
+	Admin { page: u32 },
+	#[at("/admin")]
+	AdminHome
 }
 
 fn switch(route: Route) -> Html {
 	match route {
-		Route::Home => html! { <Home page={ 0 }/> },
+		Route::Home => switch(Route::HomePage { page: 0 }),
 		Route::HomePage { page } => html! { <Home page={ page } /> },
 		Route::Post { id } => html! { <ViewPost id={ id } /> },
 		Route::EditPost { id } => html! {
@@ -42,7 +48,13 @@ fn switch(route: Route) -> Html {
 			<AuthView>
 				<EditPostParent id={ NO_POST }/> 
 			</AuthView>
-		}
+		},
+		Route::Admin { page } => html! {
+			<AuthView>
+				<Admin page={ page }/>
+			</AuthView>
+		},
+		Route::AdminHome => switch(Route::Admin { page: 0 })
 	}
 }
 
@@ -67,6 +79,32 @@ pub fn get_post(id: u32, state: UseStateHandle<Option<Result<Post, GetPostErr>>>
 				}))
 			}
 			Err(err) => Err(GetPostErr::Other(format!("{err:?}")))
+		};
+
+		state.set(Some(res));
+	});
+}
+
+pub fn get_post_list(count: usize, offset: u32, state: UseStateHandle<Option<Result<Vec<Post>, String>>>) {
+	wasm_bindgen_futures::spawn_local(async move {
+		let url = format!("/api/posts?count={count}&offset={offset}");
+		// This could be such a pretty functional expression but we have to make it an
+		// ugly match statement cause we can't have await in blocks
+		let res = match gloo_net::http::Request::get(&url).send().await {
+			Ok(res) => if res.ok() {
+				res.json::<Vec<Post>>().await
+					.map_err(|e| format!("There was an error while decoding: {e:?}"))
+			} else {
+				let text = res.text().await.unwrap_or_else(|e| format!("{e:?}"));
+				let error_text = if text.is_empty() {
+					"No Error Text (The backend is probably not running)".into()
+				} else {
+					text
+				};
+
+				Err(format!("Request returned {}: {error_text}", res.status()))
+			},
+			Err(err) => Err(format!("{err:?}"))
 		};
 
 		state.set(Some(res));

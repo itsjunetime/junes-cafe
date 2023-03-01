@@ -1,6 +1,7 @@
 use yew::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{
+	HtmlButtonElement,
 	HtmlInputElement,
 	HtmlTextAreaElement,
 	DragEvent,
@@ -19,6 +20,8 @@ use std::{
 
 // Since postgres starts ids at 1, we know that no post should have an id of 0, and thus we should
 // be safe to use it as the identifier meaning 'No post'
+// It irks me to have a sentinel value but since we're communicating over HTTP APIs, it's necessary
+// sometimes
 pub const NO_POST: u32 = 0;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,7 +50,6 @@ pub enum EditMsg {
 	Content(String),
 	AddTag(String),
 	RemoveTag(String),
-	Draft(bool)
 }
 
 #[derive(Properties, PartialEq, Eq, Default, Clone)]
@@ -109,7 +111,6 @@ impl Reducible for PostDetails {
 
 				clone_self!(tags)
 			},
-			EditMsg::Draft(draft) => clone_self!(draft)
 		}
 	}
 }
@@ -166,12 +167,21 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 	let submit_details = details.clone();
 	let id = props.id.to_owned();
 
-	// And create the callback that will run when we click the submit button
-	let submit_click = Callback::from(move |_| {
+	// The callback that will run when we click either the 'Publish' or 'Save as Draft' button,
+	// which will create the post, either not as a draft or as a draft (respectively)
+	let submit_click = Callback::from(move |event: MouseEvent| {
 		// Have to reclone since Callback::from takes an Fn(), not FnOnce()
 		let reclone = submit.clone();
 		let details_clone = submit_details.clone();
 		let owned_id = id.to_owned();
+
+		// Determine if it's a draft by checking the id of the button that clicked it and seeing if
+		// that contains the string 'draft'. Kinda stupid and hacky but the easiest way to get this
+		// working since we need to use the same callback for publishing and drafting
+		let draft = event.target()
+			.and_then(|t| t.dyn_into::<HtmlButtonElement>().ok())
+			.map(|t| t.id().to_lowercase().contains("draft"))
+			.unwrap_or(false);
 
 		reclone.set(SubmissionState::Loading);
 
@@ -189,7 +199,7 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 				title: details_clone.title.clone(),
 				content: details_clone.content.clone(),
 				tags: Vec::from_iter(details_clone.tags.clone()),
-				draft: details_clone.draft
+				draft 
 			};
 
 			// Create the request
@@ -384,7 +394,18 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 						</span>
 					</div>
 					<br/><br/>
-					<button id="submit-button" onclick={ submit_click }>{ "Submit Post" }</button>
+					<button id="publish-button" onclick={ submit_click.clone() }>{ "Publish" }</button>
+					{
+						// If this is a completely new post or we're editing a draft, offer the
+						// 'save as draft' button. Else don't show it (cause I don't want to figure
+						// out the specific mechanics of how to draft already published posts and
+						// what happens when you try to un-draft them)
+						if details.draft || id == NO_POST {
+							html! { <button id="draft-button" onclick={ submit_click }>{ "Save as Draft" }</button> }
+						} else {
+							html! {}
+						}
+					}
 				</div>
 			</>
 		},
