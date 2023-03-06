@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 serde = { version = "1.0.147", default-features = false,  features = ["serde_derive"] }
 serde_json = { version = "1.0.89", default-features = false, features = ["alloc"] }
-sqlx = { version = "0.6.2", default-features = false, features = ["postgres", "runtime-tokio-rustls"], optional = true }
+sqlx = { version = "0.6.2", default-features = false, features = ["macros", "postgres", "runtime-tokio-rustls"], optional = true }
 
 [features]
 sqlx = ["dep:sqlx"]
