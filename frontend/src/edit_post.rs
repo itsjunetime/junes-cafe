@@ -298,6 +298,9 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 					#submit-button:hover {
 						background-color: #00000000;
 					}
+					#publish-button {
+						margin-right: 8px;
+					}
 					"
 				}
 				</style>

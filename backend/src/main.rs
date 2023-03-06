@@ -1,3 +1,10 @@
+use argon2::{
+	password_hash::{
+		rand_core::OsRng,
+		PasswordHash, PasswordHasher, PasswordVerifier, SaltString
+	},
+	Argon2
+};
 use axum::{
 	routing::{get, post},
 	extract::{Path, Query, DefaultBodyLimit},
@@ -75,14 +82,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		}
 	}
 
+	// We want to read this one first so that there's the least amount of time between this being
+	// loaded into memory and being cleared from memory
+	let password = dotenv::var("BASE_PASSWORD");
+	// Reset it so nobody else can somehow read it from the env
+	std::env::set_var("BASE_PASSWORD", "");
+	let username = dotenv::var("BASE_USERNAME");
+
 	let backend_port = dotenv_num!("BACKEND_PORT", 444, u16);
 	let num_connections = dotenv_num!("DB_CONNECTIONS", 80, u32);
 
-	let db_table = dotenv::var("DB_TABLE").unwrap_or_else(|_| "barista".into());
-	let db_host = dotenv::var("DB_HOST").unwrap_or_else(|_| "localhost".into());
-	let Ok(db_user) = dotenv::var("DB_USER") else {
-		eprintln!("DB_USER is not set in .env, and is necessary to connect to postgres. Please set it and retry.");
-		return Ok(());
+	let db_url = match dotenv::var("DATABASE_URL") {
+		Ok(url) => url,
+		Err(err) => {
+			eprintln!("DATABASE_URL is not set in .env, and is necessary to connect to postgres. Please set it and retry.");
+			return Err(err.into()) 
+		}
 	};
 
 	// Verifying that IMAGE_DIR is a valid directory and is not readonly
@@ -96,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		Ok(mtd) => mtd.permissions(),
 		Err(err) => {
 			eprintln!("IMAGE_DIR does not point to a valid directory: {err:?}");
-			return Ok(())
+			return Err(err.into())
 		}
 	};
 
@@ -112,7 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let pool = PgPoolOptions::new()
 		.max_connections(num_connections)
 		// We need the `barista` table to exist before we start
-		.connect(&format!("postgresql://{db_user}@{db_host}/{db_table}"))
+		.connect(&db_url)
 		.await?;
 
 	println!("Connected to postgres...");
@@ -139,10 +154,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	// controls later. Doesn't really matter for now tho.
 	query("CREATE TABLE IF NOT EXISTS users (
 		id serial PRIMARY KEY,
-		username text NOT NULL,
+		username text NOT NULL UNIQUE,
 		hashed_pass text NOT NULL
 	);").execute(&pool)
 		.await?;
+
+	match (username, password) {
+		(Ok(name), Ok(pass)) => {
+			println!("Adding user {name} to the db if not already exists (else updating password)");
+
+			let salt = SaltString::generate(&mut OsRng);
+			let argon = Argon2::default();
+
+			let hash = match argon.hash_password(pass.as_str().as_bytes(), &salt) {
+				Ok(hash) => hash.to_string(),
+				Err(err) => {
+					eprintln!("Couldn't hash the given password at .env:BASE_PASSWORD: {err:?}");
+					return Err(err.into());
+				}
+			};
+			
+			// We insert the user into the db, but if there's a conflict (if the username already
+			// exists), then we just leave it be, since the hash for the same password can change.
+			// If you want to change the password, you'll have to manually go into the database and
+			// clear the user.
+			query("INSERT INTO users (username, hashed_pass)
+				  VALUES ($1, $2)
+				  ON CONFLICT (username) DO NOTHING 
+			;").bind(name)
+				.bind(hash)
+				.execute(&pool)
+				.await?;
+		},
+		(Err(_), Err(_)) => println!("No base user specified; adding more users will be difficult"),
+		_ => {
+			eprintln!("Either a base username or password was specified, but not the other. Cannot proceed; please specify both or neither.");
+			return Ok(())
+		}
+	};
 
 	// Set up sessions for authentication
 	// And if we have to restart the server, then we're ok with losing sessions, so do an only
@@ -201,7 +250,7 @@ async fn get_post_list(
 	};
 
 	query_as::<_, Post>(&format!("SELECT \
-		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, u.username \
+		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, p.draft, u.username \
 		FROM posts p \
 		LEFT JOIN users u ON u.id = p.created_by_user \
 		{draft_clause} \
@@ -233,7 +282,7 @@ async fn get_post(
 	};
 
 	let query_str = format!("SELECT \
-		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, u.username \
+		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, p.draft, u.username \
 		FROM \
 		posts p LEFT JOIN users u ON u.id = p.created_by_user \
 		{where_clause}\
@@ -356,51 +405,65 @@ pub async fn login(
 	mut tx: Tx<Postgres>,
 	AuthBasic((username, password)): AuthBasic,
 	mut session: WritableSession
-) -> (StatusCode, String) {
+) -> Result<(), (StatusCode, String)> {
 	// Just in case they've already logged in
 	if check_auth!(session, noret).is_ok() {
-		return (StatusCode::OK, String::new());
+		return Ok(());
 	};
 
 	// Only get the pass if it's not empty
 	let Some(pass) = password.and_then(|p| (!p.is_empty()).then_some(p)) else {
 		eprintln!("Session {} sent a login request with an empty password", session.id());
-		return (StatusCode::PRECONDITION_FAILED, "Please include a password".into())
+		return Err((StatusCode::PRECONDITION_FAILED, "Please include a password".into()));
 	};
 
 	if username.is_empty() {
 		eprintln!("Session {} sent a login request with an empty username", session.id());
-		return (StatusCode::PRECONDITION_FAILED, "Please include a username".into())
+		return Err((StatusCode::PRECONDITION_FAILED, "Please include a username".into()));
 	}
 
 	println!("User trying to login with session {} and username {username}", session.id());
 
 	let unauth = || (StatusCode::UNAUTHORIZED, "Incorrect username or password".into());
 
-	query("SELECT hashed_pass FROM users WHERE username = $1")
+	let hash = query("SELECT hashed_pass FROM users WHERE username = $1")
 		.bind(&username)
 		.fetch_one(&mut *tx)
 		.await
 		.and_then(|row| row.try_get::<String, _>("hashed_pass"))
-		.map_or_else(
-			|e| {
-				eprintln!("Database error when logging in: {e:?}");
-				unauth()
-			},
-			|p| argon2::verify_encoded(&p, pass.as_bytes())
-				.map_or_else(
-					|e| print_and_ret!("Couldn't verify password: {e:?}"),
-					|verified| if verified {
-						println!("Trying to log in {username} with session_id {}", session.id());
+		.map_err(|e| {
+			eprintln!("Database error when logging in: {e:?}");
+			// It would make more sense to send an INTERNAL_SERVER_ERROR but that could expose a
+			// vulnerability if they were able to reliably cause a database error with a certain
+			// input, so we are just logging the error then giving them a generic response
+			unauth()
+		})?;
 
-						if let Err(err) = session.insert(USERNAME_KEY, username) {
-							print_and_ret!("Could not save session: {err}");
-						}
+	let hash_struct = PasswordHash::new(&hash)
+		.map_err(|e| {
+			eprintln!("Couldn't create password hash from hash in database ({e:?}); has anyone messed with your db?");
+			unauth()
+		})?;
 
-						(StatusCode::OK, String::new())
-					} else {
-						unauth()
-					}
-				)
-		)
+	match Argon2::default().verify_password(pass.as_str().as_bytes(), &hash_struct) {
+		Ok(_) => {
+			println!("Trying to log in {username} with session_id {}", session.id());
+
+			if let Err(err) = session.insert(USERNAME_KEY, username) {
+				println!("Could not save session: {err}");
+				return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to save session; unable to log you in".into()));
+			}
+
+			Ok(())
+		},
+		Err(e) => {
+			if e != argon2::password_hash::Error::Password {
+				println!("Password verification failed with error {e}");
+			} else {
+				println!("Given password '{pass}' is incorrect (ugh)");
+			}
+
+			Err(unauth())
+		}
+	}
 }
