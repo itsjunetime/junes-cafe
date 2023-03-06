@@ -396,6 +396,12 @@ fn post_details(payload: PostReq) -> SqlPostDetails {
 	let PostReq { content, title, tags, draft } = payload;
 	let parser = md::Parser::new_ext(&content, md::Options::all());
 	let mut html = String::new();
+	
+	// So it would be smart to sanitize the html to make sure that XSS and stuff like that isn't
+	// supported but it's my website and I think it's fun to have the option of doing fun little
+	// stuff with javascript if I would so like, and this input is already trusted (since only
+	// logged-in users can access this API and I am the only user) so I don't see the need to
+	// sanitize very strongly
 	md::html::push_html(&mut html, parser);
 
 	SqlPostDetails { content, html, title, draft, tags: tags.join(",") }
