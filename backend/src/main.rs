@@ -368,7 +368,7 @@ pub async fn edit_post(
 
 	println!("Trying to edit post with id {id}");
 
-	query("UPDATE posts SET html = $1, orig_markdown = $2, title = $3, tags = $4, draft = $5 WHERE id = $5")
+	query("UPDATE posts SET html = $1, orig_markdown = $2, title = $3, tags = $4, draft = $5 WHERE id = $6")
 		.bind(details.html)
 		.bind(details.content)
 		.bind(details.title)
