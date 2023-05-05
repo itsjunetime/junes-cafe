@@ -31,9 +31,9 @@ pub fn view_post(props: &PostProps) -> Html {
 		Some(Err(GetPostErr::NotFound)) => html! { <h1>{ "Not Found" }</h1> },
 		Some(Err(GetPostErr::Other(err))) => html! { <><h1>{ "Error" }</h1><p>{ err }</p></> },
 		Some(Ok(post)) => html! {
-			<div id="article-content">
-				<span id="article-title">
-					<h2>{ &post.title }</h2>
+			<div id="post-content">
+				<span id="post-header">
+					<h2 id="post-title">{ &post.title }</h2>
 					<span>{ "At " }
 						<strong>{
 							NaiveDateTime::from_timestamp_opt(post.created_at as i64, 0)
@@ -46,7 +46,7 @@ pub fn view_post(props: &PostProps) -> Html {
 					</span>
 				</span>
 				<br /><br />
-				<div id="article-text">
+				<div id="post-text">
 				{ Html::from_html_unchecked(post.html.clone().into()) }
 				</div>
 				{
@@ -79,19 +79,22 @@ pub fn view_post(props: &PostProps) -> Html {
 			<style>
 			{
 				"
-				#article-content {
+				#post-content {
 					max-width: 790px;
 					margin: 10px auto;
 				}
-				#article-title {
+				#post-header * {
 					color: var(--secondary-text);
 				}
-				#article-text {
+				#post-title {
+					color: var(--title-text);
+				}
+				#post-text {
 					color: var(--main-text);
 					padding: 12px 12px;
 					border-radius: 4px;
 				}
-				#article-text img {
+				#post-text img {
 					max-width: 100%;
 				}
 				"

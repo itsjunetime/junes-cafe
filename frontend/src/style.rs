@@ -1,22 +1,48 @@
 use yew::prelude::*;
 
+const SCHEMES: &[&str] = &[
+	// Foresty but bad
+	"
+	--body-background: #0f1f0f;
+	--main-text: #f5e1b9;
+	--secondary-text: #d8af7f;
+	--main-background: #495635;
+	--secondary-background: #5f6f3a;
+	--border-color: #464232;
+	",
+	// Purpleish
+	"
+	--body-background: #3f3540;
+	--main-text: #f1f6ff;
+	--secondary-text: #f7ebec;
+	--main-background: #1d1e2c;
+	--secondary-background: #59656f;
+	--border-color: #ac9fbb;
+	--title-text: #d1bbe4;
+	",
+	// dusty
+	"
+	--body-background: #000000;
+	--main-text: #E0AC9D;
+	--secondary-text: #A37774;
+	--main-background: #484A47;
+	--secondary-background: #5C6D70;
+	--border-color: #E88873;
+	"
+];
+
 #[function_component(SharedStyle)]
 pub fn shared_style() -> Html {
-	html! {
+	html! { <>
 		<style>{
 			// Ugh I don't like this but oh well
 			r#"
 			* {
 				font-family: Arial;
 				color: var(--main-text);
-				--secondary-text: #d8af7f;
-				--main-text: #f5e1b9;
-				--secondary-background: #5f6f3a;
-				--main-background: #495635;
-				--border-color: #464232;
 			}
 			body {
-				background-color: #0f1f0f;
+				background-color: var(--body-background);
 			}
 			#tag-title {
 				color: var(--secondary-text);
@@ -45,5 +71,8 @@ pub fn shared_style() -> Html {
 			}
 			"#
 		}</style>
-	}
+		<style>{
+			format!("* {{ {} }}", SCHEMES[1])
+		}</style>
+	</> }
 }

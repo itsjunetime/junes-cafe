@@ -1,0 +1,10 @@
+[build]
+release = true
+
+[[proxy]]
+backend = "http://localhost:3000/api/"
+
+[[hooks]]
+stage = "post_build"
+command = "sh"
+command_arguments = ["-c", "echo running in $(pwd)"]

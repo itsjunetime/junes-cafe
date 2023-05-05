@@ -12,7 +12,9 @@ impl PostViewProvider for AdminPostView {
 		html! {
 			<div class="post" id={ format!("post-{}", post.id) }>
 				<div class="post-top">
-					<h2 class="post-title">{ &post.title }</h2>
+					<a href={ format!("/post/{}", post.id) }> 
+						<h2 class="post-title">{ &post.title }</h2>
+					</a>
 					<div class="post-subtitle-box">
 						<span class="post-subtitle">
 							{ "by " }
@@ -53,6 +55,10 @@ pub fn admin(props: &HomeProps) -> Html {
 		.post {
 			display: flex;
 			flex-flow: wrap;
+			margin: 16px auto;
+			border: 2px solid var(--secondary-background);
+			border-radius: 14px;
+			padding: 16px 20px;
 		}
 		.post hr {
 			flex-basis: 100%;
@@ -80,14 +86,16 @@ pub fn admin(props: &HomeProps) -> Html {
 		}
 		.tag {
 			margin-right: 0px !important;
-			// Why does this padding make it look nice and centered??? Who fucking knows;
+			// Why does this padding make it look nice and centered??? Who fucking knows
 			padding: 5px 6px 4px 6px !important;
 		}
 		.action-links {
 			justify-content: flex-end;
 		}
-		a.action-link {
+		a {
 			text-decoration: none;
+		}
+		a.action-link {
 			padding: 4px 8px;
 			border-radius: 6px;
 			border: 2px solid var(--secondary-background);

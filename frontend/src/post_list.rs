@@ -9,6 +9,9 @@ use crate::{
 // How many posts to request at a time
 pub const REQ_BLOCK: usize = 10;
 
+const GITHUB_ICON: &str = include_str!("../../assets/github-mark.svg");
+const TWITTER_ICON: &str = include_str!("../../assets/twitter.svg");
+
 pub trait PostViewProvider: PartialEq {
 	fn post_view(post: &Post) -> Html;
 }
@@ -75,70 +78,47 @@ pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 					margin: 0px auto;
 					max-width: max-content;
 				}
-				.post, .home-title, .page-selector {
+				#title-text {
+					max-width: max-content;
+					display: inline-block;
+					margin: 10px 0;
+				}
+				#home-title {
+					display: flex;
+					justify-content: space-between;
+				}
+				#home-title > a > svg {
+					transform-origin: top center;
+				}
+				.post, #home-title, .page-selector {
 					max-width: 900px;
+				}
+				#home-title {
+					margin: 20px auto 10px auto;
+				}
+				.page-selector {
 					margin: 10px auto;
 				}
-				.post {
-					padding: 8px 10px;
-					background-color: var(--main-background);
-					border-radius: 8px;
-					color: var(--main-text);
-				}
-				.post-header {
-					padding: 0px 6px 4px 6px;
-					border-bottom: 1px solid var(--secondary-text);
-					color: var(--main-text);
-					text-decoration: none;
+				#social-icons {
+					align-self: center;
 					display: inline-block;
-				}
-				.post-title {
-					display: inline;
-				}
-				.post-subtitle-box {
-					border-radius: 3px; 
-					margin-left: 10px;
-					display: inline-block;
-				}
-				.post-subtitle {
-					padding: 4px 0px;
-					display: inline-block;
-				}
-				.post-content {
-					padding: 8px 12px;
-					position: relative;
-					max-height: 240px;
-					overflow: hidden;
-				}
-				.post-content img {
-					max-width: 100%;
-				}
-				.post-content::after {
-					content: \"\";
-					position: absolute;
-					z-index: 1;
-					bottom: 0;
-					left: 0;
-					pointer-events: none;
-					background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--main-background) 90%);
-					width: 100%;
-					height: 8em;
-				}
-				.post-footer {
-					margin-top: 4px;
-				}
-				.post-footer span:first-of-type {
-					margin-left: 6px;
 				}
 				.page-selector {
 					margin: 12px auto;
 					text-align: center;
 				}
+				a {
+					text-decoration: none;
+				}
 				"
 			}
 			</style>
-			<div class="home-title">
-				<h1>{ &props.title }</h1>
+			<div id="home-title">
+				<h1 id="title-text">{ &props.title }</h1>
+				<span id="social-icons">
+					<a href="https://github.com/itsjunetime">{ Html::from_html_unchecked(GITHUB_ICON.into()) }</a>
+					<a href="https://twitter.com/itsjunetime">{ Html::from_html_unchecked(TWITTER_ICON.into()) }</a>
+				</span>
 			</div>
 			<div id="posts">
 				{ posts_html }

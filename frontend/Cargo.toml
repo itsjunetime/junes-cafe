@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dotenv = "0.15.0"
 gloo-net = { version = "0.2.4", default-features = false, features = ["futures-core", "futures-sink", "http", "json", "serde", "serde_json", "pin-project"] }
 wasm-bindgen-futures = "0.4.33"
 wasm-bindgen = { version = "0.2.84", default-features = false, features = ["std"] }
