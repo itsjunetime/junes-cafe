@@ -359,12 +359,22 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 						style="display: none;"
 						onchange={ move |e: Event| {
 							let ev_type = e.js_typeof();
-							let Ok(input) = e.dyn_into::<HtmlInputElement>() else {
+							let target = e.target();
+
+							// Apparently sometimes we can just get the plain element here or we
+							// can get an object of type 'change' and have to grab its target to
+							// and then dyn_into that to get the object we want files from
+							let input = if let Ok(i) = e.dyn_into::<HtmlInputElement>() {
+								i
+							} else if let Some(i) = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok()) {
+								i
+							} else {
 								let formatted = format!("event was not HtmlInputElement, but rather {ev_type:?}");
 								log!(&formatted);
 								input_image.set(ImageUploadState::PreflightError(formatted));
 								return;
 							};
+
 							upload_image(input.files(), input_image.clone())
 						}}
 					/>
