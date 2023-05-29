@@ -571,6 +571,11 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 		fail!("files.item(0) returned None despite verifying one existed in the list");
 	};
 
+	let file_type = file.type_();
+	if !file_type.starts_with("image/") {
+		fail!("Uploaded file has bad mime type {file_type}; must be image/*");
+	}
+
 	let form = match gloo_net::http::FormData::new() {
 		Ok(f) => f,
 		Err(err) => fail!("Couldn't create new FormData: {err:?}"),
@@ -608,4 +613,3 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 		image.set(ImageUploadState::Resolved(result));
 	});
 }
-

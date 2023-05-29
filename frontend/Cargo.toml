@@ -12,7 +12,7 @@ wasm-bindgen = { version = "0.2.84", default-features = false, features = ["std"
 yew = { git = "https://github.com/yewstack/yew.git", features = ["csr"] }
 yew-router = { git = "https://github.com/yewstack/yew.git" }
 shared_data = { path = "../shared_data" }
-web-sys = { version = "0.3.60", features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument", "HtmlButtonElement"] }
+web-sys = { version = "0.3.60", features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument", "HtmlButtonElement", "Blob"] }
 gloo-console = "0.2.3"
 chrono = { version = "0.4.23", default-features = false, features = ["alloc"] }
 js-sys = "0.3.60"
