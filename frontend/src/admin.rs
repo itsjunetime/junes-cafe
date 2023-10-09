@@ -1,4 +1,3 @@
-use chrono::NaiveDateTime;
 use crate::{post_list::{PostViewProvider, PostList}, home::HomeProps};
 use shared_data::Post;
 use yew::prelude::*;
@@ -20,11 +19,7 @@ impl PostViewProvider for AdminPostView {
 							{ "by " }
 							<strong>{ post.display_user() }</strong>
 							{ ", " }
-							<strong>{
-								NaiveDateTime::from_timestamp_opt(post.created_at as i64, 0)
-									.map(|dt| dt.format("%H:%M on %b %-d, %Y").to_string())
-									.unwrap_or_else(|| "an unknown time".into())
-							}</strong>
+							<strong>{ crate::title_time_string(post.created_at) }</strong>
 						</span>
 					</div>
 				</div>

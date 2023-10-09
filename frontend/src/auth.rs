@@ -76,7 +76,7 @@ pub fn auth_view(props: &AuthProps) -> Html {
 				);
 
 			login_reclone.set(res);
-		})
+		});
 	});
 
 	// And now, just to see if we've already logged in, we hit /api/login before even typing

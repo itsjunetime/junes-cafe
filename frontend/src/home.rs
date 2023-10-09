@@ -1,4 +1,3 @@
-use chrono::NaiveDateTime;
 use yew::prelude::*;
 use crate::post_list::{PostViewProvider, PostList};
 use shared_data::Post;
@@ -92,11 +91,7 @@ impl PostViewProvider for HomePostView {
 				</div>
 				<div class="post-footer">
 					{ "Posted at " }
-					<strong>{
-						NaiveDateTime::from_timestamp_opt(post.created_at as i64, 0)
-							.map(|dt| dt.format("%H:%M on %b %-d, %Y").to_string())
-							.unwrap_or_else(|| "an unknown time".into())
-					}</strong>
+					<strong>{ crate::title_time_string(post.created_at) }</strong>
 					{
 						post.tags.0.iter().map(|tag|
 							html! { <span class="tag">{ tag }</span> }

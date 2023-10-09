@@ -3,7 +3,6 @@ use super::{
 	style::SharedStyle,
 	GetPostErr
 };
-use chrono::NaiveDateTime;
 
 #[derive(Properties, PartialEq, Eq)]
 pub struct PostProps {
@@ -35,11 +34,7 @@ pub fn view_post(props: &PostProps) -> Html {
 				<span id="post-header">
 					<h2 id="post-title">{ &post.title }</h2>
 					<span>{ "At " }
-						<strong>{
-							NaiveDateTime::from_timestamp_opt(post.created_at as i64, 0)
-								.map(|dt| dt.format("%H:%M on %b %-d, %Y").to_string())
-								.unwrap_or_else(|| "an unknown time".into())
-						}</strong>
+						<strong>{ crate::title_time_string(post.created_at) }</strong>
 						{ " by " }
 						<strong>{ post.display_user() }</strong>
 						{ "; " }{ &post.reading_time }{ " minute read" }
@@ -50,7 +45,9 @@ pub fn view_post(props: &PostProps) -> Html {
 				{ Html::from_html_unchecked(post.html.clone().into()) }
 				</div>
 				{
-					if !post.tags.0.is_empty() {
+					if post.tags.0.is_empty() {
+						html! { }
+					} else {
 						html! {
 							<>
 								<br /><br />
@@ -65,8 +62,6 @@ pub fn view_post(props: &PostProps) -> Html {
 								</div>
 							</>
 						}
-					} else {
-						html! { }
 					}
 				}
 			</div>

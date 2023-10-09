@@ -1,5 +1,6 @@
 use yew_router::prelude::*;
 use yew::prelude::*;
+use chrono::NaiveDateTime;
 use home::Home;
 use post::ViewPost;
 use edit_post::{EditPostParent, NO_POST};
@@ -109,6 +110,18 @@ pub fn get_post_list(count: usize, offset: u32, state: UseStateHandle<Option<Res
 
 		state.set(Some(res));
 	});
+}
+
+pub fn title_time_string(time: u64) -> String {
+	time.try_into()
+		.map_or_else(
+			|_| "200 years in the future???".into(),
+			|time| NaiveDateTime::from_timestamp_opt(time, 0)
+				.map_or_else(
+					|| "an unknown time".into(),
+					|dt| dt.format("%H:%M on %b %-d, %Y").to_string()
+				)
+		)
 }
 
 #[function_component(Frontend)]

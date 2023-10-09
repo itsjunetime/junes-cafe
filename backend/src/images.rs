@@ -7,7 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{print_and_ret, check_auth, USERNAME_KEY};
 
 pub async fn upload_image(session: ReadableSession, mut form: Multipart) -> (StatusCode, String) {
-	_ = check_auth!(session);
+	check_auth!(session);
 
 	// We need to loop over each field of the form
 	loop {

@@ -411,7 +411,7 @@ pub async fn login(
 	mut tx: Tx<Postgres>,
 	AuthBasic((username, password)): AuthBasic,
 	mut session: WritableSession
-) -> Result<(), (StatusCode, String)> {
+) -> Result<(), (StatusCode, &'static str)> {
 	// Just in case they've already logged in
 	if check_auth!(session, noret).is_ok() {
 		return Ok(());
@@ -420,17 +420,17 @@ pub async fn login(
 	// Only get the pass if it's not empty
 	let Some(pass) = password.and_then(|p| (!p.is_empty()).then_some(p)) else {
 		eprintln!("Session {} sent a login request with an empty password", session.id());
-		return Err((StatusCode::PRECONDITION_FAILED, "Please include a password".into()));
+		return Err((StatusCode::PRECONDITION_FAILED, "Please include a password"));
 	};
 
 	if username.is_empty() {
 		eprintln!("Session {} sent a login request with an empty username", session.id());
-		return Err((StatusCode::PRECONDITION_FAILED, "Please include a username".into()));
+		return Err((StatusCode::PRECONDITION_FAILED, "Please include a username"));
 	}
 
 	println!("User trying to login with session {} and username {username}", session.id());
 
-	let unauth = || (StatusCode::UNAUTHORIZED, "Incorrect username or password".into());
+	let unauth = || (StatusCode::UNAUTHORIZED, "Incorrect username or password");
 
 	let hash = query("SELECT hashed_pass FROM users WHERE username = $1")
 		.bind(&username)
@@ -457,16 +457,16 @@ pub async fn login(
 
 			if let Err(err) = session.insert(USERNAME_KEY, username) {
 				println!("Could not save session: {err}");
-				return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to save session; unable to log you in".into()));
+				return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to save session; unable to log you in"));
 			}
 
 			Ok(())
 		},
 		Err(e) => {
-			if e != argon2::password_hash::Error::Password {
-				println!("Password verification failed with error {e}");
-			} else {
+			if e == argon2::password_hash::Error::Password {
 				println!("Given password '{pass}' is incorrect (ugh)");
+			} else {
+				println!("Password verification failed with error {e}");
 			}
 
 			Err(unauth())

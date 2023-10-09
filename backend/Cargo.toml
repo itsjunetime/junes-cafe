@@ -19,3 +19,4 @@ axum-auth = { version = "0.4", default-features = false, features = ["auth-basic
 argon2 = { version = "0.5.0", features = ["std"] }
 axum-sessions = "0.4.1"
 rand = "0.8.5"
+highlight-pulldown = "0.2.2"

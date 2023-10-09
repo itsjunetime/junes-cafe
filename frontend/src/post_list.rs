@@ -48,15 +48,15 @@ pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 	let show_next = post_list.as_ref().map_or(false, |e| e.as_ref().map_or(false, |p| p.len() == REQ_BLOCK));
 
 	// Construct the buttons on the bottom of the page based on if we should show them
-	let button_html = if !(show_prev || show_next) {
-		html!{{ "That's all!" }}
-	} else {
+	let button_html = if show_prev || show_next {
 		vec![
 			show_prev.then(|| html! { <a href={ format!("/page/{}", props.page - 1) }>{ "< Prev" }</a> }),
 			show_next.then(|| html! { <a href={ format!("/page/{}", props.page + 1) }>{ "Next >" }</a> })
 		].into_iter()
 		.flatten()
 		.collect::<Html>()
+	} else {
+		html!{{ "That's all!" }}
 	};
 
 	let posts_html = match &*post_list {

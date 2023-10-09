@@ -85,8 +85,9 @@ impl Reducible for PostDetails {
 			}.into(),
 			EditMsg::Title(title) => clone_self!(title),
 			EditMsg::Content(content) => clone_self!(content),
-			EditMsg::AddTag(tag) => if !tag.is_empty() {
-
+			EditMsg::AddTag(tag) => if tag.is_empty() {
+				self
+			} else {
 				let mut tags = self.tags.clone();
 				tags.insert(tag);
 
@@ -102,8 +103,6 @@ impl Reducible for PostDetails {
 				}
 
 				clone_self!(tags)
-			} else {
-				self
 			},
 			EditMsg::RemoveTag(tag) => {
 				let mut tags = self.tags.clone();
@@ -156,8 +155,8 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 		// If we do have the post, we won't have returned, so we'll set the details here and let
 		// the view reload
 		let tags = HashSet::from_iter(retrieved_post.tags.0.clone());
-		let content = retrieved_post.orig_markdown.to_owned();
-		let title = retrieved_post.title.to_owned();
+		let content = retrieved_post.orig_markdown.clone();
+		let title = retrieved_post.title.clone();
 
 		details.dispatch(EditMsg::SetInitial(tags, content, title, retrieved_post.draft));
 	}
@@ -180,8 +179,7 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 		// working since we need to use the same callback for publishing and drafting
 		let draft = event.target()
 			.and_then(|t| t.dyn_into::<HtmlButtonElement>().ok())
-			.map(|t| t.id().to_lowercase().contains("draft"))
-			.unwrap_or(false);
+			.is_some_and(|t| t.id().to_lowercase().contains("draft"));
 
 		reclone.set(SubmissionState::Loading);
 
@@ -306,12 +304,12 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 				</style>
 				<div id="article-content">
 					<h1>{ "New Post" }</h1>
-					<input placeholder="title" value={ details.title.to_owned() } onchange={ title_callback } />
+					<input placeholder="title" value={ details.title.clone() } onchange={ title_callback } />
 					<br/><br/>
 					<textarea
 						placeholder="what's goin on? :)"
 						oninput={ content_callback }
-						value={ details.content.to_owned() }
+						value={ details.content.clone() }
 						disabled={
 							matches!(*image, ImageUploadState::UploadingImage | ImageUploadState::Resolved(Ok((_, false))))
 						}
@@ -375,7 +373,7 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 								return;
 							};
 
-							upload_image(input.files(), input_image.clone())
+							upload_image(input.files(), input_image.clone());
 						}}
 					/>
 					<br/>
@@ -391,14 +389,14 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 									// requires re-owning stuff all the time. Especially because `Component`
 									// requires a 'static lifetime, so you can't have any borrowed data input
 									// structs that impl Component. Makes it all kinda ugly sometimes
-									let owned = tag.to_owned();
+									let owned = tag.clone();
 									let details_clone = details.clone();
 
 									html! {
 										<span class="tag">
 											{ tag }
 											<button onclick={
-												move |_| details_clone.dispatch(EditMsg::RemoveTag(owned.to_owned()))
+												move |_| details_clone.dispatch(EditMsg::RemoveTag(owned.clone()))
 											}>{ "✕" }</button>
 										</span>
 									}
