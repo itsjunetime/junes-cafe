@@ -69,6 +69,14 @@ pub fn shared_style() -> Html {
 				border-radius: 4px;
 				padding: 6px 8px;
 			}
+			pre {
+				padding: 10px;
+				border-radius: 8px;
+				overflow: scroll
+			}
+			pre > span, code {
+				font-family: Courier;
+			}
 			"#
 		}</style>
 		<style>{

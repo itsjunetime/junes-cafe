@@ -32,12 +32,18 @@ pub fn view_post(props: &PostProps) -> Html {
 		Some(Ok(post)) => html! {
 			<div id="post-content">
 				<span id="post-header">
+					<a href="/" id="back-button" style="height: 0;display: block;right: 30px;position: relative;top: 24px;">{ "←" }</a>
 					<h2 id="post-title">{ &post.title }</h2>
 					<span>{ "At " }
 						<strong>{ crate::title_time_string(post.created_at) }</strong>
 						{ " by " }
 						<strong>{ post.display_user() }</strong>
-						{ "; " }{ &post.reading_time }{ " minute read" }
+						{ "; " }
+						if post.reading_time == 0 {
+							{ "a quick read" }
+						} else {
+							{ &post.reading_time }{ " minute read" }
+						}
 					</span>
 				</span>
 				<br /><br />
@@ -80,6 +86,14 @@ pub fn view_post(props: &PostProps) -> Html {
 				}
 				#post-header * {
 					color: var(--secondary-text);
+				}
+				#back-button {
+					height: 0;
+					display: block;
+					right: 30px;
+					position: relative;
+					top: 24px;
+					text-decoration: none;
 				}
 				#post-title {
 					color: var(--title-text);

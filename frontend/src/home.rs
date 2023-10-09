@@ -81,8 +81,12 @@ impl PostViewProvider for HomePostView {
 							{ "by " }
 							<strong>{ post.display_user() }</strong>
 							{ ", " }
-							<strong>{ post.reading_time.to_string() }</strong>
-							{ " minute read " }
+							if post.reading_time == 0 {
+								{ "a quick read" }
+							} else {
+								<strong>{ post.reading_time.to_string() }</strong>
+								{ " minute read " }
+							}
 						</span>
 					</span>
 				</a>

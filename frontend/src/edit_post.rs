@@ -164,7 +164,7 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 	// Prepare things for submitting the post to the backend
 	let submit_clone = submit.clone();
 	let submit_details = details.clone();
-	let id = props.id.to_owned();
+	let id = props.id;
 
 	// The callback that will run when we click either the 'Publish' or 'Save as Draft' button,
 	// which will create the post, either not as a draft or as a draft (respectively)
@@ -172,7 +172,6 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 		// Have to reclone since Callback::from takes an Fn(), not FnOnce()
 		let reclone = submit.clone();
 		let details_clone = submit_details.clone();
-		let owned_id = id.to_owned();
 
 		// Determine if it's a draft by checking the id of the button that clicked it and seeing if
 		// that contains the string 'draft'. Kinda stupid and hacky but the easiest way to get this
@@ -186,10 +185,10 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 		// Have to spawn a future since we need to await the request's completion
 		wasm_bindgen_futures::spawn_local(async move {
 			// If we're creating a new post, submit to that endpoint - otherwise, submit to edit
-			let url = if owned_id == NO_POST {
+			let url = if id == NO_POST {
 				"/api/new_post".into()
 			} else {
-				format!("/api/edit_post/{owned_id}")
+				format!("/api/edit_post/{id}")
 			};
 
 			// Create the data structure to send with the request
@@ -285,7 +284,6 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 					textarea {
 						width: 100%;
 						height: 300px;
-						resize: none;
 					}
 					.upload-details {
 						border: 1px solid var(--border-color);
@@ -447,19 +445,29 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 			}
 			</style>
 		},
-		SubmissionState::Resolved(code, text) => submit_resolved_view(*code, text, submit_clone.clone())
+		SubmissionState::Resolved(code, text) => submit_resolved_view(*code, text, props.id, submit_clone.clone())
 	}
 }
 
-fn submit_resolved_view(code: u16, text: &String, submit_state: UseStateHandle<SubmissionState>) -> Html {
+fn submit_resolved_view(code: u16, text: &String, post_id: u32, submit_state: UseStateHandle<SubmissionState>) -> Html {
 	let go_home = html! {
 		<a href="/">{ "Go home" }</a>
 	};
 
-	let res_html = if let Some(id) = (code == 200).then(|| text.parse::<u32>().ok()).flatten() {
+	let id = (code == 200).then(|| text.parse::<u32>().ok()).
+		flatten()
+		.or(if post_id == NO_POST { None } else { Some(post_id) });
+
+	let res_html = if let Some(id) = id {
+		// If we're editing a post...
+		let creation_str = if post_id == NO_POST {
+			"Post was saved!"
+		} else {
+			"Post was created!"
+		};
 		html! {
 			<div class="submit-result submit-success">
-				<h1 class="submit-title">{ "Post was created!" }</h1>
+				<h1 class="submit-title">{ creation_str }</h1>
 				<div class="nav-buttons">
 					<a href={ format!("/post/{id}") }>{ "View Post" }</a>
 					<a href={ format!("/edit_post/{id}") }>{ "Edit Post" }</a>
@@ -468,7 +476,7 @@ fn submit_resolved_view(code: u16, text: &String, submit_state: UseStateHandle<S
 			</div>
 		}
 	} else {
-		let submit_reason = html! {
+		let bottom_section = html! { <>
 			<h3 class="submit-reason">{
 				if text.is_empty() {
 					"No reason given".into()
@@ -476,30 +484,27 @@ fn submit_resolved_view(code: u16, text: &String, submit_state: UseStateHandle<S
 					format!("Reason given: {text}")
 				}
 			}</h3>
-		};
+			<div class="nav-buttons">
+				<button onclick={
+					Callback::from(move |_| submit_state.set(SubmissionState::Preparing))
+				}>{
+					"Continue editing"
+				}</button>
+				{ go_home }
+			</div>
+		</> };
 
 		match code {
 			500.. => html! {
 				<div class="submit-result submit-failure">
 					<h1 class="submit-title">{ format!("Post creation failed with code {code}") }</h1>
-					{ submit_reason }
-					<div class="nav-buttons">
-						<button onclick={
-							Callback::from(move |_| submit_state.set(SubmissionState::Preparing))
-						}>{
-							"Continue editing"
-						}</button>
-						{ go_home }
-					</div>
+					{ bottom_section }
 				</div>
 			},
 			_ => html! {
 				<div class="submit-result submit-unknown">
 					<h1 class="submit-title">{ format!("Request returned with code {code}") }</h1>
-					{ submit_reason }
-					<div class="nav-buttons">
-						{ go_home }
-					</div>
+					{ bottom_section }
 				</div>
 			}
 		}
