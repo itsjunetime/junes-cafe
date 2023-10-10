@@ -22,7 +22,7 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
-		  target: wasm32-unknown-unknown
+          target: wasm32-unknown-unknown
       - name: Install Trunk
         run: cargo install trunk
       - name: Build backend
