@@ -1,3 +1,10 @@
 [workspace]
 members = ["backend", "frontend", "shared_data"]
 resolver = "2"
+
+[profile.production]
+inherits = "release"
+opt-level = 2
+lto = "fat"
+codegen-units = 1
+panic = "abort"
