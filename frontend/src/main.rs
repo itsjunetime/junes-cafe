@@ -35,6 +35,7 @@ enum Route {
 	AdminHome
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn switch(route: Route) -> Html {
 	match route {
 		Route::Home => switch(Route::HomePage { page: 0 }),
@@ -112,6 +113,7 @@ pub fn get_post_list(count: usize, offset: u32, state: UseStateHandle<Option<Res
 	});
 }
 
+#[must_use]
 pub fn title_time_string(time: u64) -> String {
 	time.try_into()
 		.map_or_else(

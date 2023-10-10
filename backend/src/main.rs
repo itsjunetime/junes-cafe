@@ -456,7 +456,7 @@ pub async fn login(
 		})?;
 
 	match Argon2::default().verify_password(pass.as_str().as_bytes(), &hash_struct) {
-		Ok(_) => {
+		Ok(()) => {
 			println!("Trying to log in {username} with session_id {}", session.id());
 
 			if let Err(err) = session.insert(USERNAME_KEY, username) {

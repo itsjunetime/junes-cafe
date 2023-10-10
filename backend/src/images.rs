@@ -48,7 +48,7 @@ pub async fn upload_image(session: ReadableSession, mut form: Multipart) -> (Sta
 				return std::fs::write(&save_path, image_data)
 					.map_or_else(
 						|e| print_and_ret!("Couldn't save the image to {save_path:?}: {e:?}"),
-						|_| (StatusCode::OK, file_name)
+						|()| (StatusCode::OK, file_name)
 					);
 			},
 			Err(err) => print_and_ret!("Couldn't get all fields of request: {err:?}")
