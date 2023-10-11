@@ -7,7 +7,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_VERSION_STABLE: 1.73.0
 
 jobs:
   test:
@@ -18,8 +17,44 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ env.RUST_VERSION_STABLE }}
+          toolchain: stable
           profile: minimal
-          override: true
-      - name: Check 
-        run: cargo check
+      - name: Install wasm toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: wasm32-unknown-unknown
+      - name: Install Trunk
+        run: cargo install trunk
+      - name: Build backend
+        run: cargo build --profile production --bin backend
+      - name: Build frontend
+        run: "cd frontend && trunk build --release"
+      - name: Stop currently-running backend
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: /usr/bin/systemctl stop itsjunetime.service
+      - name: SCP files 
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "target/production/backend,frontend/dist/*"
+          target: /home/junkie/server_files/
+          strip_components: 2
+          overwrite: true
+      - name: Restart backend
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            /usr/bin/systemctl daemon-reload
+            /usr/bin/systemctl start itsjunetime.service
+
