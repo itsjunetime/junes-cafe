@@ -35,7 +35,7 @@ use shared_data::{
 		Row,
 		Postgres,
 		postgres::PgPoolOptions
-	}
+	},
 };
 use std::{
 	net::SocketAddr,
@@ -257,7 +257,7 @@ async fn get_post_list(
 		ORDER BY id DESC \
 		LIMIT {count} \
 		OFFSET {offset} \
-	;")).fetch_all(&mut *tx)
+	;")).fetch_all(&mut tx)
 		.await
 		.map(Json)
 		.map_err(|e| {
@@ -291,7 +291,7 @@ async fn get_post(
 	println!("Querying: '{query_str}'");
 
 	query_as::<_, Post>(&query_str).bind(id)
-		.fetch_one(&mut *tx)
+		.fetch_one(&mut tx)
 		.await
 		.map(Json)
 		.map_err(|e| {
@@ -340,7 +340,7 @@ pub async fn submit_post(
 		.bind(minutes as i32)
 		.bind(details.draft)
 		.bind(username)
-		.fetch_one(&mut *tx)
+		.fetch_one(&mut tx)
 		.await
 		.map_or_else(
 			|e| print_and_ret!("Failed to create new post: {e:?}"),
@@ -375,7 +375,7 @@ pub async fn edit_post(
 		.bind(details.tags)
 		.bind(details.draft)
 		.bind(id)
-		.execute(&mut *tx)
+		.execute(&mut tx)
 		.await
 		.map_or_else(
 			|e| print_and_ret!("Couldn't update/edit post with id {id}: {e:?}"),
@@ -438,7 +438,7 @@ pub async fn login(
 
 	let hash = query("SELECT hashed_pass FROM users WHERE username = $1")
 		.bind(&username)
-		.fetch_one(&mut *tx)
+		.fetch_one(&mut tx)
 		.await
 		.and_then(|row| row.try_get::<String, _>("hashed_pass"))
 		.map_err(|e| {

@@ -5,7 +5,8 @@ use web_sys::{
 	HtmlInputElement,
 	HtmlTextAreaElement,
 	DragEvent,
-	FileList
+	FileList,
+	FormData
 };
 use super::{
 	style::SharedStyle,
@@ -579,7 +580,7 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 		fail!("Uploaded file has bad mime type {file_type}; must be image/*");
 	}
 
-	let form = match gloo_net::http::FormData::new() {
+	let form = match FormData::new() {
 		Ok(f) => f,
 		Err(err) => fail!("Couldn't create new FormData: {err:?}"),
 	};
@@ -591,7 +592,15 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 	image.set(ImageUploadState::UploadingImage);
 
 	wasm_bindgen_futures::spawn_local(async move {
-		let result = match Request::post("/api/post_image").body(form).send().await {
+		let request = match Request::post("/api/post_image").body(form) {
+			Ok(rq) => rq,
+			Err(e) => {
+				image.set(ImageUploadState::PreflightError(format!("Couldn't create request: {e}")));
+				return;
+			}
+		};
+
+		let result = match request.send().await {
 			Err(err) => Err((401, format!("{err:?}"))),
 			// If it didn't fail, get the text
 			Ok(res) => res.text().await
