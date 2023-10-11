@@ -37,7 +37,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: /usr/bin/systemctl stop itsjunetime.service
+          script: sudo /usr/bin/systemctl stop itsjunetime.service
       - name: SCP files 
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -55,6 +55,6 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            /usr/bin/systemctl daemon-reload
-            /usr/bin/systemctl start itsjunetime.service
+            sudo /usr/bin/systemctl daemon-reload
+            sudo /usr/bin/systemctl start itsjunetime.service
 
