@@ -288,8 +288,6 @@ async fn get_post(
 		{where_clause}\
 	;");
 
-	println!("Querying: '{query_str}'");
-
 	query_as::<_, Post>(&query_str).bind(id)
 		.fetch_one(&mut tx)
 		.await

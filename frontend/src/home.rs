@@ -110,6 +110,6 @@ impl PostViewProvider for HomePostView {
 #[function_component(Home)]
 pub fn home(props: &HomeProps) -> Html {
 	html! {
-		<PostList<HomePostView> page={ props.page } title={ "June's Cafe" } post_view={ PhantomData }/>
+		<PostList<HomePostView> page={ props.page } title={ "itsjuneti.me" } post_view={ PhantomData }/>
 	}
 }

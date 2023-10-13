@@ -11,6 +11,7 @@ pub const REQ_BLOCK: usize = 10;
 
 const GITHUB_ICON: &str = include_str!("../../assets/github-mark.svg");
 const TWITTER_ICON: &str = include_str!("../../assets/twitter.svg");
+const MATRIX_ICON: &str = include_str!("../../assets/matrix.svg");
 
 pub trait PostViewProvider: PartialEq {
 	fn post_view(post: &Post) -> Html;
@@ -116,6 +117,7 @@ pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 			<div id="home-title">
 				<h1 id="title-text">{ &props.title }</h1>
 				<span id="social-icons">
+					<a href="https://matrix.to/#/@janshai:beeper.com">{ Html::from_html_unchecked(MATRIX_ICON.into()) }</a>
 					<a href="https://github.com/itsjunetime">{ Html::from_html_unchecked(GITHUB_ICON.into()) }</a>
 					<a href="https://twitter.com/itsjunetime">{ Html::from_html_unchecked(TWITTER_ICON.into()) }</a>
 				</span>
