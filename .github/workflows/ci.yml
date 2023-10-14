@@ -57,4 +57,4 @@ jobs:
           script: |
             sudo /usr/bin/systemctl daemon-reload
             sudo /usr/bin/systemctl start itsjunetime.service
-			sudo /usr/sbin/nginx -s reload
+            sudo /usr/sbin/nginx -s reload
