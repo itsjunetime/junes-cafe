@@ -48,7 +48,7 @@ jobs:
           target: /home/junkie/server_files/
           strip_components: 2
           overwrite: true
-      - name: Restart backend
+      - name: Restart server 
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -57,4 +57,4 @@ jobs:
           script: |
             sudo /usr/bin/systemctl daemon-reload
             sudo /usr/bin/systemctl start itsjunetime.service
-
+			sudo /usr/sbin/nginx -s reload
