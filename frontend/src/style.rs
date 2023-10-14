@@ -72,7 +72,7 @@ pub fn shared_style() -> Html {
 			pre {
 				padding: 10px;
 				border-radius: 8px;
-				overflow: scroll;
+				overflow: auto;
 				-webkit-text-size-adjust: 140%;
 			}
 			pre > span, code {
