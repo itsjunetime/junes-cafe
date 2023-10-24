@@ -58,13 +58,13 @@ pub async fn upload_image(session: ReadableSession, mut form: Multipart) -> (Sta
 	(StatusCode::BAD_REQUEST, "Form didn't contain the requisite 'file' field".into())
 }
 
-pub async fn get_image(Path(image): Path<String>) -> (StatusCode, Vec<u8>) {
+pub async fn get_image(Path(image): Path<String>) -> Result<Vec<u8>, StatusCode> {
 	// Make sure we know the parent directory
 	let image_dir = match dotenv::var("IMAGE_DIR") {
 		Ok(d) => d,
 		Err(e) => {
 			eprintln!("Couldn't get IMAGE_DIR when getting image {image}: {e:?}");
-			return (StatusCode::INTERNAL_SERVER_ERROR, vec![])
+			return Err(StatusCode::INTERNAL_SERVER_ERROR);
 		}
 	};
 
@@ -73,7 +73,7 @@ pub async fn get_image(Path(image): Path<String>) -> (StatusCode, Vec<u8>) {
 		Ok(p) => p,
 		Err(e) => {
 			eprintln!("Couldn't canonicalize full path for {image}: {e:?}");
-			return (StatusCode::INTERNAL_SERVER_ERROR, vec![])
+			return Err(StatusCode::INTERNAL_SERVER_ERROR);
 		}
 	};
 
@@ -81,22 +81,19 @@ pub async fn get_image(Path(image): Path<String>) -> (StatusCode, Vec<u8>) {
 	// attempting directory traversal, so we shouldn't let the request continue.
 	if !full_path.starts_with(&image_dir) {
 		eprintln!("Directory traversal attempted (submitted '{image}', resolved to {full_path:?})");
-		return (StatusCode::BAD_REQUEST, vec![]);
+		return Err(StatusCode::BAD_REQUEST);
 	}
 
 	// And then read the file and return information based on what we read
 	std::fs::read(&full_path)
-		.map_or_else(
-			|e| {
+		.map_err(|e| {
 				eprintln!("Can't read file at {full_path:?}: {e:?}");
 				match e.kind() {
 					// If it can't be found, we're just assuming they submitted a bad request,
 					// since there shouldn't be any images referenced on the site that don't exist
 					// on the fs somewhere
-					std::io::ErrorKind::NotFound => (StatusCode::BAD_REQUEST, vec![]),
-					_ => (StatusCode::INTERNAL_SERVER_ERROR, vec![])
+					std::io::ErrorKind::NotFound => StatusCode::BAD_REQUEST,
+					_ => StatusCode::INTERNAL_SERVER_ERROR
 				}
-			},
-			|d| (StatusCode::OK, d)
-		)
+		})
 }
