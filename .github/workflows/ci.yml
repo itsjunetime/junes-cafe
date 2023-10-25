@@ -30,13 +30,13 @@ jobs:
         with:
           version: 'latest'
       - name: Install wasm-opt
-        run: cargo install wasm-opt --locked
+        run: "curl -L -o binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz && tar -xzvf ./binaryen.tar.gz"
       - name: Build backend
         run: cargo build --profile production --bin backend
       - name: Build frontend
         run: "cd frontend && trunk build --release"
       - name: Optimise wasm
-        run: "cd frontend && wasm-opt -Oz -o opt.wasm ./*.wasm && mv ./opt.wasm $(ls frontend*.wasm)"
+        run: "cd frontend && ../binaryen-version_116/bin/wasm-opt -Oz -o opt.wasm $(ls frontend*.wasm) && mv ./opt.wasm $(ls frontend*.wasm)"
       - name: Stop currently-running backend
         uses: appleboy/ssh-action@v1.0.0
         with:
