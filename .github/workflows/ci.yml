@@ -36,7 +36,7 @@ jobs:
       - name: Build frontend
         run: "cd frontend && trunk build --release"
       - name: Optimise wasm
-        run: "cd frontend && ../binaryen-version_116/bin/wasm-opt -Oz -o opt.wasm $(ls frontend*.wasm) && mv ./opt.wasm $(ls frontend*.wasm)"
+        run: "cd frontend/dist && ../binaryen-version_116/bin/wasm-opt -Oz -o opt.wasm $(ls frontend*.wasm) && mv ./opt.wasm $(ls frontend*.wasm)"
       - name: Stop currently-running backend
         uses: appleboy/ssh-action@v1.0.0
         with:
