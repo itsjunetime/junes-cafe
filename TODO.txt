@@ -1,3 +1,2 @@
 - Make it easier to edit posts (show edit button when you're just browsing the list and viewing a post when you're logged in)
 - Add credits to the bottom of the website about what library we're using and how we're hosting
-- Add matrix contact link/icon
