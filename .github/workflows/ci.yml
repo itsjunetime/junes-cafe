@@ -61,7 +61,6 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            rm /home/junkie/server_files/*.js
             sudo /usr/bin/systemctl daemon-reload
             sudo /usr/bin/systemctl start itsjunetime.service
             sudo /usr/sbin/nginx -s reload
