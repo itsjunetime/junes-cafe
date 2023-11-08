@@ -4,7 +4,7 @@ use axum::{
 };
 use axum_sessions::extractors::ReadableSession;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::{print_and_ret, check_auth, USERNAME_KEY};
+use crate::{print_and_ret, check_auth};
 
 pub async fn upload_image(session: ReadableSession, mut form: Multipart) -> (StatusCode, String) {
 	check_auth!(session);

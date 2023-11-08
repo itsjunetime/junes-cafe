@@ -2,7 +2,7 @@ use yew::prelude::*;
 use shared_data::Post;
 use std::marker::PhantomData;
 use crate::{
-	get_post_list, 
+	get_post_list,
 	style::SharedStyle,
 };
 

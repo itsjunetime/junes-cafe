@@ -115,8 +115,13 @@ impl Reducible for PostDetails {
 	}
 }
 
+#[derive(Properties, PartialEq)]
+pub struct PostProps {
+	pub id: u32
+}
+
 #[function_component(EditPostParent)]
-pub fn edit_post(props: &super::post::PostProps) -> Html {
+pub fn edit_post(props: &PostProps) -> Html {
 	let post = use_state(|| Option::<Result<shared_data::Post, GetPostErr>>::None);
 	let details = use_reducer_eq(|| PostDetails { id: props.id, ..PostDetails::default() });
 
@@ -197,7 +202,7 @@ pub fn edit_post(props: &super::post::PostProps) -> Html {
 				title: details_clone.title.clone(),
 				content: details_clone.content.clone(),
 				tags: Vec::from_iter(details_clone.tags.clone()),
-				draft 
+				draft
 			};
 
 			// Create the request

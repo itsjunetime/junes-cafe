@@ -1,15 +1,10 @@
 use yew_router::prelude::*;
 use yew::prelude::*;
-use chrono::NaiveDateTime;
-use home::Home;
-use post::ViewPost;
 use edit_post::{EditPostParent, NO_POST};
 use auth::AuthView;
 use shared_data::Post;
 use admin::Admin;
 
-mod post;
-mod home;
 mod edit_post;
 mod style;
 mod auth;
@@ -18,16 +13,9 @@ mod post_list;
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
-	#[not_found]
-	#[at("/")]
-	Home,
-	#[at("/page/:page")]
-	HomePage { page: u32 },
-	#[at("/post/:id")]
-	Post { id: u32 },
-	#[at("/edit_post/:id")]
+	#[at("/admin/edit_post/:id")]
 	EditPost { id: u32 },
-	#[at("/new_post")]
+	#[at("/admin/new_post")]
 	NewPost,
 	#[at("/admin/:page")]
 	Admin { page: u32 },
@@ -38,9 +26,6 @@ enum Route {
 #[allow(clippy::needless_pass_by_value)]
 fn switch(route: Route) -> Html {
 	match route {
-		Route::Home => switch(Route::HomePage { page: 0 }),
-		Route::HomePage { page } => html! { <Home page={ page } /> },
-		Route::Post { id } => html! { <ViewPost id={ id } /> },
 		Route::EditPost { id } => html! {
 			<AuthView>
 				<EditPostParent id={ id } />
@@ -48,7 +33,7 @@ fn switch(route: Route) -> Html {
 		},
 		Route::NewPost => html! {
 			<AuthView>
-				<EditPostParent id={ NO_POST }/> 
+				<EditPostParent id={ NO_POST }/>
 			</AuthView>
 		},
 		Route::Admin { page } => html! {
@@ -111,19 +96,6 @@ pub fn get_post_list(count: usize, offset: u32, state: UseStateHandle<Option<Res
 
 		state.set(Some(res));
 	});
-}
-
-#[must_use]
-pub fn title_time_string(time: u64) -> String {
-	time.try_into()
-		.map_or_else(
-			|_| "200 years in the future???".into(),
-			|time| NaiveDateTime::from_timestamp_opt(time, 0)
-				.map_or_else(
-					|| "an unknown time".into(),
-					|dt| dt.format("%H:%M on %b %-d, %Y").to_string()
-				)
-		)
 }
 
 #[function_component(Frontend)]

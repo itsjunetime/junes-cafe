@@ -7,7 +7,7 @@ use argon2::{
 };
 use axum::{
 	routing::{get, post},
-	extract::{Path, Query, DefaultBodyLimit},
+	extract::{Path, DefaultBodyLimit, Query},
 	error_handling::HandleErrorLayer,
 	http::StatusCode,
 	Router,
@@ -20,11 +20,11 @@ use axum_sessions::{
 	extractors::{WritableSession, ReadableSession},
 	SessionLayer,
 };
+use serde::Deserialize;
 use axum_sqlx_tx::Tx;
 use images::{upload_image, get_image};
 use pulldown_cmark as md;
 use rand::Rng;
-use serde::Deserialize;
 use shared_data::{
 	Post,
 	PostReq,
@@ -44,6 +44,9 @@ use std::{
 use tower::ServiceBuilder;
 
 mod images;
+mod home;
+mod post_list;
+mod post;
 
 #[macro_export]
 macro_rules! print_and_ret{
@@ -65,7 +68,7 @@ macro_rules! check_auth{
 		}
 	};
 	($session:ident, noret) => {
-		$session.get::<String>(USERNAME_KEY)
+		$session.get::<String>($crate::USERNAME_KEY)
 			.ok_or_else(|| "User did not log in (/api/login) first".to_string())
 	}
 }
@@ -96,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		Ok(url) => url,
 		Err(err) => {
 			eprintln!("DATABASE_URL is not set in .env, and is necessary to connect to postgres. Please set it and retry.");
-			return Err(err.into()) 
+			return Err(err.into())
 		}
 	};
 
@@ -173,14 +176,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 					return Err(err.into());
 				}
 			};
-			
+
 			// We insert the user into the db, but if there's a conflict (if the username already
 			// exists), then we just leave it be, since the hash for the same password can change.
 			// If you want to change the password, you'll have to manually go into the database and
 			// clear the user.
 			query("INSERT INTO users (username, hashed_pass)
 				  VALUES ($1, $2)
-				  ON CONFLICT (username) DO NOTHING 
+				  ON CONFLICT (username) DO NOTHING
 			;").bind(name)
 				.bind(hash)
 				.execute(&pool)
@@ -201,8 +204,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let secret: Vec<u8> = vec![0; 128].into_iter().map(|_| rng.gen()).collect();
 
 	let app = Router::new()
-		.route("/api/posts", get(get_post_list))
-		.route("/api/post/:id", get(get_post))
+		.route("/", get(home::get_home_view))
+		.route("/page/:id", get(home::get_page_view))
+		.route("/post/:id", get(post::get_post_view))
+		.route("/api/post/:id", get(get_post_json))
+		.route("/api/posts", get(get_post_list_json))
 		.route("/api/new_post", post(submit_post))
 		.route("/api/edit_post/:id", post(edit_post))
 		.route("/api/post_image", post(upload_image))
@@ -231,17 +237,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-#[derive(Deserialize)]
-struct PostListParams {
-	count: u32,
-	offset: u32
-}
-
 async fn get_post_list(
 	session: ReadableSession,
 	mut tx: Tx<Postgres>,
-	Query(PostListParams { count, offset }): Query<PostListParams>
-) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
+	count: u32,
+	offset: u32
+) -> Result<Vec<Post>, sqlx::Error> {
 	// If the user is logged in, then they can see all draft posts as well.
 	let draft_clause = if check_auth!(session, noret).is_ok() {
 		""
@@ -259,11 +260,26 @@ async fn get_post_list(
 		OFFSET {offset} \
 	;")).fetch_all(&mut tx)
 		.await
+}
+
+#[derive(Deserialize)]
+struct PostListParams {
+	count: u32,
+	offset: u32
+}
+
+async fn get_post_list_json(
+	session: ReadableSession,
+	tx: Tx<Postgres>,
+	Query(PostListParams { count, offset }): Query<PostListParams>
+) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
+	get_post_list(session, tx, count, offset)
+		.await
 		.map(Json)
 		.map_err(|e| {
 			eprintln!("Couldn't retrieve posts {offset},{count}: {e:?}");
 			match e {
-				sqlx::Error::RowNotFound => (StatusCode::BAD_REQUEST, format!("The specified offset,limit of {offset},{count} corresponds to no posts")),
+				sqlx::Error::RowNotFound => (StatusCode::NOT_FOUND, format!("The specified offset,limit of {offset},{count} corresponds to no posts")),
 				_ => (StatusCode::INTERNAL_SERVER_ERROR, format!("Couldn't retrieve posts: {e:?}"))
 			}
 		})
@@ -273,7 +289,7 @@ async fn get_post(
 	session: ReadableSession,
 	mut tx: Tx<Postgres>,
 	Path(id): Path<i32>
-) -> Result<Json<Post>, (StatusCode, String)> {
+) -> Result<Post, sqlx::Error> {
 	// If they're logged in, they should be able to view drafts
 	let where_clause = if check_auth!(session, noret).is_ok() {
 		"WHERE p.id = $1"
@@ -288,12 +304,22 @@ async fn get_post(
 		{where_clause}\
 	;");
 
-	query_as::<_, Post>(&query_str).bind(id)
+	query_as::<_, Post>(&query_str)
+		.bind(id)
 		.fetch_one(&mut tx)
+		.await
+}
+
+async fn get_post_json(
+	session: ReadableSession,
+	tx: Tx<Postgres>,
+	path: Path<i32>
+) -> Result<Json<Post>, (StatusCode, String)> {
+	get_post(session, tx, path)
 		.await
 		.map(Json)
 		.map_err(|e| {
-			eprintln!("Couldn't get post {id}: {e:?}");
+			eprintln!("Couldn't get post: {e:?}");
 			match e {
 				sqlx::Error::RowNotFound => (StatusCode::NOT_FOUND, "Post not found".into()),
 				_ => (StatusCode::INTERNAL_SERVER_ERROR, format!("Couldn't retrieve post: {e:?}"))
@@ -398,7 +424,7 @@ fn post_details(payload: PostReq) -> SqlPostDetails {
 	let events = highlight_pulldown::highlight_with_theme(parser, "base16-ocean.dark").unwrap();
 
 	let mut html = String::new();
-	
+
 	// So it would be smart to sanitize the html to make sure that XSS and stuff like that isn't
 	// supported but it's my website and I think it's fun to have the option of doing fun little
 	// stuff with javascript if I would so like, and this input is already trusted (since only

@@ -1,3 +1,5 @@
+use chrono::NaiveDateTime;
+
 // re-export so others can use as well
 #[cfg(feature = "sqlx")]
 pub use sqlx;
@@ -60,3 +62,67 @@ pub struct PostReq {
 	pub tags: Vec<String>,
 	pub draft: bool
 }
+
+#[must_use]
+pub fn title_time_string(time: u64) -> String {
+	time.try_into()
+		.map_or_else(
+			|_| "200 years in the future???".into(),
+			|time| NaiveDateTime::from_timestamp_opt(time, 0)
+				.map_or_else(
+					|| "an unknown time".into(),
+					|dt| dt.format("%H:%M on %b %-d, %Y").to_string()
+				)
+		)
+}
+
+pub static BASE_STYLE: &str = r#"
+* {
+	--body-background: #3f3540;
+	--main-text: #f1f6ff;
+	--secondary-text: #f7ebec;
+	--main-background: #1d1e2c;
+	--secondary-background: #59656f;
+	--border-color: #ac9fbb;
+	--title-text: #d1bbe4;
+	font-family: Arial;
+	color: var(--main-text);
+}
+body {
+	background-color: var(--body-background);
+}
+#tag-title {
+	color: var(--secondary-text);
+}
+#tag-title ~ br {
+	margin-bottom: 10px;
+}
+span.tag {
+	margin-right: 8px;
+	background-color: var(--secondary-background);
+	padding: 4px 6px;
+	border-radius: 4px;
+	color: var(--main-text)
+}
+input, textarea {
+	background-color: var(--secondary-background);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	color: var(--main-text);
+}
+button {
+	background-color: var(--main-background);
+	border: 1px solid var(--main-background);
+	border-radius: 4px;
+	padding: 6px 8px;
+}
+pre {
+	padding: 10px;
+	border-radius: 8px;
+	overflow: auto;
+	-webkit-text-size-adjust: 140%;
+}
+pre > span, code {
+	font-family: Courier;
+}
+"#;

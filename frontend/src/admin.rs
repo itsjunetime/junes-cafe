@@ -1,4 +1,4 @@
-use crate::{post_list::{PostViewProvider, PostList}, home::HomeProps};
+use crate::post_list::{PostViewProvider, PostList};
 use shared_data::Post;
 use yew::prelude::*;
 use std::marker::PhantomData;
@@ -11,7 +11,7 @@ impl PostViewProvider for AdminPostView {
 		html! {
 			<div class="post" id={ format!("post-{}", post.id) }>
 				<div class="post-top">
-					<a href={ format!("/post/{}", post.id) }> 
+					<a href={ format!("/post/{}", post.id) }>
 						<h2 class="post-title">{ &post.title }</h2>
 					</a>
 					<div class="post-subtitle-box">
@@ -19,7 +19,7 @@ impl PostViewProvider for AdminPostView {
 							{ "by " }
 							<strong>{ post.display_user() }</strong>
 							{ ", " }
-							<strong>{ crate::title_time_string(post.created_at) }</strong>
+							<strong>{ shared_data::title_time_string(post.created_at) }</strong>
 						</span>
 					</div>
 				</div>
@@ -42,8 +42,13 @@ impl PostViewProvider for AdminPostView {
 	}
 }
 
+#[derive(Properties, PartialEq)]
+pub struct AdminProps {
+	pub page: u32
+}
+
 #[function_component(Admin)]
-pub fn admin(props: &HomeProps) -> Html {
+pub fn admin(props: &AdminProps) -> Html {
 	html! { <>
 		<style>
 		{ "
