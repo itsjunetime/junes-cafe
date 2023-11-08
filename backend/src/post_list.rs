@@ -19,9 +19,6 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 				head {
 					style : Raw(shared_data::BASE_STYLE);
 					style : Raw(r#"
-						body {
-							font-family: Arial
-						}
 						#posts {
 							margin: 0px auto;
 							max-width: max-content;
@@ -76,6 +73,9 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 						}
 						@ if self.next_page_btn {
 							a(href = format_args!("/page/{}", self.current_page + 1)) : "Next >";
+						}
+						@ if self.current_page == 0 && !self.next_page_btn {
+							: "That's all!";
 						}
 					}
 				}

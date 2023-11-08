@@ -48,19 +48,10 @@ impl RenderOnce for PostView {
 							color: var(--title-text);
 						}
 						#post-text {
-							color: var(--main-text);
 							padding: 12px 12px;
-							border-radius: 4px;
 						}
 						#post-text img {
 							max-width: 100%;
-						}
-						#back-button {
-							height: 0;
-							display: block;
-							right: 30px;
-							position: relative;
-							top: 24px;
 						}
 					"#);
 				}
