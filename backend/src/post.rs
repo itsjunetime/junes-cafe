@@ -53,6 +53,12 @@ impl RenderOnce for PostView {
 						#post-text img {
 							max-width: 100%;
 						}
+						#tag-title {
+							color: var(--secondary-text);
+						}
+						#tag-title ~ br {
+							margin-bottom: 10px;
+						}
 					"#);
 				}
 				body {

@@ -18,44 +18,7 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 			html {
 				head {
 					style : Raw(shared_data::BASE_STYLE);
-					style : Raw(r#"
-						#posts {
-							margin: 0px auto;
-							max-width: max-content;
-						}
-						#title-text {
-							max-width: max-content;
-							display: inline-block;
-							margin: 10px 0;
-						}
-						#home-title {
-							display: flex;
-							justify-content: space-between;
-						}
-						#home-title > a > svg {
-							transform-origin: top center;
-						}
-						.post, #home-title, .page-selector {
-							width: 900px;
-						}
-						#home-title {
-							margin: 20px auto 10px auto;
-						}
-						.page-selector {
-							margin: 10px auto;
-						}
-						#social-icons {
-							align-self: center;
-							display: inline-block;
-						}
-						.page-selector {
-							margin: 12px auto;
-							text-align: center;
-						}
-						a {
-							text-decoration: none;
-						}
-					"#);
+					style : Raw(shared_data::POST_LIST_STYLE);
 				}
 				body {
 					div(id = "home-title") {

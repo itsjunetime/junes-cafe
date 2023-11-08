@@ -91,24 +91,16 @@ pub static BASE_STYLE: &str = r#"
 body {
 	background-color: var(--body-background);
 }
-#tag-title {
-	color: var(--secondary-text);
-}
-#tag-title ~ br {
-	margin-bottom: 10px;
-}
 span.tag {
 	margin-right: 8px;
 	background-color: var(--secondary-background);
 	padding: 4px 6px;
 	border-radius: 4px;
-	color: var(--main-text)
 }
 input, textarea {
 	background-color: var(--secondary-background);
 	border: 1px solid var(--border-color);
 	border-radius: 4px;
-	color: var(--main-text);
 }
 button {
 	background-color: var(--main-background);
@@ -124,5 +116,44 @@ pre {
 }
 pre > span, code {
 	font-family: Courier;
+}
+"#;
+
+pub static POST_LIST_STYLE: &str = r#"
+#posts {
+	margin: 0px auto;
+	max-width: max-content;
+}
+#title-text {
+	max-width: max-content;
+	display: inline-block;
+	margin: 10px 0;
+}
+#home-title {
+	display: flex;
+	justify-content: space-between;
+}
+#home-title > a > svg {
+	transform-origin: top center;
+}
+.post, #home-title, .page-selector {
+	width: 900px;
+}
+#home-title {
+	margin: 20px auto 10px auto;
+}
+.page-selector {
+	margin: 10px auto;
+}
+#social-icons {
+	align-self: center;
+	display: inline-block;
+}
+.page-selector {
+	margin: 12px auto;
+	text-align: center;
+}
+a {
+	text-decoration: none;
 }
 "#;
