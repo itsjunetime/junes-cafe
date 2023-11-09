@@ -6,8 +6,10 @@ use axum_sessions::extractors::ReadableSession;
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{print_and_ret, check_auth};
 
-pub async fn upload_image(session: ReadableSession, mut form: Multipart) -> (StatusCode, String) {
+pub async fn upload_asset(session: ReadableSession, mut form: Multipart) -> (StatusCode, String) {
 	check_auth!(session);
+
+	let mut name = None;
 
 	// We need to loop over each field of the form
 	loop {
@@ -17,6 +19,11 @@ pub async fn upload_image(session: ReadableSession, mut form: Multipart) -> (Sta
 				let Some(field) = field_opt else {
 					break;
 				};
+
+				if field.name() == Some("name") {
+					name = field.text().await.ok();
+					continue;
+				}
 
 				if field.name() != Some("file") {
 					continue;
@@ -30,25 +37,34 @@ pub async fn upload_image(session: ReadableSession, mut form: Multipart) -> (Sta
 				};
 
 				// And then make sure we can actually get the data of the file
-				let image_data = match field.bytes().await {
+				let asset_data = match field.bytes().await {
 					Ok(b) if !b.is_empty() => b,
-					Err(e) => print_and_ret!("Couldn't get image data; you may have exceeded the 10mb limit ({e:?})"),
-					_ => print_and_ret!(StatusCode::BAD_REQUEST, "Sent an empty image")
+					Err(e) => print_and_ret!("Couldn't get asset data; you may have exceeded the 10mb limit ({e:?})"),
+					_ => print_and_ret!(StatusCode::BAD_REQUEST, "Sent an empty asset")
 				};
 
 				// And create the file to save it at
-				let image_dir = match dotenv::var("IMAGE_DIR") {
+				let asset_dir = match dotenv::var("ASSET_DIR") {
 					Ok(d) => d,
-					Err(e) => print_and_ret!("Couldn't get IMAGE_DIR: {e:?}"),
+					Err(e) => print_and_ret!("Couldn't get ASSET_DIR: {e:?}"),
 				};
 
-				let image_path = std::path::Path::new(&image_dir);
-				let save_path = image_path.join(&file_name);
+				let asset_path = std::path::Path::new(&asset_dir);
+				let mut save_path = asset_path.join(&file_name);
 
-				return std::fs::write(&save_path, image_data)
+				if let Some(name) = name {
+					if name.contains('.') {
+						save_path.set_extension(name.split('.').last().unwrap());
+					}
+				}
+
+				return std::fs::write(&save_path, asset_data)
 					.map_or_else(
-						|e| print_and_ret!("Couldn't save the image to {save_path:?}: {e:?}"),
-						|()| (StatusCode::OK, file_name)
+						|e| print_and_ret!("Couldn't save the asset to {save_path:?}: {e:?}"),
+						|()| (
+							StatusCode::OK,
+							save_path.file_name().and_then(|s| s.to_os_string().into_string().ok()).unwrap()
+						)
 					);
 			},
 			Err(err) => print_and_ret!("Couldn't get all fields of request: {err:?}")
@@ -58,29 +74,29 @@ pub async fn upload_image(session: ReadableSession, mut form: Multipart) -> (Sta
 	(StatusCode::BAD_REQUEST, "Form didn't contain the requisite 'file' field".into())
 }
 
-pub async fn get_image(Path(image): Path<String>) -> Result<Vec<u8>, StatusCode> {
+pub async fn get_asset(Path(asset): Path<String>) -> Result<Vec<u8>, StatusCode> {
 	// Make sure we know the parent directory
-	let image_dir = match dotenv::var("IMAGE_DIR") {
+	let asset_dir = match dotenv::var("ASSET_DIR") {
 		Ok(d) => d,
 		Err(e) => {
-			eprintln!("Couldn't get IMAGE_DIR when getting image {image}: {e:?}");
+			eprintln!("Couldn't get ASSET_DIR when getting asset {asset}: {e:?}");
 			return Err(StatusCode::INTERNAL_SERVER_ERROR);
 		}
 	};
 
 	// And make sure we can get a full path out of the string they gave us
-	let full_path = match std::path::Path::new(&image_dir).join(&image).canonicalize() {
+	let full_path = match std::path::Path::new(&asset_dir).join(&asset).canonicalize() {
 		Ok(p) => p,
 		Err(e) => {
-			eprintln!("Couldn't canonicalize full path for {image}: {e:?}");
+			eprintln!("Couldn't canonicalize full path for {asset}: {e:?}");
 			return Err(StatusCode::INTERNAL_SERVER_ERROR);
 		}
 	};
 
-	// And if the full path isn't still inside the IMAGE_DIR directory, that means they're
+	// And if the full path isn't still inside the ASSET_DIR directory, that means they're
 	// attempting directory traversal, so we shouldn't let the request continue.
-	if !full_path.starts_with(&image_dir) {
-		eprintln!("Directory traversal attempted (submitted '{image}', resolved to {full_path:?})");
+	if !full_path.starts_with(&asset_dir) {
+		eprintln!("Directory traversal attempted (submitted '{asset}' resolved to {full_path:?})");
 		return Err(StatusCode::BAD_REQUEST);
 	}
 
@@ -90,7 +106,7 @@ pub async fn get_image(Path(image): Path<String>) -> Result<Vec<u8>, StatusCode>
 				eprintln!("Can't read file at {full_path:?}: {e:?}");
 				match e.kind() {
 					// If it can't be found, we're just assuming they submitted a bad request,
-					// since there shouldn't be any images referenced on the site that don't exist
+					// since there shouldn't be any assets referenced on the site that don't exist
 					// on the fs somewhere
 					std::io::ErrorKind::NotFound => StatusCode::BAD_REQUEST,
 					_ => StatusCode::INTERNAL_SERVER_ERROR

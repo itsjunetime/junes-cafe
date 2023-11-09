@@ -27,6 +27,7 @@ impl RenderOnce for PostView {
 			: doctype::HTML;
 			html {
 				head {
+					title : &post.title;
 					style : Raw(shared_data::BASE_STYLE);
 					style : Raw(r#"
 						#post-content {

@@ -22,7 +22,7 @@ use axum_sessions::{
 };
 use serde::Deserialize;
 use axum_sqlx_tx::Tx;
-use images::{upload_image, get_image};
+use images::{upload_asset, get_asset};
 use pulldown_cmark as md;
 use rand::Rng;
 use shared_data::{
@@ -103,28 +103,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		}
 	};
 
-	// Verifying that IMAGE_DIR is a valid directory and is not readonly
-	let Some(dir) = dotenv::var("IMAGE_DIR").ok().and_then(|d| (!d.is_empty()).then_some(d)) else {
-		eprintln!("IMAGE_DIR var is not set in .env, and it is necessary to determine \
-				   where to place images uploaded as part of posts. Please set it and retry.");
+	// Verifying that ASSET_DIR is a valid directory and is not readonly
+	let Some(dir) = dotenv::var("ASSET_DIR").ok().and_then(|d| (!d.is_empty()).then_some(d)) else {
+		eprintln!("ASSET_DIR var is not set in .env, and it is necessary to determine \
+				   where to place assets uploaded as part of posts. Please set it and retry.");
 		return Ok(())
 	};
 
 	let permissions = match std::fs::metadata(&dir) {
 		Ok(mtd) => mtd.permissions(),
 		Err(err) => {
-			eprintln!("IMAGE_DIR does not point to a valid directory: {err:?}");
+			eprintln!("ASSET_DIR does not point to a valid directory: {err:?}");
 			return Err(err.into())
 		}
 	};
 
 	if permissions.readonly() {
-		eprintln!("The directory at IMAGE_DIR is readonly; this will prevent images from being uploaded. \
+		eprintln!("The directory at ASSET_DIR is readonly; this will prevent assets from being uploaded. \
 				  Please fix before running the server.");
 		return Ok(())
 	}
 
-	println!("Storing images to/Reading images from {dir}");
+	println!("Storing assets to/Reading assets from {dir}");
 	println!("Read .env...");
 
 	let pool = PgPoolOptions::new()
@@ -211,10 +211,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/api/posts", get(get_post_list_json))
 		.route("/api/new_post", post(submit_post))
 		.route("/api/edit_post/:id", post(edit_post))
-		.route("/api/post_image", post(upload_image))
-		.route("/api/images/:id", get(get_image))
+		.route("/api/post_asset", post(upload_asset))
+		.route("/api/assets/:id", get(get_asset))
 		.route("/api/login", get(login))
-		// I want to be able to upload 10mb images if I so please.
+		// I want to be able to upload 10mb assets if I so please.
 		.layer(DefaultBodyLimit::max(10 * 1024 * 1024))
 		.layer(SessionLayer::new(session_store, &secret))
 		.layer(
