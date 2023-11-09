@@ -34,7 +34,7 @@ impl PostViewProvider for AdminPostView {
 					</span>
 					<span class="action-links">
 						<a class="action-link" href={ format!("/post/{}", post.id) }>{ "View" }</a>
-						<a class="action-link" href={ format!("/edit_post/{}", post.id) }>{ "Edit" }</a>
+						<a class="action-link" href={ format!("/admin/edit_post/{}", post.id) }>{ "Edit" }</a>
 					</span>
 				</div>
 			</div>

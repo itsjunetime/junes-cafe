@@ -33,15 +33,15 @@ enum SubmissionState {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum ImageUploadState {
+enum AssetUploadState {
 	// If we haven't tried anything yet
 	None,
 	// If something went wrong before we could even start uploading
 	PreflightError(String),
 	// If the request to upload is currently pending
-	UploadingImage,
+	Uploading,
 	// Result<(id, if_text_inserted), (status_code, error_text)>
-	Resolved(Result<(u64, bool), (u16, String)>)
+	Resolved(Result<(String, bool), (u16, String)>)
 }
 
 #[derive(Debug)]
@@ -128,7 +128,7 @@ pub fn edit_post(props: &PostProps) -> Html {
 	// These states aren't used until we're showing a post, but it can't be declared conditionally
 	// (including after a potential return) or else yew gets angry at us and panics at runtime
 	let submit = use_state(|| SubmissionState::Preparing);
-	let image = use_state(|| ImageUploadState::None);
+	let asset = use_state(|| AssetUploadState::None);
 
 	// First we try to retrieve the post if it exists
 	{
@@ -234,13 +234,18 @@ pub fn edit_post(props: &PostProps) -> Html {
 		}}
 	}
 
-	// If, at this point, we've uploaded an image, gotten a response, but not yet inserted it into
+	// If, at this point, we've uploaded an asset, gotten a response, but not yet inserted it into
 	// the textarea, we need to do so
-	if let ImageUploadState::Resolved(Ok((image_id, false))) = *image {
-		let new_text = format!("{}\n\n![Image](/api/images/{image_id})\n\n", details.content);
-		details.dispatch(EditMsg::Content(new_text));
+	if let AssetUploadState::Resolved(Ok((ref asset_id, false))) = *asset {
+		let is_image = asset_id.split('.')
+			.last()
+			.is_some_and(|ext| ["jpeg", "jpg", "png", "webp", "heic", "heif"].contains(&ext)); 
 
-		image.set(ImageUploadState::Resolved(Ok((image_id, true))));
+		let exclamation = if is_image { "!" } else { "" };
+		let new_text = format!("{}\n\n{exclamation}[Asset](/api/assets/{asset_id})\n\n", details.content);
+
+		asset.set(AssetUploadState::Resolved(Ok((asset_id.to_string(), true))));
+		details.dispatch(EditMsg::Content(new_text));
 	}
 
 	// Get the callbacks for various elements of the editing view
@@ -249,21 +254,21 @@ pub fn edit_post(props: &PostProps) -> Html {
 	let content_callback = input_callback!(content_clone, Content, InputEvent, HtmlTextAreaElement);
 	let tag_callback = input_callback!(AddTag);
 
-	let image_clone = image.clone();
-	let on_image_drop = Callback::from(move |e: DragEvent| {
+	let asset_clone = asset.clone();
+	let on_asset_drop = Callback::from(move |e: DragEvent| {
 		e.prevent_default();
 
 		let Some(transfer) = e.data_transfer() else {
 			let formatted = "Event's dataTransfer is None".into();
 			log!(&formatted);
-			image_clone.set(ImageUploadState::PreflightError(formatted));
+			asset_clone.set(AssetUploadState::PreflightError(formatted));
 			return;
 		};
 
-		upload_image(transfer.files(), image_clone.clone());
+		upload_asset(transfer.files(), asset_clone.clone());
 	});
 
-	let input_image = image.clone();
+	let input_asset = asset.clone();
 
 	// Show a different view dependending on if we've submitted the post or not
 	match &*submit_clone {
@@ -315,16 +320,16 @@ pub fn edit_post(props: &PostProps) -> Html {
 						oninput={ content_callback }
 						value={ details.content.clone() }
 						disabled={
-							matches!(*image, ImageUploadState::UploadingImage | ImageUploadState::Resolved(Ok((_, false))))
+							matches!(*asset, AssetUploadState::Uploading | AssetUploadState::Resolved(Ok((_, false))))
 						}
 					>{
 						&details.content
 					}</textarea>
 					<br/><br/>
 					<label
-						for="image-upload"
+						for="asset-upload"
 						class="upload-details"
-						ondrop={ on_image_drop }
+						ondrop={ on_asset_drop }
 						ondragover={ Callback::from(|e: DragEvent| {
 							e.prevent_default();
 						}) }
@@ -333,31 +338,30 @@ pub fn edit_post(props: &PostProps) -> Html {
 						}) }
 					>
 						{
-							match &*image {
-								ImageUploadState::None => html! {{ "Drop image here to upload" }},
-								ImageUploadState::PreflightError(err) => html! {
-									{ format!("Couldn't upload image: {err}") }
+							match &*asset {
+								AssetUploadState::None => html! {{ "Drop asset here to upload" }},
+								AssetUploadState::PreflightError(err) => html! {
+									{ format!("Couldn't upload asset: {err}") }
 								},
-								ImageUploadState::UploadingImage => html! {{ "Uploading image..." }},
-								ImageUploadState::Resolved(res) => match res {
+								AssetUploadState::Uploading => html! {{ "Uploading asset..." }},
+								AssetUploadState::Resolved(res) => match res {
 									Ok((id, inserted)) => html! {{
 										if *inserted {
-											format!("Image uploaded to id {id}!")
+											format!("Asset uploaded to id {id}!")
 										} else {
-											format!("Image uploaded to id {id}, processing...")
+											format!("Asset uploaded to id {id}, processing...")
 										}
 									}},
 									Err((status, err)) => html! {{
-										format!("Image failed to upload with code {status}, error: '{err}'")
+										format!("Asset failed to upload with code {status}, error: '{err}'")
 									}}
 								}
 							}
 						}
 					</label>
 					<input
-						id="image-upload"
+						id="asset-upload"
 						type="file"
-						accept="image/*"
 						style="display: none;"
 						onchange={ move |e: Event| {
 							let ev_type = e.js_typeof();
@@ -373,11 +377,11 @@ pub fn edit_post(props: &PostProps) -> Html {
 							} else {
 								let formatted = format!("event was not HtmlInputElement, but rather {ev_type:?}");
 								log!(&formatted);
-								input_image.set(ImageUploadState::PreflightError(formatted));
+								input_asset.set(AssetUploadState::PreflightError(formatted));
 								return;
 							};
 
-							upload_image(input.files(), input_image.clone());
+							upload_asset(input.files(), input_asset.clone());
 						}}
 					/>
 					<br/>
@@ -476,7 +480,7 @@ fn submit_resolved_view(code: u16, text: &String, post_id: u32, submit_state: Us
 				<h1 class="submit-title">{ creation_str }</h1>
 				<div class="nav-buttons">
 					<a href={ format!("/post/{id}") }>{ "View Post" }</a>
-					<a href={ format!("/edit_post/{id}") }>{ "Edit Post" }</a>
+					<a href={ format!("/admin/edit_post/{id}") }>{ "Edit Post" }</a>
 					{ go_home }
 				</div>
 			</div>
@@ -557,12 +561,12 @@ fn submit_resolved_view(code: u16, text: &String, post_id: u32, submit_state: Us
 	}
 }
 
-fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadState>) {
+fn upload_asset(file_list: Option<FileList>, asset: UseStateHandle<AssetUploadState>) {
 	macro_rules! fail{
 		($reason:expr) => {{
 			let formatted = format!($reason);
 			log!(&formatted);
-			image.set(ImageUploadState::PreflightError(formatted));
+			asset.set(AssetUploadState::PreflightError(formatted));
 			return;
 		}};
 	}
@@ -580,27 +584,29 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 		fail!("files.item(0) returned None despite verifying one existed in the list");
 	};
 
-	let file_type = file.type_();
-	if !file_type.starts_with("image/") {
-		fail!("Uploaded file has bad mime type {file_type}; must be image/*");
-	}
 
 	let form = match FormData::new() {
 		Ok(f) => f,
 		Err(err) => fail!("Couldn't create new FormData: {err:?}"),
 	};
 
+	let name = file.name();
+
+	if let Err(err) = form.append_with_str("name", &name) {
+		fail!("Couldn't append name to form: {err:?}");
+	}
+
 	if let Err(err) = form.append_with_blob("file", &file) {
-		fail!("Couldn't appending blob to form: {err:?}");
+		fail!("Couldn't append blob to form: {err:?}");
 	};
 
-	image.set(ImageUploadState::UploadingImage);
+	asset.set(AssetUploadState::Uploading);
 
 	wasm_bindgen_futures::spawn_local(async move {
-		let request = match Request::post("/api/post_image").body(form) {
+		let request = match Request::post("/api/post_asset").body(form) {
 			Ok(rq) => rq,
 			Err(e) => {
-				image.set(ImageUploadState::PreflightError(format!("Couldn't create request: {e}")));
+				asset.set(AssetUploadState::PreflightError(format!("Couldn't create request: {e}")));
 				return;
 			}
 		};
@@ -613,13 +619,7 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 				.map_err(|e| (res.status(), format!("Couldn't get res text: {e:?}")))
 				// If we can get the text, see if it returned an OK code
 				.and_then(|t| if res.ok() {
-					// If it did, see if we can parse it to an ID to display
-					t.parse::<u64>()
-						// If we can, then map it to the id and `false`, indicating that the ID
-						// hasn't been inserted into the textarea as a markdown image yet
-						.map(|n| (n, false))
-						// If we can't, map it to an error with the status and explanation
-						.map_err(|e| (res.status(), format!("'{t}' could not be parsed to u64: {e:?}")))
+					Ok((t, false))
 				} else {
 					// And it the response doesn't have an OK status, then just report the status
 					// and text back to the UI
@@ -627,6 +627,6 @@ fn upload_image(file_list: Option<FileList>, image: UseStateHandle<ImageUploadSt
 				})
 		};
 
-		image.set(ImageUploadState::Resolved(result));
+		asset.set(AssetUploadState::Resolved(result));
 	});
 }
