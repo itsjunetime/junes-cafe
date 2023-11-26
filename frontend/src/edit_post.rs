@@ -65,12 +65,6 @@ pub struct PostDetails {
 impl Reducible for PostDetails {
 	type Action = EditMsg;
 
-	// God I fucking hate this. You give me an Rc? And don't make it mutable? Thus removing all the
-	// benefits of using an Rc??? Why not just give me the Self itself?? Then I can at least own it
-	// and move the values??? I know I'm benefitting off of free work so I don't feel any ire
-	// towards those who wrote this, but it still feels like not enough thought was actually given
-	// to the API and internal workings, and they just threw `R(ef)?C(ell)?` around everything and
-	// called it good. There's gotta be a better way to do this.
 	fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
 		macro_rules! clone_self{ ($item:ident) => {
 			Self { $item, ..(*self).clone() }.into()
@@ -239,7 +233,7 @@ pub fn edit_post(props: &PostProps) -> Html {
 	if let AssetUploadState::Resolved(Ok((ref asset_id, false))) = *asset {
 		let is_image = asset_id.split('.')
 			.last()
-			.is_some_and(|ext| ["jpeg", "jpg", "png", "webp", "heic", "heif"].contains(&ext)); 
+			.is_some_and(|ext| ["jpeg", "jpg", "png", "webp", "heic", "heif"].contains(&ext));
 
 		let exclamation = if is_image { "!" } else { "" };
 		let new_text = format!("{}\n\n{exclamation}[Asset](/api/assets/{asset_id})\n\n", details.content);
@@ -464,8 +458,8 @@ fn submit_resolved_view(code: u16, text: &String, post_id: u32, submit_state: Us
 		<a href="/">{ "Go home" }</a>
 	};
 
-	let id = (code == 200).then(|| text.parse::<u32>().ok()).
-		flatten()
+	let id = (code == 200).then(|| text.parse::<u32>().ok())
+		.flatten()
 		.or(if post_id == NO_POST { None } else { Some(post_id) });
 
 	let res_html = if let Some(id) = id {

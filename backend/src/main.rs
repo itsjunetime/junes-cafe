@@ -169,7 +169,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 			let salt = SaltString::generate(&mut OsRng);
 			let argon = Argon2::default();
 
-			let hash = match argon.hash_password(pass.as_str().as_bytes(), &salt) {
+			let hash = match argon.hash_password(pass.as_bytes(), &salt) {
 				Ok(hash) => hash.to_string(),
 				Err(err) => {
 					eprintln!("Couldn't hash the given password at .env:BASE_PASSWORD: {err:?}");
@@ -227,7 +227,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let addr = SocketAddr::from(([127, 0, 0, 1], backend_port));
 
-	println!("Serving axum...");
+	println!("Serving axum at {}...", addr);
 
 	Server::bind(&addr)
 		.serve(app.into_make_service())
@@ -479,7 +479,7 @@ pub async fn login(
 			unauth()
 		})?;
 
-	match Argon2::default().verify_password(pass.as_str().as_bytes(), &hash_struct) {
+	match Argon2::default().verify_password(pass.as_bytes(), &hash_struct) {
 		Ok(()) => {
 			println!("Trying to log in {username} with session_id {}", session.id());
 

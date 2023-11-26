@@ -40,10 +40,15 @@ pub fn auth_view(props: &AuthProps) -> Html {
 
 	macro_rules! input_callback{ ($item:ident) => {{
 		let priv_creds = creds.clone();
+		let priv_login = login_status.clone();
 		Callback::from(move |e: Event|
 			if let Some($item) = e.target()
 				.and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
 				.map(|i| i.value()) {
+					// We want to set it to AutoLoginAttempted whenever we change it so that it
+					// doesn't stay showing like 'incorrect password' and they can't remember if
+					// they've changed it or not or whatever
+					priv_login.set(LoginStatus::AutoLoginAttempted);
 					priv_creds.set(Credentials { $item, ..(*priv_creds).clone() });
 				}
 		)
@@ -99,39 +104,48 @@ pub fn auth_view(props: &AuthProps) -> Html {
 	});
 
 	match *login_status {
-		LoginStatus::InternalError => html! { "Something went wrong, try again later :/" },
-		LoginStatus::BadAuth => html! { "Incorrect username or password" },
-		LoginStatus::NoPasswordProvided => html! { "No password was provided" },
 		LoginStatus::LoggedIn => html! {
 			{ for props.children.iter() }
 		},
-		LoginStatus::NoAction | LoginStatus::AutoLoginAttempted => html! {
-			<>
-				<SharedStyle/>
-				<style>{
-					"
-					button:hover {
-						background-color: #00000000;
+		_ => html! { <>
+			<SharedStyle/>
+			<style>{
+				"
+				button:hover {
+					background-color: #00000000;
+				}
+				#login-form {
+					max-width: max-content;
+					margin: auto;
+				}
+				input {
+					font-size: 20px;
+				}
+				.login-status {
+					color: red;
+				}
+				"
+			}</style>
+			<div id="login-form">
+				<h1>{ "Login" }</h1>
+				<br/>
+				<input placeholder="username" onchange={ username_input } />
+				<br/><br/>
+				<input placeholder="password" type="password" onchange={ password_input } />
+				<br/>
+				<span class="login-status">
+				{
+					match *login_status {
+						LoginStatus::InternalError => "Something went wrong, try again later",
+						LoginStatus::BadAuth => "Incorrect username or password",
+						LoginStatus::NoPasswordProvided => "No password was provided",
+						_ => ""
 					}
-					#login-form {
-						max-width: max-content;
-						margin: auto;
-					}
-					input {
-						font-size: 20px;
-					}
-					"
-				}</style>
-				<div id="login-form">
-					<h1>{ "Login" }</h1>
-					<br/>
-					<input placeholder="username" onchange={ username_input } />
-					<br/><br/>
-					<input placeholder="password" type="password" onchange={ password_input } />
-					<br/><br/><br/>
-					<button onclick={ submit_click }>{ "Login" }</button>
-				</div>
-			</>
-		}
+				}
+				</span>
+				<br/><br/>
+				<button onclick={ submit_click }>{ "Login" }</button>
+			</div>
+		</> }
 	}
 }
