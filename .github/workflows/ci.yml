@@ -45,7 +45,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             sudo /usr/bin/systemctl stop itsjunetime.service
-            rm /home/junkie/server_files/frontend*
+            rm /home/junkie/server_files/frontend* 2>/dev/null || :
       - name: SCP files 
         uses: appleboy/scp-action@v0.1.4
         with:
