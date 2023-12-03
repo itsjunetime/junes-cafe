@@ -76,7 +76,7 @@ pub fn title_time_string(time: u64) -> String {
 		)
 }
 
-pub static BASE_STYLE: &str = r#"
+pub static BASE_STYLE: &str = r"
 * {
 	--body-background: #3f3540;
 	--main-text: #f1f6ff;
@@ -117,9 +117,9 @@ pre {
 pre > span, code {
 	font-family: Courier;
 }
-"#;
+";
 
-pub static POST_LIST_STYLE: &str = r#"
+pub static POST_LIST_STYLE: &str = r"
 #posts {
 	margin: 0px auto;
 	max-width: max-content;
@@ -156,4 +156,4 @@ pub static POST_LIST_STYLE: &str = r#"
 a {
 	text-decoration: none;
 }
-"#;
+";

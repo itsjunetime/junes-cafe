@@ -129,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let pool = PgPoolOptions::new()
 		.max_connections(num_connections)
-		// We need the `barista` table to exist before we start
+		// We need the `barista` database to exist before we start
 		.connect(&db_url)
 		.await?;
 
@@ -227,7 +227,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let addr = SocketAddr::from(([127, 0, 0, 1], backend_port));
 
-	println!("Serving axum at {}...", addr);
+	println!("Serving axum at {addr}...");
 
 	Server::bind(&addr)
 		.serve(app.into_make_service())

@@ -1,3 +1,6 @@
+// the html macro produces false positives for this, so we just disable it
+#![allow(clippy::similar_names)]
+
 use yew::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{

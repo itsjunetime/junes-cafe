@@ -29,7 +29,7 @@ impl RenderOnce for PostView {
 				head {
 					title : &post.title;
 					style : Raw(shared_data::BASE_STYLE);
-					style : Raw(r#"
+					style : Raw(r"
 						#post-content {
 							max-width: 790px;
 							margin: 10px auto;
@@ -60,7 +60,7 @@ impl RenderOnce for PostView {
 						#tag-title ~ br {
 							margin-bottom: 10px;
 						}
-					"#);
+					");
 				}
 				body {
 					div(id = "post-content") {
