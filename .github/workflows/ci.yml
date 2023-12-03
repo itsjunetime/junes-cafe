@@ -37,13 +37,14 @@ jobs:
         run: "cd frontend && trunk build --release"
       - name: Optimise wasm
         run: "cd frontend/dist && ../../binaryen-version_116/bin/wasm-opt -Oz -o opt.wasm $(ls frontend*.wasm) && mv ./opt.wasm $(ls frontend*.wasm)"
-      - name: Remove old files
+      - name: Stop currently-running backend
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            sudo /usr/bin/systemctl stop itsjunetime.service
             rm /home/junkie/server_files/frontend* 2>/dev/null || :
       - name: SCP files
         uses: appleboy/scp-action@v0.1.4
@@ -63,5 +64,5 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             sudo /usr/bin/systemctl daemon-reload
-            sudo /usr/bin/systemctl restart itsjunetime.service
+            sudo /usr/bin/systemctl start itsjunetime.service
             sudo /usr/sbin/nginx -s reload
