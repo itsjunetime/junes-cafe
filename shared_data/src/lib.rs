@@ -137,7 +137,7 @@ pub static POST_LIST_STYLE: &str = r"
 	transform-origin: top center;
 }
 .post, #home-title, .page-selector {
-	width: 900px;
+	max-width: 900px;
 }
 #home-title {
 	margin: 20px auto 10px auto;
