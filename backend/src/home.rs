@@ -108,7 +108,7 @@ impl RenderOnce for Posts {
 							post.html.lines()
 								.take(20)
 								.collect::<Vec<&str>>()
-								.join("br")
+								.join("\n")
 						);
 						div(class = "post-footer") {
 							: "Posted at ";
