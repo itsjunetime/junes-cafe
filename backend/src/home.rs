@@ -103,7 +103,13 @@ impl RenderOnce for Posts {
 								}
 							}
 						}
-						div(class = "post-content") : Raw(post.html);
+						div(class = "post-content") : Raw(
+							// only do the first 20 lines since it's gonna hide past that
+							post.html.split("br")
+								.take(20)
+								.collect::<Vec<&str>>()
+								.join("br")
+						);
 						div(class = "post-footer") {
 							: "Posted at ";
 							strong : shared_data::title_time_string(post.created_at);
