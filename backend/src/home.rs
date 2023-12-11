@@ -105,7 +105,7 @@ impl RenderOnce for Posts {
 						}
 						div(class = "post-content") : Raw(
 							// only do the first 20 lines since it's gonna hide past that
-							post.html.split("br")
+							post.html.lines()
 								.take(20)
 								.collect::<Vec<&str>>()
 								.join("br")
