@@ -42,6 +42,7 @@ jobs:
         with:
           overwrite: true
           directory: frontend/dist
+          js_engine: uglify-js
       - name: Stop currently-running backend
         uses: appleboy/ssh-action@v1.0.0
         with:
