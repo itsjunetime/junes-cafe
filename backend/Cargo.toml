@@ -19,4 +19,8 @@ argon2 = { version = "0.5.2", features = ["std"] }
 axum-sessions = "0.5.0"
 rand = "0.8.5"
 highlight-pulldown = "0.2.2"
-horrorshow = "0.8.4"
+horrorshow = { version = "0.8.4", default-features = false, features = ["std", "ops"] }
+once_cell = { version = "1.19.0", default-features = false }
+rss = { version = "2.0.6", default-features = false }
+sitewriter = { version = "1.0.3", default-features = false }
+chrono = { version = "0.4.31", default-features = false }

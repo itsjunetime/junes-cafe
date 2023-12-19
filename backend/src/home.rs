@@ -11,10 +11,10 @@ pub async fn get_home_view(session: ReadableSession, tx: Tx<Postgres>) -> Html<S
 
 pub async fn get_page_view(
 	session: ReadableSession,
-	tx: Tx<Postgres>,
+	mut tx: Tx<Postgres>,
 	Path(page): Path<u32>
 ) -> Html<String> {
-	let posts = crate::get_post_list(session, tx, 10, page * 10).await;
+	let posts = crate::get_post_list(&session, &mut tx, 10, page * 10).await;
 	let show_next = posts.as_ref().is_ok_and(|p| p.len() == 10);
 	Html(PostList {
 		content: Posts(posts),

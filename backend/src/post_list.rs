@@ -17,6 +17,7 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 			: doctype::HTML;
 			html {
 				head {
+					title : "itsjuneti.me";
 					style : Raw(shared_data::BASE_STYLE);
 					style : Raw(shared_data::POST_LIST_STYLE);
 				}

@@ -47,6 +47,7 @@ mod images;
 mod home;
 mod post_list;
 mod post;
+mod robots;
 
 #[macro_export]
 macro_rules! print_and_ret{
@@ -205,6 +206,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let app = Router::new()
 		.route("/", get(home::get_home_view))
+		.route("/sitemap.xml", get(robots::get_sitemap_xml))
+		.route("/index.xml", get(robots::get_rss_xml))
 		.route("/page/:id", get(home::get_page_view))
 		.route("/post/:id", get(post::get_post_view))
 		.route("/api/post/:id", get(get_post_json))
@@ -238,8 +241,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn get_post_list(
-	session: ReadableSession,
-	mut tx: Tx<Postgres>,
+	session: &ReadableSession,
+	tx: &mut Tx<Postgres>,
 	count: u32,
 	offset: u32
 ) -> Result<Vec<Post>, sqlx::Error> {
@@ -258,7 +261,7 @@ async fn get_post_list(
 		ORDER BY id DESC \
 		LIMIT {count} \
 		OFFSET {offset} \
-	;")).fetch_all(&mut tx)
+	;")).fetch_all(tx)
 		.await
 }
 
@@ -270,10 +273,10 @@ struct PostListParams {
 
 async fn get_post_list_json(
 	session: ReadableSession,
-	tx: Tx<Postgres>,
+	mut tx: Tx<Postgres>,
 	Query(PostListParams { count, offset }): Query<PostListParams>
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
-	get_post_list(session, tx, count, offset)
+	get_post_list(&session, &mut tx, count, offset)
 		.await
 		.map(Json)
 		.map_err(|e| {
@@ -352,7 +355,7 @@ pub async fn submit_post(
 	// we're just assuming the average wpm for these articles is 220
 	let minutes = details.content.split_whitespace().count() / 220;
 
-	query("INSERT INTO posts
+	let ret = query("INSERT INTO posts
 		(created_by_user, created_at, title, html, orig_markdown, tags, reading_time, draft)
 		SELECT id, $1, $2, $3, $4, $5, $6, $7 FROM users WHERE username = $8
 		RETURNING id
@@ -373,7 +376,17 @@ pub async fn submit_post(
 					|e| print_and_ret!(StatusCode::CREATED, "Post created at {created_at} returned no id: {e:?}"),
 					|i| (StatusCode::OK, i.to_string())
 				)
-		)
+		);
+
+	if let Err(e) = robots::update_sitemap_xml(&session, &mut tx).await {
+		eprintln!("Couldn't update sitemap after submit: {e}");
+	}
+
+	if let Err(e) = robots::update_rss_xml(&session, &mut tx).await {
+		eprintln!("Couldn't update rss xml after submit: {e}");
+	}
+
+	ret
 }
 
 pub async fn edit_post(
@@ -392,7 +405,7 @@ pub async fn edit_post(
 
 	println!("Trying to edit post with id {id}");
 
-	query("UPDATE posts SET html = $1, orig_markdown = $2, title = $3, tags = $4, draft = $5 WHERE id = $6")
+	let ret = query("UPDATE posts SET html = $1, orig_markdown = $2, title = $3, tags = $4, draft = $5 WHERE id = $6")
 		.bind(details.html)
 		.bind(details.content)
 		.bind(details.title)
@@ -404,7 +417,20 @@ pub async fn edit_post(
 		.map_or_else(
 			|e| print_and_ret!("Couldn't update/edit post with id {id}: {e:?}"),
 			|_| (StatusCode::OK, "OK".into())
-		)
+		);
+
+	// The only reason we'd need to udpate the sitemap is if we made a post public
+	if details.draft {
+		if let Err(e) = robots::update_sitemap_xml(&session, &mut tx).await {
+			eprintln!("Couldn't update sitemap after edit: {e}");
+		}
+	}
+
+	if let Err(e) = robots::update_rss_xml(&session, &mut tx).await {
+		eprintln!("Couldn't udpate rss xml after edit: {e}");
+	}
+
+	ret
 }
 
 struct SqlPostDetails {
