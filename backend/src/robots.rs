@@ -1,6 +1,6 @@
 use crate::print_and_ret;
 use std::{sync::Arc, collections::BTreeMap};
-use axum_sessions::extractors::ReadableSession;
+use tower_sessions::Session;
 use tokio::sync::RwLock;
 use axum_sqlx_tx::Tx;
 use shared_data::sqlx::{self, Postgres};
@@ -14,7 +14,7 @@ static SITEMAP_XML: Lazy<Arc<RwLock<String>>> = Lazy::new(Arc::default);
 static RSS_XML: Lazy<Arc<RwLock<String>>> = Lazy::new(Arc::default);
 
 pub async fn update_sitemap_xml(
-	session: &ReadableSession,
+	session: &Session,
 	tx: &mut Tx<Postgres>
 ) -> Result<(), sqlx::error::Error> {
 	let urls = crate::get_post_list(session, tx, i32::MAX as u32, 0).await?
@@ -36,10 +36,10 @@ pub async fn update_sitemap_xml(
 }
 
 pub async fn get_sitemap_xml(
-	session: ReadableSession,
+	session: Session,
 	mut tx: Tx<Postgres>
 ) -> (StatusCode, String) {
-	if SITEMAP_XML.read().await.is_empty() && 
+	if SITEMAP_XML.read().await.is_empty() &&
 		update_sitemap_xml(&session, &mut tx).await.is_err() {
 			print_and_ret!("Couldn't update sitemap.xml")
 		}
@@ -48,7 +48,7 @@ pub async fn get_sitemap_xml(
 }
 
 pub async fn update_rss_xml(
-	session: &ReadableSession,
+	session: &Session,
 	tx: &mut Tx<Postgres>
 ) -> Result<(), Box<dyn std::error::Error>> {
 	let posts = crate::get_post_list(session, tx, i32::MAX as u32, 0).await?;
@@ -140,7 +140,7 @@ pub async fn update_rss_xml(
 }
 
 pub async fn get_rss_xml(
-	session: ReadableSession, 
+	session: Session,
 	mut tx: Tx<Postgres>
 ) -> (StatusCode, String) {
 	if RSS_XML.read().await.is_empty() && update_rss_xml(&session, &mut tx).await.is_err() {

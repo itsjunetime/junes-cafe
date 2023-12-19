@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 chrono = { version = "0.4.31", default-features = false, features = ["alloc"] }
-serde = { version = "1.0.188", default-features = false,  features = ["serde_derive"] }
-serde_json = { version = "1.0.107", default-features = false, features = ["alloc"] }
-sqlx = { version = "0.7.2", default-features = false, features = ["macros", "postgres", "runtime-tokio-rustls"], optional = true }
+serde = { version = "1.0.183", default-features = false,  features = ["serde_derive"] }
+serde_json = { version = "1.0.108", default-features = false, features = ["alloc"] }
+sqlx = { version = "0.7.3", default-features = false, features = ["macros", "postgres", "runtime-tokio-rustls"], optional = true }
 
 [features]
 sqlx = ["dep:sqlx"]

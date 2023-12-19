@@ -2,11 +2,11 @@ use axum::{
 	extract::{Multipart, Path},
 	http::StatusCode
 };
-use axum_sessions::extractors::ReadableSession;
+use tower_sessions::Session;
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{print_and_ret, check_auth};
 
-pub async fn upload_asset(session: ReadableSession, mut form: Multipart) -> (StatusCode, String) {
+pub async fn upload_asset(session: Session, mut form: Multipart) -> (StatusCode, String) {
 	check_auth!(session);
 
 	let mut name = None;

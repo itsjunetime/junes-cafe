@@ -6,13 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gloo-net = { version = "0.4.0", default-features = false }
-wasm-bindgen-futures = { version = "0.4.37", default-features = false }
-wasm-bindgen = { version = "0.2.87", default-features = false, features = ["std"] }
+gloo-net = { version = "0.5.0", default-features = false, features = ["http", "json"] }
+wasm-bindgen-futures = { version = "0.4.39", default-features = false }
+wasm-bindgen = { version = "0.2.89", default-features = false, features = ["std"] }
 yew = { version = "0.21.0", default-features = false, features = ["csr"] }
 yew-router = { version = "0.18.0", default-features = false }
 shared_data = { path = "../shared_data" }
-web-sys = { version = "0.3.64", default-features = false, features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument", "HtmlButtonElement", "Blob"] }
+web-sys = { version = "0.3.66", default-features = false, features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument", "HtmlButtonElement", "Blob"] }
 gloo-console = { version = "0.3.0", default-features = false }
-js-sys = { version = "0.3.64", default-features = false }
+js-sys = { version = "0.3.66", default-features = false }
 base64 = { version = "0.20.0", default-features = false, features = ["alloc"] }

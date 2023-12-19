@@ -11,20 +11,18 @@ use axum::{
 	error_handling::HandleErrorLayer,
 	http::StatusCode,
 	Router,
-	Server,
 	Json
 };
 use axum_auth::AuthBasic;
-use axum_sessions::{
-	async_session::MemoryStore,
-	extractors::{WritableSession, ReadableSession},
-	SessionLayer,
+use tower_sessions::{
+	MemoryStore,
+	Session,
+	SessionManagerLayer
 };
 use serde::Deserialize;
 use axum_sqlx_tx::Tx;
 use images::{upload_asset, get_asset};
 use pulldown_cmark as md;
-use rand::Rng;
 use shared_data::{
 	Post,
 	PostReq,
@@ -41,7 +39,8 @@ use std::{
 	net::SocketAddr,
 	time::{SystemTime, UNIX_EPOCH}
 };
-use tower::ServiceBuilder;
+use tokio::net::TcpListener;
+use tower::{ServiceBuilder, BoxError};
 
 mod images;
 mod home;
@@ -64,13 +63,12 @@ macro_rules! print_and_ret{
 macro_rules! check_auth{
 	($session:ident) => {
 		match check_auth!($session, noret) {
-			Ok(user) => user,
-			Err(err) => return (StatusCode::UNAUTHORIZED, err)
+			Some(user) => user,
+			None => return (StatusCode::UNAUTHORIZED, "User did not login (/api/login) first".to_string())
 		}
 	};
 	($session:ident, noret) => {
-		$session.get::<String>($crate::USERNAME_KEY)
-			.ok_or_else(|| "User did not log in (/api/login) first".to_string())
+		$session.get::<String>($crate::USERNAME_KEY).ok().flatten()
 	}
 }
 
@@ -98,17 +96,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let db_url = match dotenv::var("DATABASE_URL") {
 		Ok(url) => url,
-		Err(err) => {
-			eprintln!("DATABASE_URL is not set in .env, and is necessary to connect to postgres. Please set it and retry.");
-			return Err(err.into())
+		Err(_) => {
+			return Err("DATABASE_URL is not set in .env (or is not valid unicode), and is necessary to connect to postgres. Please set it and retry.".into());
 		}
 	};
 
 	// Verifying that ASSET_DIR is a valid directory and is not readonly
 	let Some(dir) = dotenv::var("ASSET_DIR").ok().and_then(|d| (!d.is_empty()).then_some(d)) else {
-		eprintln!("ASSET_DIR var is not set in .env, and it is necessary to determine \
-				   where to place assets uploaded as part of posts. Please set it and retry.");
-		return Ok(())
+		return Err("ASSET_DIR var is not set in .env, and it is necessary to determine where to place assets uploaded as part of posts. Please set it and retry.".into());
 	};
 
 	let permissions = match std::fs::metadata(&dir) {
@@ -120,9 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	};
 
 	if permissions.readonly() {
-		eprintln!("The directory at ASSET_DIR is readonly; this will prevent assets from being uploaded. \
-				  Please fix before running the server.");
-		return Ok(())
+		return Err("The directory at ASSET_DIR is readonly; this will prevent assets from being uploaded. Please fix before running the server.".into());
 	}
 
 	println!("Storing assets to/Reading assets from {dir}");
@@ -137,8 +130,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	println!("Connected to postgres...");
 
 	// Make sure the table that we're working on exists
-	// This doesn't verify that it exists with these exact datatypes in each column, which would be
-	// ideal, but I can't find a way to easily do that so I'm not going to for now
+	// This doesn't verify that it exists with these exact datatypes in each column, which would
+	// be ideal, but I can't find a way to easily do that so I'm not going to for now
 	query("CREATE TABLE IF NOT EXISTS posts (
 		id serial PRIMARY KEY,
 		created_by_user BIGINT NOT NULL,
@@ -154,8 +147,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	println!("Set up posts table in DB...");
 
-	// We just assume that if you have an account, you can post. Maybe we can add more fine-grained
-	// controls later. Doesn't really matter for now tho.
+	// We just assume that if you have an account, you can post. Maybe we can add more
+	// fine-grained controls later. Doesn't really matter for now tho.
 	query("CREATE TABLE IF NOT EXISTS users (
 		id serial PRIMARY KEY,
 		username text NOT NULL UNIQUE,
@@ -192,17 +185,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		},
 		(Err(_), Err(_)) => println!("No base user specified; adding more users will be difficult"),
 		_ => {
-			eprintln!("Either a base username or password was specified, but not the other. Cannot proceed; please specify both or neither.");
-			return Ok(())
+			return Err("Either a base username or password was specified, but not the other. Cannot proceed; please specify both or neither.".into());
 		}
 	};
 
 	// Set up sessions for authentication
 	// And if we have to restart the server, then we're ok with losing sessions, so do an only
 	// in-memory session store, just for simplicity.
-	let session_store = MemoryStore::new();
-	let mut rng = rand::thread_rng();
-	let secret: Vec<u8> = vec![0; 128].into_iter().map(|_| rng.gen()).collect();
+	let session_store = MemoryStore::default();
+
+	let (tx_state, tx_layer) = Tx::<Postgres>::setup(pool);
 
 	let app = Router::new()
 		.route("/", get(home::get_home_view))
@@ -219,35 +211,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/api/login", get(login))
 		// I want to be able to upload 10mb assets if I so please.
 		.layer(DefaultBodyLimit::max(10 * 1024 * 1024))
-		.layer(SessionLayer::new(session_store, &secret))
-		.layer(
-			ServiceBuilder::new()
-				.layer(HandleErrorLayer::new(|err| async move {
-					print_and_ret!("Postgres Transaction failed: {err:?}")
-				}))
-				.layer(axum_sqlx_tx::Layer::new(pool))
-		);
+		.layer(ServiceBuilder::new()
+			.layer(HandleErrorLayer::new(|_: BoxError| async {
+				StatusCode::INTERNAL_SERVER_ERROR
+			}))
+			.layer(SessionManagerLayer::new(session_store))
+		)
+		.layer(tx_layer)
+		.with_state(tx_state);
 
 	let addr = SocketAddr::from(([127, 0, 0, 1], backend_port));
 
 	println!("Serving axum at {addr}...");
 
-	Server::bind(&addr)
-		.serve(app.into_make_service())
-		.await
-		.unwrap();
+	let listener = TcpListener::bind(addr).await?;
+	axum::serve(listener, app).await.unwrap();
 
 	Ok(())
 }
 
 async fn get_post_list(
-	session: &ReadableSession,
+	session: &Session,
 	tx: &mut Tx<Postgres>,
 	count: u32,
 	offset: u32
 ) -> Result<Vec<Post>, sqlx::Error> {
 	// If the user is logged in, then they can see all draft posts as well.
-	let draft_clause = if check_auth!(session, noret).is_ok() {
+	let draft_clause = if check_auth!(session, noret).is_some() {
 		""
 	} else {
 		"WHERE p.draft IS NOT TRUE"
@@ -272,7 +262,7 @@ struct PostListParams {
 }
 
 async fn get_post_list_json(
-	session: ReadableSession,
+	session: Session,
 	mut tx: Tx<Postgres>,
 	Query(PostListParams { count, offset }): Query<PostListParams>
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
@@ -289,12 +279,12 @@ async fn get_post_list_json(
 }
 
 async fn get_post(
-	session: ReadableSession,
+	session: Session,
 	mut tx: Tx<Postgres>,
 	Path(id): Path<i32>
 ) -> Result<Post, sqlx::Error> {
 	// If they're logged in, they should be able to view drafts
-	let where_clause = if check_auth!(session, noret).is_ok() {
+	let where_clause = if check_auth!(session, noret).is_some() {
 		"WHERE p.id = $1"
 	} else {
 		"WHERE (p.id = $1 AND p.draft IS NOT TRUE)"
@@ -314,7 +304,7 @@ async fn get_post(
 }
 
 async fn get_post_json(
-	session: ReadableSession,
+	session: Session,
 	tx: Tx<Postgres>,
 	path: Path<i32>
 ) -> Result<Json<Post>, (StatusCode, String)> {
@@ -331,7 +321,7 @@ async fn get_post_json(
 }
 
 pub async fn submit_post(
-	session: ReadableSession,
+	session: Session,
 	mut tx: Tx<Postgres>,
 	Json(payload): Json<PostReq>
 ) -> (StatusCode, String) {
@@ -390,7 +380,7 @@ pub async fn submit_post(
 }
 
 pub async fn edit_post(
-	session: ReadableSession,
+	session: Session,
 	mut tx: Tx<Postgres>,
 	Path(id): Path<i32>,
 	Json(payload): Json<PostReq>
@@ -464,10 +454,10 @@ fn post_details(payload: PostReq) -> SqlPostDetails {
 pub async fn login(
 	mut tx: Tx<Postgres>,
 	AuthBasic((username, password)): AuthBasic,
-	mut session: WritableSession
+	session: Session
 ) -> Result<(), (StatusCode, &'static str)> {
 	// Just in case they've already logged in
-	if check_auth!(session, noret).is_ok() {
+	if check_auth!(session, noret).is_some() {
 		return Ok(());
 	};
 

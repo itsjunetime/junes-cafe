@@ -1,4 +1,4 @@
-use axum_sessions::extractors::ReadableSession;
+use tower_sessions::Session;
 use axum_sqlx_tx::Tx;
 use axum::{response::Html, extract::Path, http::StatusCode};
 use shared_data::sqlx::Postgres;
@@ -6,7 +6,7 @@ use shared_data::Post;
 use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, Template, helper::doctype};
 
 pub async fn get_post_view(
-	session: ReadableSession,
+	session: Session,
 	tx: Tx<Postgres>,
 	Path(id): Path<i32>
 ) -> Result<Html<String>, StatusCode> {

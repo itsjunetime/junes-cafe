@@ -1,16 +1,16 @@
-use axum_sessions::extractors::ReadableSession;
+use tower_sessions::Session;
 use shared_data::sqlx::{self, Postgres};
 use axum_sqlx_tx::Tx;
 use axum::{response::Html, extract::Path};
 use horrorshow::{html, Raw, RenderOnce, TemplateBuffer, Template};
 use crate::{Post, post_list::PostList};
 
-pub async fn get_home_view(session: ReadableSession, tx: Tx<Postgres>) -> Html<String> {
+pub async fn get_home_view(session: Session, tx: Tx<Postgres>) -> Html<String> {
 	get_page_view(session, tx, Path(0)).await
 }
 
 pub async fn get_page_view(
-	session: ReadableSession,
+	session: Session,
 	mut tx: Tx<Postgres>,
 	Path(page): Path<u32>
 ) -> Html<String> {
