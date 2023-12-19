@@ -125,18 +125,9 @@ pub async fn update_rss_xml(
 		namespaces: BTreeMap::new()
 	};
 
-	let mut xml_vec = Vec::new();
-	match channel.write_to(&mut *xml_vec) {
-		Ok(_) => {
-			let mut rss_xml = RSS_XML.write().await;
-			*rss_xml = String::from_utf8(xml_vec).unwrap();
-			Ok(())
-		},
-		Err(e) => {
-			eprintln!("Couldn't write to vec: {e}");
-			Err("Couldn't write to vec".into())
-		}
-	}
+	let mut rss_xml = RSS_XML.write().await;
+	*rss_xml = channel.to_string();
+	Ok(())
 }
 
 pub async fn get_rss_xml(
