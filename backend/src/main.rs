@@ -22,7 +22,6 @@ use tower_sessions::{
 use serde::Deserialize;
 use axum_sqlx_tx::Tx;
 use images::{upload_asset, get_asset};
-use pulldown_cmark as md;
 use shared_data::{
 	Post,
 	PostReq,
@@ -47,6 +46,7 @@ mod home;
 mod post_list;
 mod post;
 mod robots;
+mod md_to_html;
 
 #[macro_export]
 macro_rules! print_and_ret{
@@ -434,20 +434,7 @@ struct SqlPostDetails {
 // Returns an err string or (Text, HTML, Title, Tags)
 fn post_details(payload: PostReq) -> SqlPostDetails {
 	let PostReq { content, title, tags, draft } = payload;
-	let parser = md::Parser::new_ext(&content, md::Options::all());
-
-	// This only errors on an unknown theme, so we can safely unwrap here
-	let events = highlight_pulldown::highlight_with_theme(parser, "base16-ocean.dark").unwrap();
-
-	let mut html = String::new();
-
-	// So it would be smart to sanitize the html to make sure that XSS and stuff like that isn't
-	// supported but it's my website and I think it's fun to have the option of doing fun little
-	// stuff with javascript if I would so like, and this input is already trusted (since only
-	// logged-in users can access this API and I am the only user) so I don't see the need to
-	// sanitize very strongly
-	md::html::push_html(&mut html, events.into_iter());
-
+	let html = md_to_html::md_to_html(&content);
 	SqlPostDetails { content, html, title, draft, tags: tags.join(",") }
 }
 

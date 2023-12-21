@@ -114,7 +114,7 @@ pre {
 	overflow: auto;
 	-webkit-text-size-adjust: 140%;
 }
-pre > span, code {
+pre span, code {
 	font-family: Courier;
 }
 ";

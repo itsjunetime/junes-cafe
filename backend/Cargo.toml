@@ -17,7 +17,7 @@ tower = { version = "0.4.13", default-features = false }
 axum-auth = { version = "0.7.0", default-features = false, features = ["auth-basic"] }
 argon2 = { version = "0.5.2", features = ["std"] }
 tower-sessions = "0.7.0"
-highlight-pulldown = "0.2.2"
+syntect = { version = "5.1.0", default-features = false, features = ["default-themes", "parsing", "default-syntaxes", "html", "regex-onig"] }
 horrorshow = { version = "0.8.4", default-features = false, features = ["std", "ops"] }
 once_cell = { version = "1.19.0", default-features = false }
 rss = { version = "2.0.6", default-features = false }
