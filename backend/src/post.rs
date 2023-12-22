@@ -4,30 +4,35 @@ use axum::{response::Html, extract::Path, http::StatusCode};
 use shared_data::sqlx::Postgres;
 use shared_data::Post;
 use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, Template, helper::doctype};
+use crate::check_auth;
 
 pub async fn get_post_view(
 	session: Session,
 	tx: Tx<Postgres>,
 	Path(id): Path<i32>
 ) -> Result<Html<String>, StatusCode> {
+	let can_edit = check_auth!(session, noret).is_some();
 	let Ok(post) = crate::get_post(session, tx, Path(id)).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
 
-	Ok(Html(PostView(post).into_string().unwrap()))
+	let view = PostView { post, can_edit };
+	Ok(Html(view.into_string().unwrap()))
 }
 
-struct PostView(Post);
+struct PostView {
+	post: Post,
+	can_edit: bool
+}
 
 impl RenderOnce for PostView {
 	fn render_once(self, tmpl: &mut TemplateBuffer) {
-		let post = self.0;
-		let user = post.display_user().to_owned();
+		let user = self.post.display_user().to_owned();
 		tmpl << html! {
 			: doctype::HTML;
 			html {
 				head {
-					title : &post.title;
+					title : &self.post.title;
 					style : Raw(shared_data::BASE_STYLE);
 					style : Raw(r"
 						#post-content {
@@ -42,11 +47,19 @@ impl RenderOnce for PostView {
 							display: block;
 							right: 30px;
 							position: relative;
-							top: 24px;
+							top: 10px;
 							text-decoration: none;
 						}
 						#post-title {
 							color: var(--title-text);
+						}
+						#title-row {
+							display: flex;
+							justify-content: space-between;
+						}
+						#title-row * {
+							margin: 0px;
+							padding: 8px 0px;
 						}
 						#post-text {
 							padding: 12px 12px;
@@ -66,29 +79,33 @@ impl RenderOnce for PostView {
 					div(id = "post-content") {
 						span(id = "post-header") {
 							a(href = "/", id = "back-button") : "←";
-							h2(id = "post-title") : post.title;
+							span(id = "title-row") {
+								h2(id = "post-title") : self.post.title;
+								@ if self.can_edit {
+									a(href = format!("/admin/edit_post/{}", self.post.id)) : "edit" ;
+								}
+							}
 							span {
 								: "At ";
-								strong : shared_data::title_time_string(post.created_at);
+								strong : shared_data::title_time_string(self.post.created_at);
 								: " by ";
 								strong : user;
 								: "; ";
-								@ if post.reading_time == 0 {
+								@ if self.post.reading_time == 0 {
 									: "a quick read";
 								} else {
-									: post.reading_time;
+									: self.post.reading_time;
 									: " minute read";
 								}
 							}
 						}
-						br; br;
-						div(id = "post-text") : Raw(post.html);
-						@ if !post.tags.0.is_empty() {
+						div(id = "post-text") : Raw(self.post.html);
+						@ if !self.post.tags.0.is_empty() {
 							br; br;
 							div(id = "tags") {
 								span(id = "tag-title") : "Tags";
 								br;
-								@ for tag in post.tags.0 {
+								@ for tag in self.post.tags.0 {
 									span(class = "tag") : tag;
 								}
 							}

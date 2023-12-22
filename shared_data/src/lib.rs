@@ -142,9 +142,6 @@ pub static POST_LIST_STYLE: &str = r"
 #home-title {
 	margin: 20px auto 10px auto;
 }
-.page-selector {
-	margin: 10px auto;
-}
 #social-icons {
 	align-self: center;
 	display: inline-block;
