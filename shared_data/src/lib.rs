@@ -94,7 +94,7 @@ body {
 span.tag {
 	margin-right: 8px;
 	background-color: var(--secondary-background);
-	padding: 4px 6px;
+	padding: 3px 6px;
 	border-radius: 4px;
 }
 input, textarea {

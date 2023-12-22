@@ -46,7 +46,7 @@ pub fn md_to_html(input: &str) -> String {
 				// if we fail to highlight, it's kinda whatever
 				if let Ok(regions) = highlighter.highlight_line(line, &syntax_set) {
 					_ = append_highlighted_html_for_styled_line(
-						&regions[..], 
+						&regions[..],
 						IncludeBackground::IfDifferent(color),
 						&mut output
 					)

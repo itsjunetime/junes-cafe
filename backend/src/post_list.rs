@@ -3,6 +3,7 @@ use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, helper::doctype};
 const GITHUB_ICON: &str = include_str!("../../assets/github-mark.svg");
 const TWITTER_ICON: &str = include_str!("../../assets/twitter.svg");
 const MATRIX_ICON: &str = include_str!("../../assets/matrix.svg");
+const RSS_ICON: &str = include_str!("../../assets/rss-icon.svg");
 
 pub struct PostList<C: RenderOnce + 'static> {
 	pub content: C,
@@ -25,6 +26,7 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 					div(id = "home-title") {
 						h1(id = "title-text") : self.title;
 						span(id = "social-icons") {
+							a(href = "/index.xml") : Raw(RSS_ICON) ;
 							a(href = "https://matrix.to/#/@janshai:beeper.com") : Raw(MATRIX_ICON);
 							a(href = "https://github.com/itsjunetime") : Raw(GITHUB_ICON);
 							a(href = "https://twitter.com/itsjunetime") : Raw(TWITTER_ICON);
