@@ -68,7 +68,7 @@ macro_rules! check_auth{
 		}
 	};
 	($session:ident, noret) => {
-		$session.get::<String>($crate::USERNAME_KEY).ok().flatten()
+		$session.get::<String>($crate::USERNAME_KEY).await.ok().flatten()
 	}
 }
 
@@ -448,18 +448,20 @@ pub async fn login(
 		return Ok(());
 	};
 
+	let session_id = session.id();
+
 	// Only get the pass if it's not empty
 	let Some(pass) = password.and_then(|p| (!p.is_empty()).then_some(p)) else {
-		eprintln!("Session {} sent a login request with an empty password", session.id());
+		eprintln!("Session {session_id:?} sent a login request with an empty password");
 		return Err((StatusCode::PRECONDITION_FAILED, "Please include a password"));
 	};
 
 	if username.is_empty() {
-		eprintln!("Session {} sent a login request with an empty username", session.id());
+		eprintln!("Session {session_id:?} sent a login request with an empty username");
 		return Err((StatusCode::PRECONDITION_FAILED, "Please include a username"));
 	}
 
-	println!("User trying to login with session {} and username {username}", session.id());
+	println!("User trying to login with session {session_id:?} and username {username}");
 
 	let unauth = || (StatusCode::UNAUTHORIZED, "Incorrect username or password");
 
@@ -484,9 +486,9 @@ pub async fn login(
 
 	match Argon2::default().verify_password(pass.as_bytes(), &hash_struct) {
 		Ok(()) => {
-			println!("Trying to log in {username} with session_id {}", session.id());
+			println!("Trying to log in {username} with session_id {:?}", session.id());
 
-			if let Err(err) = session.insert(USERNAME_KEY, username) {
+			if let Err(err) = session.insert(USERNAME_KEY, username).await {
 				println!("Could not save session: {err}");
 				return Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to save session; unable to log you in"));
 			}
