@@ -8,7 +8,6 @@ use argon2::{
 use axum::{
 	routing::{get, post},
 	extract::{Path, DefaultBodyLimit, Query},
-	error_handling::HandleErrorLayer,
 	http::StatusCode,
 	Router,
 	Json
@@ -39,7 +38,6 @@ use std::{
 	time::{SystemTime, UNIX_EPOCH}
 };
 use tokio::net::TcpListener;
-use tower::{ServiceBuilder, BoxError};
 
 mod images;
 mod home;
@@ -211,12 +209,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/api/login", get(login))
 		// I want to be able to upload 10mb assets if I so please.
 		.layer(DefaultBodyLimit::max(10 * 1024 * 1024))
-		.layer(ServiceBuilder::new()
-			.layer(HandleErrorLayer::new(|_: BoxError| async {
-				StatusCode::INTERNAL_SERVER_ERROR
-			}))
-			.layer(SessionManagerLayer::new(session_store))
-		)
+		.layer(SessionManagerLayer::new(session_store))
 		.layer(tx_layer)
 		.with_state(tx_state);
 

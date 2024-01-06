@@ -11,12 +11,11 @@ dotenv = "0.15.0"
 pulldown-cmark = { version = "0.9.3", default-features = false, features = ["simd"] }
 tokio = { version = "1.35.0", features = ["macros", "rt-multi-thread"] }
 shared_data = { path = "../shared_data", features = ["sqlx"] }
-axum-sqlx-tx = { git = "https://github.com/digital-society-coop/axum-sqlx-tx", branch = "axum-0.7", features = ["postgres", "runtime-tokio-rustls"] }
+axum-sqlx-tx = { version = "0.8.0", features = ["postgres", "runtime-tokio-rustls"] }
 serde = { version = "1.0.193", features = ["serde_derive"] }
-tower = { version = "0.4.13", default-features = false }
 axum-auth = { version = "0.7.0", default-features = false, features = ["auth-basic"] }
 argon2 = { version = "0.5.2", features = ["std"] }
-tower-sessions = "0.8.2"
+tower-sessions = "0.9.1"
 syntect = { version = "5.1.0", default-features = false, features = ["default-themes", "parsing", "default-syntaxes", "html", "regex-onig"] }
 horrorshow = { version = "0.8.4", default-features = false, features = ["std", "ops"] }
 once_cell = { version = "1.19.0", default-features = false }
