@@ -3,6 +3,7 @@ use crate::style::SharedStyle;
 use gloo_console::log;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
+use base64::prelude::*;
 
 #[derive(PartialEq, Eq, Debug)]
 enum LoginStatus {
@@ -60,7 +61,7 @@ pub fn auth_view(props: &AuthProps) -> Html {
 	let submit_click = Callback::from(move |_| {
 		let login_reclone = login_clone.clone();
 
-		let auth_header = format!("Basic {}", base64::encode(format!("{}:{}", creds.username, creds.password)));
+		let auth_header = format!("Basic {}", BASE64_STANDARD.encode(format!("{}:{}", creds.username, creds.password)));
 
 		wasm_bindgen_futures::spawn_local(async move {
 			let res = gloo_net::http::Request::get("/api/login")

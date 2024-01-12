@@ -15,4 +15,4 @@ shared_data = { path = "../shared_data" }
 web-sys = { version = "0.3.66", default-features = false, features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument", "HtmlButtonElement", "Blob"] }
 gloo-console = { version = "0.3.0", default-features = false }
 js-sys = { version = "0.3.66", default-features = false }
-base64 = { version = "0.20.0", default-features = false, features = ["alloc"] }
+base64 = { version = "0.21.7", default-features = false, features = ["alloc"] }
