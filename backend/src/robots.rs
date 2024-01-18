@@ -1,6 +1,5 @@
 use crate::print_and_ret;
 use std::{sync::Arc, collections::BTreeMap};
-use tower_sessions::Session;
 use tokio::sync::RwLock;
 use axum_sqlx_tx::Tx;
 use shared_data::sqlx::{self, Postgres};
@@ -13,11 +12,8 @@ use rss::{Item, Category, Source, Channel};
 static SITEMAP_XML: Lazy<Arc<RwLock<String>>> = Lazy::new(Arc::default);
 static RSS_XML: Lazy<Arc<RwLock<String>>> = Lazy::new(Arc::default);
 
-pub async fn update_sitemap_xml(
-	session: &Session,
-	tx: &mut Tx<Postgres>
-) -> Result<(), sqlx::error::Error> {
-	let urls = crate::get_post_list(session, tx, i32::MAX as u32, 0).await?
+pub async fn update_sitemap_xml(tx: &mut Tx<Postgres>) -> Result<(), sqlx::error::Error> {
+	let urls = crate::get_post_list(None, tx, i32::MAX as u32, 0).await?
 		.into_iter()
 		.map(|post| UrlEntry {
 			loc: format!("https://itsjuneti.me/post/{}", post.id).parse().unwrap(),
@@ -35,23 +31,17 @@ pub async fn update_sitemap_xml(
 	Ok(())
 }
 
-pub async fn get_sitemap_xml(
-	session: Session,
-	mut tx: Tx<Postgres>
-) -> (StatusCode, String) {
+pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> (StatusCode, String) {
 	if SITEMAP_XML.read().await.is_empty() &&
-		update_sitemap_xml(&session, &mut tx).await.is_err() {
+		update_sitemap_xml(&mut tx).await.is_err() {
 			print_and_ret!("Couldn't update sitemap.xml")
 		}
 
 	(StatusCode::OK, SITEMAP_XML.read().await.clone())
 }
 
-pub async fn update_rss_xml(
-	session: &Session,
-	tx: &mut Tx<Postgres>
-) -> Result<(), Box<dyn std::error::Error>> {
-	let posts = crate::get_post_list(session, tx, i32::MAX as u32, 0).await?;
+pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::error::Error>> {
+	let posts = crate::get_post_list(None, tx, i32::MAX as u32, 0).await?;
 
 	let last_update = posts.iter()
 		.map(|p| p.created_at)
@@ -130,11 +120,8 @@ pub async fn update_rss_xml(
 	Ok(())
 }
 
-pub async fn get_rss_xml(
-	session: Session,
-	mut tx: Tx<Postgres>
-) -> (StatusCode, String) {
-	if RSS_XML.read().await.is_empty() && update_rss_xml(&session, &mut tx).await.is_err() {
+pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> (StatusCode, String) {
+	if RSS_XML.read().await.is_empty() && update_rss_xml(&mut tx).await.is_err() {
 		print_and_ret!("Couldn't update index.xml")
 	}
 

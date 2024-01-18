@@ -222,16 +222,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn get_post_list(
-	session: &Session,
+	session: Option<&Session>,
 	tx: &mut Tx<Postgres>,
 	count: u32,
 	offset: u32
 ) -> Result<Vec<Post>, sqlx::Error> {
 	// If the user is logged in, then they can see all draft posts as well.
-	let draft_clause = if check_auth!(session, noret).is_some() {
-		""
-	} else {
-		"WHERE p.draft IS NOT TRUE"
+	let draft_clause = match session {
+		Some(s) if check_auth!(s, noret).is_some() => "",
+		_ => "WHERE p.draft IS NOT TRUE"
 	};
 
 	query_as::<_, Post>(&format!("SELECT \
@@ -257,7 +256,7 @@ async fn get_post_list_json(
 	mut tx: Tx<Postgres>,
 	Query(PostListParams { count, offset }): Query<PostListParams>
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
-	get_post_list(&session, &mut tx, count, offset)
+	get_post_list(Some(&session), &mut tx, count, offset)
 		.await
 		.map(Json)
 		.map_err(|e| {
@@ -359,11 +358,11 @@ pub async fn submit_post(
 				)
 		);
 
-	if let Err(e) = robots::update_sitemap_xml(&session, &mut tx).await {
+	if let Err(e) = robots::update_sitemap_xml(&mut tx).await {
 		eprintln!("Couldn't update sitemap after submit: {e}");
 	}
 
-	if let Err(e) = robots::update_rss_xml(&session, &mut tx).await {
+	if let Err(e) = robots::update_rss_xml(&mut tx).await {
 		eprintln!("Couldn't update rss xml after submit: {e}");
 	}
 
@@ -402,12 +401,12 @@ pub async fn edit_post(
 
 	// The only reason we'd need to udpate the sitemap is if we made a post public
 	if details.draft {
-		if let Err(e) = robots::update_sitemap_xml(&session, &mut tx).await {
+		if let Err(e) = robots::update_sitemap_xml(&mut tx).await {
 			eprintln!("Couldn't update sitemap after edit: {e}");
 		}
 	}
 
-	if let Err(e) = robots::update_rss_xml(&session, &mut tx).await {
+	if let Err(e) = robots::update_rss_xml(&mut tx).await {
 		eprintln!("Couldn't udpate rss xml after edit: {e}");
 	}
 
