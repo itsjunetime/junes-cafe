@@ -44,7 +44,6 @@ mod home;
 mod post_list;
 mod post;
 mod robots;
-mod md_to_html;
 
 #[macro_export]
 macro_rules! print_and_ret{
@@ -121,7 +120,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let pool = PgPoolOptions::new()
 		.max_connections(num_connections)
-		// We need the `barista` database to exist before we start
 		.connect(&db_url)
 		.await?;
 
@@ -427,7 +425,7 @@ struct SqlPostDetails {
 // Returns an err string or (Text, HTML, Title, Tags)
 fn post_details(payload: PostReq) -> SqlPostDetails {
 	let PostReq { content, title, tags, draft } = payload;
-	let html = md_to_html::md_to_html(&content);
+	let html = shared_data::md_to_html(&content);
 	SqlPostDetails { content, html, title, draft, tags: tags.join(",") }
 }
 

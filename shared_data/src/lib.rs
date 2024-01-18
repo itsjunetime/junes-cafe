@@ -1,8 +1,12 @@
 use chrono::NaiveDateTime;
 
+mod md_to_html;
+
 // re-export so others can use as well
 #[cfg(feature = "sqlx")]
 pub use sqlx;
+
+pub use md_to_html::md_to_html;
 
 #[cfg(feature = "sqlx")]
 use sqlx::{Row, FromRow, postgres::PgRow};

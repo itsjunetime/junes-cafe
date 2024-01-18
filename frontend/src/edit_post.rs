@@ -11,6 +11,7 @@ use web_sys::{
 	FileList,
 	FormData
 };
+use std::str::FromStr;
 use super::{
 	style::SharedStyle,
 	GetPostErr
@@ -61,6 +62,7 @@ pub struct PostDetails {
 	pub id: u32,
 	pub title: String,
 	pub content: String,
+	pub rendered_content: String,
 	pub tags: HashSet<String>,
 	pub draft: bool
 }
@@ -69,20 +71,27 @@ impl Reducible for PostDetails {
 	type Action = EditMsg;
 
 	fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-		macro_rules! clone_self{ ($item:ident) => {
-			Self { $item, ..(*self).clone() }.into()
+		macro_rules! clone_self{ ($item:ident$(, $other:ident)*) => {
+			Self { $item, $($other, )*..(*self).clone() }.into()
 		}}
 
 		match action {
-			EditMsg::SetInitial(tags, content, title, draft) => Self {
-				id: self.id,
-				tags,
-				content,
-				title,
-				draft
-			}.into(),
+			EditMsg::SetInitial(tags, content, title, draft) => {
+				let rendered_content = shared_data::md_to_html(&content);
+				Self {
+					id: self.id,
+					tags,
+					content,
+					rendered_content,
+					title,
+					draft
+				}.into()
+			},
 			EditMsg::Title(title) => clone_self!(title),
-			EditMsg::Content(content) => clone_self!(content),
+			EditMsg::Content(content) => {
+				let rendered_content = shared_data::md_to_html(&content);
+				clone_self!(content, rendered_content)
+			},
 			EditMsg::AddTag(tag) => if tag.is_empty() {
 				self
 			} else {
@@ -276,7 +285,6 @@ pub fn edit_post(props: &PostProps) -> Html {
 				{
 					"
 					#article-content {
-						max-width: 800px;
 						margin: auto;
 					}
 					#new-tag-input {
@@ -289,9 +297,22 @@ pub fn edit_post(props: &PostProps) -> Html {
 						margin-right: -4px;
 						margin-left: 4px;
 					}
+					#edit-and-render {
+						display: grid;
+						grid-template-columns: 1fr 1fr;
+						column-gap: 20px;
+						max-width: 140%;
+					}
 					textarea {
-						width: 100%;
 						height: 300px;
+					}
+					#rendered img {
+						max-width: 100%;
+					}
+					#rendered {
+						border: 1px solid var(--border-color);
+						border-radius: 8px;
+						padding: 0px 20px;
 					}
 					.upload-details {
 						border: 1px solid var(--border-color);
@@ -312,16 +333,25 @@ pub fn edit_post(props: &PostProps) -> Html {
 					<h1>{ "New Post" }</h1>
 					<input placeholder="title" value={ details.title.clone() } onchange={ title_callback } />
 					<br/><br/>
-					<textarea
-						placeholder="what's goin on? :)"
-						oninput={ content_callback }
-						value={ details.content.clone() }
-						disabled={
-							matches!(*asset, AssetUploadState::Uploading | AssetUploadState::Resolved(Ok((_, false))))
-						}
-					>{
-						&details.content
-					}</textarea>
+					<div id="edit-and-render">
+						<textarea
+							placeholder="what's goin on? :)"
+							oninput={ content_callback }
+							value={ details.content.clone() }
+							disabled={
+								matches!(*asset, AssetUploadState::Uploading | AssetUploadState::Resolved(Ok((_, false))))
+							}
+						>{
+							&details.content
+						}</textarea>
+						<span id="rendered">{
+							match AttrValue::from_str(details.rendered_content.as_str()) {
+								Ok(s) => Html::from_html_unchecked(s),
+								// it's a Result<_, Infallible>
+								Err(_) => unsafe { std::hint::unreachable_unchecked() }
+							}
+						}</span>
+					</div>
 					<br/><br/>
 					<label
 						for="asset-upload"
