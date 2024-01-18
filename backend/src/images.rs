@@ -1,5 +1,5 @@
 use axum::{
-	extract::{Multipart, Path},
+	extract::Multipart,
 	http::StatusCode
 };
 use tower_sessions::Session;
@@ -52,13 +52,13 @@ pub async fn upload_asset(session: Session, mut form: Multipart) -> (StatusCode,
 				let asset_path = std::path::Path::new(&asset_dir);
 				let mut save_path = asset_path.join(&file_name);
 
-				if let Some(name) = name {
-					if name.contains('.') {
-						save_path.set_extension(name.split('.').last().unwrap());
+				if let Some(ref name) = name {
+					if let Some(ext) = name.split('.').last() {
+						_ = save_path.set_extension(ext);
 					}
 				}
 
-				return std::fs::write(&save_path, asset_data)
+				let res = std::fs::write(&save_path, asset_data)
 					.map_or_else(
 						|e| print_and_ret!("Couldn't save the asset to {save_path:?}: {e:?}"),
 						|()| (
@@ -66,50 +66,34 @@ pub async fn upload_asset(session: Session, mut form: Multipart) -> (StatusCode,
 							save_path.file_name().and_then(|s| s.to_os_string().into_string().ok()).unwrap()
 						)
 					);
+
+				if name.is_some_and(|name| name.ends_with("png")) {
+					tokio::spawn(async move {
+						// optimize it on some background thread if it's a png
+						if let Err(e) = oxipng::optimize(
+							&oxipng::InFile::Path(save_path),
+							&oxipng::OutFile::Path {
+								// just use the same as InFile
+								path: None,
+								// we want to keep the same permissions
+								preserve_attrs: true
+							},
+							&oxipng::Options {
+								fix_errors: true,
+								deflate: oxipng::Deflaters::Libdeflater { compression: 12 },
+								..Default::default()
+							}
+						) {
+							eprintln!("Couldn't optimize uploaded file: {e}");
+						}
+					});
+				}
+
+				return res;
 			},
 			Err(err) => print_and_ret!("Couldn't get all fields of request: {err:?}")
 		}
 	}
 
 	(StatusCode::BAD_REQUEST, "Form didn't contain the requisite 'file' field".into())
-}
-
-pub async fn get_asset(Path(asset): Path<String>) -> Result<Vec<u8>, StatusCode> {
-	// Make sure we know the parent directory
-	let asset_dir = match dotenv::var("ASSET_DIR") {
-		Ok(d) => d,
-		Err(e) => {
-			eprintln!("Couldn't get ASSET_DIR when getting asset {asset}: {e:?}");
-			return Err(StatusCode::INTERNAL_SERVER_ERROR);
-		}
-	};
-
-	// And make sure we can get a full path out of the string they gave us
-	let full_path = match std::path::Path::new(&asset_dir).join(&asset).canonicalize() {
-		Ok(p) => p,
-		Err(e) => {
-			eprintln!("Couldn't canonicalize full path for {asset}: {e:?}");
-			return Err(StatusCode::INTERNAL_SERVER_ERROR);
-		}
-	};
-
-	// And if the full path isn't still inside the ASSET_DIR directory, that means they're
-	// attempting directory traversal, so we shouldn't let the request continue.
-	if !full_path.starts_with(&asset_dir) {
-		eprintln!("Directory traversal attempted (submitted '{asset}' resolved to {full_path:?})");
-		return Err(StatusCode::BAD_REQUEST);
-	}
-
-	// And then read the file and return information based on what we read
-	std::fs::read(&full_path)
-		.map_err(|e| {
-				eprintln!("Can't read file at {full_path:?}: {e:?}");
-				match e.kind() {
-					// If it can't be found, we're just assuming they submitted a bad request,
-					// since there shouldn't be any assets referenced on the site that don't exist
-					// on the fs somewhere
-					std::io::ErrorKind::NotFound => StatusCode::BAD_REQUEST,
-					_ => StatusCode::INTERNAL_SERVER_ERROR
-				}
-		})
 }
