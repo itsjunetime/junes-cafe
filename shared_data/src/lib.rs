@@ -82,12 +82,12 @@ pub fn title_time_string(time: u64) -> String {
 
 pub static BASE_STYLE: &str = r#"
 @font-face {
-	name: "Isenheim",
-	source: local("Isenheim"), url("/fonts/isenheim");
+	font-family: "Isenheim";
+	src: local("Isenheim"), url("/font/isenheim") format("opentype");
 }
 @font-face {
-	name: "Maple Mono",
-	source: local("Maple Mono"), url("/fonts/maple-mono");
+	font-family: "Maple Mono";
+	src: local("Maple Mono"), url("/font/maple-mono");
 }
 * {
 	--body-background: #3f3540;
