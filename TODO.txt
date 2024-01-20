@@ -1,2 +1,1 @@
-- Add credits to the bottom of the website about what library we're using and how we're hosting
 - Automatically minify post html

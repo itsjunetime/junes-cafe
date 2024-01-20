@@ -22,3 +22,7 @@ sitewriter = { version = "1.0.3", default-features = false }
 chrono = { version = "0.4.31", default-features = false }
 tower-http = { version = "0.5.1", default-features = false, features = ["fs"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
+build-info = "0.0.34"
+
+[build-dependencies]
+build-info-build = "0.0.34"

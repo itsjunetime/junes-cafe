@@ -45,6 +45,7 @@ mod home;
 mod post_list;
 mod post;
 mod robots;
+mod fonts;
 
 #[macro_export]
 macro_rules! print_and_ret{
@@ -199,6 +200,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/index.xml", get(robots::get_rss_xml))
 		.route("/page/:id", get(home::get_page_view))
 		.route("/post/:id", get(post::get_post_view))
+		.route("/font/:id", get(fonts::get_font))
+		.route("/licenses", get(fonts::get_license_page))
 		.route("/api/post/:id", get(get_post_json))
 		.route("/api/posts", get(get_post_list_json))
 		.route("/api/new_post", post(submit_post))

@@ -1,0 +1,6 @@
+[submodule "fonts/isenheim"]
+	path = fonts/isenheim
+	url = https://gitlab.com/benoitsansterre/isenheim.git
+[submodule "fonts/maple-mono"]
+	path = fonts/maple-mono
+	url = https://github.com/subframe7536/maple-font.git

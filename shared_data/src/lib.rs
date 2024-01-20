@@ -81,6 +81,14 @@ pub fn title_time_string(time: u64) -> String {
 }
 
 pub static BASE_STYLE: &str = r#"
+@font-face {
+	name: "Isenheim",
+	source: local("Isenheim"), url("/fonts/isenheim");
+}
+@font-face {
+	name: "Maple Mono",
+	source: local("Maple Mono"), url("/fonts/maple-mono");
+}
 * {
 	--body-background: #3f3540;
 	--main-text: #f1f6ff;
@@ -89,7 +97,7 @@ pub static BASE_STYLE: &str = r#"
 	--secondary-background: #59656f;
 	--border-color: #ac9fbb;
 	--title-text: #d1bbe4;
-	font-family: Arial;
+	font-family: Isenheim, Arial;
 	color: var(--main-text);
 }
 body {
@@ -120,6 +128,7 @@ pre {
 }
 pre span, code {
 	font-family: "Maple Mono", monospace,monospace;
+	font-weight: lighter;
 }
 "#;
 
@@ -156,5 +165,15 @@ pub static POST_LIST_STYLE: &str = r"
 }
 a {
 	text-decoration: none;
+}
+#credits {
+	max-width: 900px;
+	margin: auto;
+	text-align: center;
+	color: var(--title-text);
+}
+#credits a {
+	color: var(--title-text);
+	text-decoration: underline;
 }
 ";
