@@ -334,7 +334,7 @@ pub async fn submit_post(
 	};
 
 	// we're just assuming the average wpm for these articles is 220
-	let minutes = details.content.split_whitespace().count() / 220;
+	let minutes = details.reading_time();
 
 	let ret = query("INSERT INTO posts
 		(created_by_user, created_at, title, html, orig_markdown, tags, reading_time, draft)
@@ -384,13 +384,15 @@ pub async fn edit_post(
 		return (StatusCode::BAD_REQUEST, "The title or content of the post are now empty".into())
 	}
 
+	let reading_time = details.reading_time() as i32;
 	println!("Trying to edit post with id {id}");
 
-	let ret = query("UPDATE posts SET html = $1, orig_markdown = $2, title = $3, tags = $4, draft = $5 WHERE id = $6")
+	let ret = query("UPDATE posts SET html = $1, orig_markdown = $2, title = $3, tags = $4, reading_time = $5, draft = $6 WHERE id = $7")
 		.bind(details.html)
 		.bind(details.content)
 		.bind(details.title)
 		.bind(details.tags)
+		.bind(reading_time)
 		.bind(details.draft)
 		.bind(id)
 		.execute(&mut tx)
@@ -420,6 +422,13 @@ struct SqlPostDetails {
 	title: String,
 	tags: String,
 	draft: bool
+}
+
+impl SqlPostDetails {
+	fn reading_time(&self) -> usize {
+		// in minutes
+		self.content.split_whitespace().count() / 220
+	}
 }
 
 // Returns an err string or (Text, HTML, Title, Tags)

@@ -80,7 +80,7 @@ pub fn title_time_string(time: u64) -> String {
 		)
 }
 
-pub static BASE_STYLE: &str = r"
+pub static BASE_STYLE: &str = r#"
 * {
 	--body-background: #3f3540;
 	--main-text: #f1f6ff;
@@ -119,9 +119,9 @@ pre {
 	-webkit-text-size-adjust: 140%;
 }
 pre span, code {
-	font-family: Courier;
+	font-family: "Maple Mono", monospace,monospace;
 }
-";
+"#;
 
 pub static POST_LIST_STYLE: &str = r"
 #posts {
