@@ -198,6 +198,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/", get(home::get_home_view))
 		.route("/sitemap.xml", get(robots::get_sitemap_xml))
 		.route("/index.xml", get(robots::get_rss_xml))
+		.route("/robots.txt", get(robots::get_robots_txt))
 		.route("/page/:id", get(home::get_page_view))
 		.route("/post/:id", get(post::get_post_view))
 		.route("/font/:id", get(fonts::get_font))

@@ -127,3 +127,13 @@ pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> (StatusCode, String) {
 
 	(StatusCode::OK, RSS_XML.read().await.clone())
 }
+
+pub async fn get_robots_txt() -> &'static str {
+	"
+	User-agent: GPTBot
+	Disallow: /
+
+	User-agent: Google-Extended
+	Disallow: /
+	"
+}
