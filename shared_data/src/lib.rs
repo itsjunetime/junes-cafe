@@ -97,6 +97,7 @@ pub static BASE_STYLE: &str = r#"
 	--secondary-background: #59656f;
 	--border-color: #ac9fbb;
 	--title-text: #d1bbe4;
+	--code-background: #2b303b;
 	font-family: Isenheim, Arial;
 	color: var(--main-text);
 }
@@ -129,6 +130,11 @@ pre {
 pre span, code {
 	font-family: "Maple Mono", monospace,monospace;
 	font-weight: lighter;
+}
+code {
+	background-color: var(--code-background);
+	padding: 1px 6px 2px 6px;
+	border-radius: 4px;
 }
 "#;
 

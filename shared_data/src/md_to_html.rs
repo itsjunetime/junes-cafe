@@ -37,10 +37,7 @@ pub fn md_to_html(input: &str) -> String {
 			let mut highlighter = HighlightLines::new(syntax, theme);
 			let color = theme.settings.background.unwrap_or(Color::BLACK);
 			let lang = syntax.name.to_lowercase();
-			let mut output = format!(
-				"<pre style=\"background-color: #{:02x}{:02x}{:02x};\" class=\"language-{lang}\">\n<code class=\"language-{lang}\">",
-				color.r, color.g, color.b,
-			);
+			let mut output = format!("<pre class=\"language-{lang}\">\n<code class=\"language-{lang}\">",);
 
 			for line in LinesWithEndings::from(&to_highlight) {
 				// if we fail to highlight, it's kinda whatever
