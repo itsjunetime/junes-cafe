@@ -86,7 +86,6 @@ pub fn admin(props: &AdminProps) -> Html {
 		}
 		.tag {
 			margin-right: 0px !important;
-			// Why does this padding make it look nice and centered??? Who fucking knows
 			padding: 5px 6px 4px 6px !important;
 		}
 		.action-links {

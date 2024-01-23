@@ -136,6 +136,9 @@ code {
 	padding: 1px 6px 2px 6px;
 	border-radius: 4px;
 }
+pre > code {
+	padding: 0px;
+}
 "#;
 
 pub static POST_LIST_STYLE: &str = r"
