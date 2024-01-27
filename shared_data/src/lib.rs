@@ -131,8 +131,10 @@ pre span, code {
 	font-family: "Maple Mono", monospace,monospace;
 	font-weight: lighter;
 }
-code {
+pre, code {
 	background-color: var(--code-background);
+}
+code {
 	padding: 1px 6px 2px 6px;
 	border-radius: 4px;
 }
