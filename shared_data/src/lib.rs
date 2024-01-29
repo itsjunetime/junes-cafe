@@ -141,6 +141,12 @@ code {
 pre > code {
 	padding: 0px;
 }
+blockquote {
+	opacity: 0.8;
+	border-left: 3px solid var(--border-color);
+	padding-left: 20px;
+	margin-left: 0px;
+}
 "#;
 
 pub static POST_LIST_STYLE: &str = r"
