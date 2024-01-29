@@ -104,11 +104,12 @@ impl RenderOnce for Posts {
 							}
 						}
 						div(class = "post-content") : Raw(
-							// only do the first 20 lines since it's gonna hide past that
-							post.html.lines()
-								.take(20)
+							// only do the first 5 paragraphs since it's gonna hide past that
+							post.html.split("</p>")
+								.take(5)
 								.collect::<Vec<&str>>()
-								.join("\n")
+								.join("</p>")
+								 + "</p>"
 						);
 						div(class = "post-footer") {
 							: "Posted at ";
