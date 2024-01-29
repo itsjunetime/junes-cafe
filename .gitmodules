@@ -4,3 +4,6 @@
 [submodule "fonts/maple-mono"]
 	path = fonts/maple-mono
 	url = https://github.com/subframe7536/maple-font.git
+[submodule "fonts/catppuccin_syntax"]
+	path = fonts/catppuccin_syntax
+	url = https://github.com/catppuccin/bat.git

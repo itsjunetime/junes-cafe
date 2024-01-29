@@ -174,8 +174,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 			// If you want to change the password, you'll have to manually go into the database and
 			// clear the user.
 			query("INSERT INTO users (username, hashed_pass)
-				  VALUES ($1, $2)
-				  ON CONFLICT (username) DO NOTHING
+					VALUES ($1, $2)
+					ON CONFLICT (username) DO UPDATE
+					SET hashed_pass = EXCLUDED.hashed_pass
+					WHERE users.username = EXCLUDED.username
 			;").bind(name)
 				.bind(hash)
 				.execute(&pool)

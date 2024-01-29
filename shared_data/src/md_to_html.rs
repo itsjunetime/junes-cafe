@@ -1,5 +1,7 @@
+use std::{io::Cursor, sync::OnceLock};
+
 use syntect::{
-	highlighting::{Color, ThemeSet},
+	highlighting::{Color, Theme, ThemeSet},
 	parsing::SyntaxSet,
 	html::{append_highlighted_html_for_styled_line, IncludeBackground},
 	easy::HighlightLines,
@@ -7,14 +9,16 @@ use syntect::{
 };
 use pulldown_cmark::{Event, Tag, CodeBlockKind, CowStr};
 
+static FRAPPE_THEME: &[u8] = include_bytes!("../../fonts/catppuccin_syntax/Catppuccin-frappe.tmTheme");
+
 pub fn md_to_html(input: &str) -> String {
+	static THEME: OnceLock<Theme> = OnceLock::new();
+
 	let events = pulldown_cmark::Parser::new_ext(input, pulldown_cmark::Options::all());
 
 	// This only errors on an unknown theme, so we can safely unwrap here
-	let themeset = ThemeSet::load_defaults();
-	let theme = themeset.themes
-		.get("base16-ocean.dark")
-		.unwrap();
+	let mut cursor = Cursor::new(FRAPPE_THEME);
+	let theme = THEME.get_or_init(|| ThemeSet::load_from_reader(&mut cursor).unwrap());
 	let syntax_set = SyntaxSet::load_defaults_newlines();
 
 	// kinda reimplimenting highlight_pulldown::PulldownHighlighter::highlight
