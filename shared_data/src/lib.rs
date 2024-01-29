@@ -137,6 +137,7 @@ pre, code {
 code {
 	padding: 1px 6px 2px 6px;
 	border-radius: 4px;
+	line-break: loose;
 }
 pre > code {
 	padding: 0px;
