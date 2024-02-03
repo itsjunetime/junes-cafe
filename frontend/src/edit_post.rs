@@ -18,9 +18,11 @@ use super::{
 };
 use gloo_net::http::Request;
 use gloo_console::log;
+use gloo_timers::future::TimeoutFuture;
 use std::{
 	collections::HashSet,
-	rc::Rc
+	rc::Rc,
+	cell::RefCell
 };
 
 // Since postgres starts ids at 1, we know that no post should have an id of 0, and thus we should
@@ -53,6 +55,7 @@ pub enum EditMsg {
 	SetInitial(HashSet<String>, String, String, bool),
 	Title(String),
 	Content(String),
+	RenderedContent(String),
 	AddTag(String),
 	RemoveTag(String),
 }
@@ -88,10 +91,8 @@ impl Reducible for PostDetails {
 				}.into()
 			},
 			EditMsg::Title(title) => clone_self!(title),
-			EditMsg::Content(content) => {
-				let rendered_content = shared_data::md_to_html(&content);
-				clone_self!(content, rendered_content)
-			},
+			EditMsg::Content(content) => clone_self!(content),
+			EditMsg::RenderedContent(rendered_content) => clone_self!(rendered_content),
 			EditMsg::AddTag(tag) => if tag.is_empty() {
 				self
 			} else {
@@ -130,6 +131,10 @@ pub struct PostProps {
 pub fn edit_post(props: &PostProps) -> Html {
 	let post = use_state(|| Option::<Result<shared_data::Post, GetPostErr>>::None);
 	let details = use_reducer_eq(|| PostDetails { id: props.id, ..PostDetails::default() });
+	// kinda hate storing a Rc<RefCell> inside use_state but whatever, it seems to be the only way
+	// to actually keep a consistent reference to something inside this function and a promise at
+	// the same time
+	let render_uuid = use_state(|| Rc::new(RefCell::new(uuid::Uuid::new_v4())));
 
 	// These states aren't used until we're showing a post, but it can't be declared conditionally
 	// (including after a potential return) or else yew gets angry at us and panics at runtime
@@ -171,6 +176,30 @@ pub fn edit_post(props: &PostProps) -> Html {
 		let title = retrieved_post.title.clone();
 
 		details.dispatch(EditMsg::SetInitial(tags, content, title, retrieved_post.draft));
+	}
+
+	fn set_text(
+		text: String,
+		render: &UseStateHandle<Rc<RefCell<uuid::Uuid>>>,
+		details: &UseReducerHandle<PostDetails>
+	) {
+		let text_clone = text.clone();
+
+		let new_uuid = ::uuid::Uuid::new_v4();
+		*render.borrow_mut() = new_uuid;
+		let render = render.clone();
+		let details = details.clone();
+
+		details.dispatch(EditMsg::Content(text));
+
+		wasm_bindgen_futures::spawn_local(async move {
+			TimeoutFuture::new((text_clone.len() / 100) as u32).await;
+
+			if *render.borrow() != new_uuid { return; }
+
+			let rendered = shared_data::md_to_html(&text_clone);
+			details.dispatch(EditMsg::RenderedContent(rendered));
+		});
 	}
 
 	// Prepare things for submitting the post to the backend
@@ -226,20 +255,6 @@ pub fn edit_post(props: &PostProps) -> Html {
 		});
 	});
 
-	macro_rules! input_callback{
-		($clone:ident, $type:ident, $evtype:ident, $html:ident) => {
-			move |e: $evtype| if let Some(msg) = e.target()
-				.and_then(|t| t.dyn_into::<$html>().ok())
-				.map(|input| EditMsg::$type(input.value())) {
-					$clone.dispatch(msg);
-				}
-		};
-		($type:ident) => {{
-			let details_clone = details.clone();
-			Callback::from(input_callback!(details_clone, $type, Event, HtmlInputElement))
-		}}
-	}
-
 	// If, at this point, we've uploaded an asset, gotten a response, but not yet inserted it into
 	// the textarea, we need to do so
 	if let AssetUploadState::Resolved(Ok((ref asset_id, false))) = *asset {
@@ -251,13 +266,39 @@ pub fn edit_post(props: &PostProps) -> Html {
 		let new_text = format!("{}\n\n{exclamation}[Asset](/api/assets/{asset_id})\n\n", details.content);
 
 		asset.set(AssetUploadState::Resolved(Ok((asset_id.to_string(), true))));
-		details.dispatch(EditMsg::Content(new_text));
+		set_text(new_text, &render_uuid, &details);
+	}
+
+	macro_rules! input_callback{
+		($type:ident) => {{
+			let details_clone = details.clone();
+			Callback::from(move |e: Event| if let Some(msg) = e.target()
+				.and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
+				.map(|input| EditMsg::$type(input.value())) {
+					details_clone.dispatch(msg);
+				}
+			)
+		}}
 	}
 
 	// Get the callbacks for various elements of the editing view
-	let title_callback = input_callback!(Title);
 	let content_clone = details.clone();
-	let content_callback = input_callback!(content_clone, Content, InputEvent, HtmlTextAreaElement);
+	let render_clone = render_uuid.clone();
+	let content_callback = move |e: InputEvent| if let Some(input) = e.target()
+		.and_then(|t| t.dyn_into::<HtmlTextAreaElement>().ok()) {
+			let new_text = input.value();
+			set_text(new_text, &render_clone, &content_clone);
+
+			let style = input.style();
+			if let Err(e) = style.set_property("height", "auto") {
+				log!("Couldn't set height to auto: ", e);
+			}
+			let new_height = format!("{}px", input.scroll_height());
+			if let Err(e) = style.set_property("height", new_height.as_str()) {
+				log!("Couldn't update height correctly: ", e);
+			}
+		};
+	let title_callback = input_callback!(Title);
 	let tag_callback = input_callback!(AddTag);
 
 	let asset_clone = asset.clone();
@@ -305,6 +346,7 @@ pub fn edit_post(props: &PostProps) -> Html {
 					}
 					textarea {
 						height: 300px;
+						resize: vertical;
 					}
 					#rendered img {
 						max-width: 100%;

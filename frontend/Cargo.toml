@@ -12,7 +12,9 @@ wasm-bindgen = { version = "0.2.89", default-features = false, features = ["std"
 yew = { version = "0.21.0", default-features = false, features = ["csr"] }
 yew-router = { version = "0.18.0", default-features = false }
 shared_data = { path = "../shared_data" }
-web-sys = { version = "0.3.66", default-features = false, features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument", "HtmlButtonElement", "Blob"] }
+web-sys = { version = "0.3.66", default-features = false, features = ["Window", "DragEvent", "DataTransfer", "FileList", "HtmlDocument", "HtmlButtonElement", "Blob", "HtmlElement", "CssStyleDeclaration"] }
 gloo-console = { version = "0.3.0", default-features = false }
 js-sys = { version = "0.3.66", default-features = false }
 base64 = { version = "0.21.7", default-features = false, features = ["alloc"] }
+gloo-timers = "0.3.0"
+uuid = { version = "1.7.0", features = ["v4"] }
