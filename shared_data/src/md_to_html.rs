@@ -7,7 +7,7 @@ use syntect::{
 	easy::HighlightLines,
 	util::LinesWithEndings,
 };
-use pulldown_cmark::{Event, Tag, CodeBlockKind, CowStr};
+use pulldown_cmark::{CodeBlockKind, CowStr, Event, Tag, TagEnd};
 
 static FRAPPE_THEME: &[u8] = include_bytes!("../../fonts/catppuccin_syntax/Catppuccin-frappe.tmTheme");
 
@@ -37,7 +37,7 @@ pub fn md_to_html(input: &str) -> String {
 			in_code_block = true;
 			None
 		},
-		Event::End(Tag::CodeBlock(_)) => {
+		Event::End(TagEnd::CodeBlock) => {
 			let mut highlighter = HighlightLines::new(syntax, theme);
 			let color = theme.settings.background.unwrap_or(Color::BLACK);
 			let lang = syntax.name.to_lowercase();
