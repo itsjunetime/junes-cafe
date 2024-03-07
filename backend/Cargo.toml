@@ -6,23 +6,23 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.7.2", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }
+axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }
 dotenv = "0.15.0"
-tokio = { version = "1.35.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 shared_data = { path = "../shared_data", features = ["sqlx"] }
 axum-sqlx-tx = { version = "0.8.0", features = ["postgres", "runtime-tokio-rustls"] }
-serde = { version = "1.0.193", features = ["serde_derive"] }
+serde = { version = "1.0.197", features = ["serde_derive"] }
 axum-auth = { version = "0.7.0", default-features = false, features = ["auth-basic"] }
-argon2 = { version = "0.5.2", features = ["std"] }
-tower-sessions = "0.10.0"
+argon2 = { version = "0.5.3", features = ["std"] }
+tower-sessions = "0.11.0"
 horrorshow = { version = "0.8.4", default-features = false, features = ["std", "ops"] }
 once_cell = { version = "1.19.0", default-features = false }
-rss = { version = "2.0.6", default-features = false }
-sitewriter = { version = "1.0.3", default-features = false }
-chrono = { version = "0.4.31", default-features = false }
-tower-http = { version = "0.5.1", default-features = false, features = ["fs"] }
+rss = { version = "2.0.7", default-features = false }
+sitewriter = { version = "1.0.4", default-features = false }
+chrono = { version = "0.4.35", default-features = false }
+tower-http = { version = "0.5.2", default-features = false, features = ["fs"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
-build-info = "0.0.34"
+build-info = "0.0.35"
 
 [build-dependencies]
-build-info-build = "0.0.34"
+build-info-build = "0.0.35"

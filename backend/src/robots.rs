@@ -51,7 +51,6 @@ pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::er
 		.map(|post| Item {
 			title: Some(post.title),
 			link: Some(format!("https://itsjuneti.me/post/{}", post.id)),
-			description: None,
 			author: Some("junewelker@gmail.com".into()),
 			categories: post.tags.0
 				.into_iter()
@@ -60,9 +59,6 @@ pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::er
 					domain: None
 				})
 				.collect(),
-			comments: None,
-			enclosure: None,
-			guid: None,
 			pub_date: DateTime::from_timestamp(post.created_at as i64, 0)
 				.map(|dt| dt.to_rfc2822()),
 			source: Some(Source {
@@ -70,9 +66,7 @@ pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::er
 				title: None
 			}),
 			content: Some(post.html),
-			extensions: BTreeMap::new(),
-			itunes_ext: None,
-			dublin_core_ext: None
+			..Default::default()
 		})
 		.collect::<Vec<_>>();
 
@@ -81,10 +75,8 @@ pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::er
 		link: "https://itsjuneti.me".into(),
 		description: "A blog about various tech topics but mainly rust".into(),
 		language: Some("en_US".into()),
-		copyright: None,
 		managing_editor: Some("junewelker@gmail.com".into()),
 		webmaster: Some("junewelker@gmail.com".into()),
-		pub_date: None,
 		last_build_date: last_update
 			.and_then(|ts| DateTime::from_timestamp(ts as i64, 0))
 			.map(|dt| dt.to_rfc2822()),
@@ -99,20 +91,9 @@ pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::er
 			}
 		],
 		generator: Some("https://crates.io/crates/rss".into()),
-		docs: None,
-		cloud: None,
-		rating: None,
 		ttl: Some("1440".into()),
-		image: None,
-		text_input: None,
-		skip_hours: vec![],
-		skip_days: vec![],
 		items,
-		extensions: BTreeMap::new(),
-		itunes_ext: None,
-		dublin_core_ext: None,
-		syndication_ext: None,
-		namespaces: BTreeMap::new()
+		..Default::default()
 	};
 
 	let mut rss_xml = RSS_XML.write().await;
