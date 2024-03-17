@@ -21,11 +21,12 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 
 		tmpl << html! {
 			: doctype::HTML;
-			html {
+			html(lang = "en") {
 				head {
 					title : "itsjuneti.me";
 					style : Raw(shared_data::BASE_STYLE);
 					style : Raw(shared_data::POST_LIST_STYLE);
+					meta(name = "viewport", content = "width=device-width, initial-scale=1");
 				}
 				body {
 					div(id = "home-title") {
@@ -33,10 +34,10 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 							h1(id = "title-text") : self.title;
 						}
 						span(id = "social-icons") {
-							a(href = "/index.xml") : Raw(RSS_ICON) ;
-							a(href = "https://matrix.to/#/@janshai:beeper.com") : Raw(MATRIX_ICON);
-							a(href = "https://github.com/itsjunetime") : Raw(GITHUB_ICON);
-							a(href = "https://twitter.com/itsjunetime") : Raw(TWITTER_ICON);
+							a(href = "/index.xml", aria-label = "RSS Feed") : Raw(RSS_ICON);
+							a(href = "https://matrix.to/#/@janshai:beeper.com", aria-label = "My Matrix Account") : Raw(MATRIX_ICON);
+							a(href = "https://github.com/itsjunetime", aria-label = "My Github") : Raw(GITHUB_ICON);
+							a(href = "https://twitter.com/itsjunetime", aria-label = "My Twitter") : Raw(TWITTER_ICON);
 						}
 					}
 					div(id = "posts") : self.content;
@@ -52,9 +53,9 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 						}
 					}
 					div(id = "credits") {
-						: format!("This was built at {} using rustc {} {}, running ", build_info.timestamp, compiler_info.channel, compiler_info.version);
+						: format_args!("This was built at {} using rustc {} {}, running ", build_info.timestamp, compiler_info.channel, compiler_info.version);
 						a(href = "https://github.com/itsjunetime/junes-cafe") : "git";
-						: format!("#{}, using ", match build_info.version_control {
+						: format_args!("#{}, using ", match build_info.version_control {
 							Some(VersionControl::Git(GitInfo { ref commit_id, .. })) => commit_id,
 							_ => &unknown_commit
 						});

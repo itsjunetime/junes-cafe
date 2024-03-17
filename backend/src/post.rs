@@ -30,7 +30,7 @@ impl RenderOnce for PostView {
 		let user = self.post.display_user().to_owned();
 		tmpl << html! {
 			: doctype::HTML;
-			html {
+			html(lange = "en") {
 				head {
 					title : &self.post.title;
 					style : Raw(shared_data::BASE_STYLE);
@@ -74,6 +74,7 @@ impl RenderOnce for PostView {
 							margin-bottom: 10px;
 						}
 					");
+					meta(name = "viewport", content = "width=device-width, initial-scale=1");
 				}
 				body {
 					div(id = "post-content") {
@@ -82,7 +83,7 @@ impl RenderOnce for PostView {
 							span(id = "title-row") {
 								h2(id = "post-title") : self.post.title;
 								@ if self.can_edit {
-									a(href = format!("/admin/edit_post/{}", self.post.id)) : "edit" ;
+									a(href = format_args!("/admin/edit_post/{}", self.post.id)) : "edit";
 								}
 							}
 							span {

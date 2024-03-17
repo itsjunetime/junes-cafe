@@ -1,1 +1,2 @@
 - Automatically minify post html
+- Add caching for page responses that get invalidated when we make a new post or whatever

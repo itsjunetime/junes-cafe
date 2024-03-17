@@ -84,10 +84,12 @@ pub static BASE_STYLE: &str = r#"
 @font-face {
 	font-family: "Isenheim";
 	src: local("Isenheim"), url("/font/isenheim") format("opentype");
+	font-display: swap;
 }
 @font-face {
 	font-family: "Maple Mono";
 	src: local("Maple Mono"), url("/font/maple-mono");
+	font-display: swap;
 }
 * {
 	--body-background: #3f3540;
