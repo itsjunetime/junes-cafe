@@ -7,7 +7,6 @@ use web_sys::{
 	HtmlButtonElement,
 	HtmlInputElement,
 	HtmlTextAreaElement,
-	DragEvent,
 	FileList,
 	FormData
 };
@@ -340,7 +339,7 @@ pub fn edit_post(props: &PostProps) -> Html {
 					}
 					#edit-and-render {
 						display: grid;
-						grid-template-columns: 1fr 1fr;
+						grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 						column-gap: 20px;
 						max-width: 140%;
 					}
