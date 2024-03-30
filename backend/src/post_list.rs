@@ -1,4 +1,4 @@
-use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, helper::doctype};
+use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, helper::doctype, box_html};
 use build_info::{VersionControl, GitInfo};
 
 const GITHUB_ICON: &str = include_str!("../../assets/github-mark.svg");
@@ -15,10 +15,6 @@ pub struct PostList<C: RenderOnce + 'static> {
 
 impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 	fn render_once(self, tmpl: &mut TemplateBuffer) {
-		let build_info = crate::fonts::build();
-		let compiler_info = &build_info.compiler;
-		let unknown_commit = "?????".to_string();
-
 		tmpl << html! {
 			: doctype::HTML;
 			html(lang = "en") {
@@ -41,38 +37,46 @@ impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
 						}
 					}
 					div(id = "posts") : self.content;
-					div(class = "page-selector") {
-						@ if self.current_page != 0 {
-							a(href = format_args!("/page/{}", self.current_page - 1)) : "< Prev";
-						}
-						@ if self.next_page_btn {
-							a(href = format_args!("/page/{}", self.current_page + 1)) : "Next >";
-						}
-						@ if self.current_page == 0 && !self.next_page_btn {
-							: "That's all!";
-						}
-					}
-					div(id = "credits") {
-						: format_args!("This was built at {} using rustc {} {}, running ", build_info.timestamp, compiler_info.channel, compiler_info.version);
-						a(href = "https://github.com/itsjunetime/junes-cafe") : "git";
-						: format_args!("#{}, using ", match build_info.version_control {
-							Some(VersionControl::Git(GitInfo { ref commit_id, .. })) => commit_id,
-							_ => &unknown_commit
-						});
-						a(href = "https://github.com/tokio-rs/axum") : "axum";
-						: ", ";
-						a(href = "https://tokio.rs") : "tokio";
-						: ", ";
-						a(href = "https://github.com/Stebalien/horrorshow-rs") : "horrorshow";
-						: ", and ";
-						a(href = "https://yew.rs") : "yew";
-						br;
-						: "You can find more info on the ";
-						a(href = "/licenses") : "license page";
-						: " :)";
-					}
+					: page_selector_and_credits(self.current_page, self.next_page_btn);
 				}
 			}
+		}
+	}
+}
+
+fn page_selector_and_credits(current_page: u32, next_page_btn: bool) -> Box<dyn horrorshow::RenderBox> {
+	let build = crate::fonts::build();
+
+	box_html! {
+		div(class = "page-selector") {
+			@ if current_page != 0 {
+				a(href = format_args!("/page/{}", current_page - 1)) : "< Prev";
+			}
+			@ if next_page_btn {
+				a(href = format_args!("/page/{}", current_page + 1)) : "Next >";
+			}
+			@ if current_page == 0 && !next_page_btn {
+				: "That's all!";
+			}
+		}
+		div(id = "credits") {
+			: format_args!("This was built at {} using rustc {} {}, running ", build.timestamp, build.compiler.channel, build.compiler.version);
+			a(href = "https://github.com/itsjunetime/junes-cafe") : "git";
+			: format_args!("#{}, using ", match build.version_control {
+				Some(VersionControl::Git(GitInfo { ref commit_id, .. })) => commit_id.as_str(),
+				_ => "?????"
+			});
+			a(href = "https://github.com/tokio-rs/axum") : "axum";
+			: ", ";
+			a(href = "https://tokio.rs") : "tokio";
+			: ", ";
+			a(href = "https://github.com/Stebalien/horrorshow-rs") : "horrorshow";
+			: ", and ";
+			a(href = "https://yew.rs") : "yew";
+			br;
+			: "You can find more info on the ";
+			a(href = "/licenses") : "license page";
+			: " :)";
 		}
 	}
 }

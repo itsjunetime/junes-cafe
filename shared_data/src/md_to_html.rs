@@ -16,9 +16,12 @@ pub fn md_to_html(input: &str) -> String {
 
 	let events = pulldown_cmark::Parser::new_ext(input, pulldown_cmark::Options::all());
 
-	// This only errors on an unknown theme, so we can safely unwrap here
-	let mut cursor = Cursor::new(FRAPPE_THEME);
-	let theme = THEME.get_or_init(|| ThemeSet::load_from_reader(&mut cursor).unwrap());
+	let theme = THEME.get_or_init(|| {
+		let mut cursor = Cursor::new(FRAPPE_THEME);
+		let themeset_res = ThemeSet::load_from_reader(&mut cursor);
+		// SAFETY: This only errors on an unknown theme, so we can safely unwrap here
+		unsafe { themeset_res.unwrap_unchecked() }
+	});
 	let syntax_set = SyntaxSet::load_defaults_newlines();
 
 	// kinda reimplimenting highlight_pulldown::PulldownHighlighter::highlight
