@@ -28,25 +28,19 @@ jobs:
           profile: minimal
           target: wasm32-unknown-unknown
       - name: Install Trunk
-        uses: jetli/trunk-action@v0.4.0
+        uses: jetli/trunk-action@v0.5.0
         with:
           version: 'latest'
       - name: Install wasm-opt
-        run: "curl -L -o binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz && tar -xzvf ./binaryen.tar.gz"
+        run: "curl -L -o binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_117/binaryen-version_117-x86_64-linux.tar.gz && tar -xzvf ./binaryen.tar.gz"
       - name: Build backend
         run: cargo build --profile production --bin backend
       - name: Build frontend
         run: "cd frontend && trunk build --release"
       - name: Optimise wasm
-        run: "cd frontend/dist && ../../binaryen-version_116/bin/wasm-opt -Oz -o opt.wasm $(ls frontend*.wasm) && mv ./opt.wasm $(ls frontend*.wasm)"
-      - name: Minify js
-        uses: nizarmah/auto-minify@v2.1
-        with:
-          overwrite: true
-          directory: frontend/dist
-          js_engine: uglify-js
+        run: "cd frontend/dist && ../../binaryen-version_117/bin/wasm-opt -Oz -o opt.wasm $(ls frontend*.wasm) && mv ./opt.wasm $(ls frontend*.wasm)"
       - name: Stop currently-running backend
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
@@ -55,7 +49,7 @@ jobs:
             sudo /usr/bin/systemctl stop itsjunetime.service
             rm /home/junkie/server_files/frontend* 2>/dev/null || :
       - name: SCP files
-        uses: appleboy/scp-action@v0.1.4
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
@@ -65,7 +59,7 @@ jobs:
           strip_components: 2
           overwrite: true
       - name: Restart server
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
