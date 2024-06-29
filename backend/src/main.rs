@@ -14,6 +14,7 @@ use axum::{
 };
 use axum_auth::AuthBasic;
 use tower_http::services::ServeDir;
+use tower_no_ai::NoAiLayer;
 use tower_sessions::{
 	MemoryStore,
 	Session,
@@ -216,6 +217,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.layer(DefaultBodyLimit::max(10 * 1024 * 1024))
 		.layer(SessionManagerLayer::new(session_store))
 		.layer(tx_layer)
+		.layer(NoAiLayer::new("https://fsn1-speed.hetzner.com/10GB.bin"))
 		.with_state(tx_state);
 
 	let addr = SocketAddr::from(([127, 0, 0, 1], backend_port));
