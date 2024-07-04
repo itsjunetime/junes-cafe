@@ -110,11 +110,5 @@ pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> (StatusCode, String) {
 }
 
 pub async fn get_robots_txt() -> &'static str {
-	"
-	User-agent: GPTBot
-	Disallow: /
-
-	User-agent: Google-Extended
-	Disallow: /
-	"
+	tower_no_ai::bot_blocking_robots_txt()
 }

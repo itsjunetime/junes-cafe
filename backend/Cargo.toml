@@ -23,7 +23,7 @@ chrono = { version = "0.4.35", default-features = false }
 tower-http = { version = "0.5.2", default-features = false, features = ["fs"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
 build-info = "0.0.37"
-tower-no-ai = { git = "https://github.com/itsjunetime/tower-no-ai.git" }
+tower-no-ai = "0.1.1"
 
 [build-dependencies]
 build-info-build = "0.0.37"
