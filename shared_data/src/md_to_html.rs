@@ -18,9 +18,8 @@ pub fn md_to_html(input: &str) -> String {
 
 	let theme = THEME.get_or_init(|| {
 		let mut cursor = Cursor::new(FRAPPE_THEME);
-		let themeset_res = ThemeSet::load_from_reader(&mut cursor);
-		// SAFETY: This only errors on an unknown theme, so we can safely unwrap here
-		unsafe { themeset_res.unwrap_unchecked() }
+		// This only errors on an unknown theme, so we can safely unwrap here
+		ThemeSet::load_from_reader(&mut cursor).unwrap()
 	});
 	let syntax_set = SyntaxSet::load_defaults_newlines();
 

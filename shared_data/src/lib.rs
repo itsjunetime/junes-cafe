@@ -1,11 +1,6 @@
 use chrono::DateTime;
 
 mod md_to_html;
-
-// re-export so others can use as well
-#[cfg(feature = "sqlx")]
-pub use sqlx;
-
 pub use md_to_html::md_to_html;
 
 #[cfg(feature = "sqlx")]
@@ -51,11 +46,12 @@ pub struct Tags(pub Vec<String>);
 impl FromRow<'_, PgRow> for Tags {
 	fn from_row(row: &PgRow) -> sqlx::Result<Self> {
 		row.try_get::<&str, _>("tags")
-			.map(|t| Self(if t.is_empty() {
-				Vec::new()
-			} else {
-				t.split(',').map(str::to_string).collect()
-			}))
+			.map(|t| Self(
+				t.split(',')
+					.filter(|t| !t.is_empty())
+					.map(str::to_string)
+					.collect()
+			))
 	}
 }
 

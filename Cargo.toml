@@ -2,6 +2,9 @@
 members = ["backend", "frontend", "shared_data"]
 resolver = "2"
 
+[workspace.dependencies]
+sqlx = { version = "0.7.3", default-features = false, features = ["macros", "postgres", "uuid"] }
+
 [profile.production]
 inherits = "release"
 opt-level = 2

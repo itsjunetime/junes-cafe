@@ -1,8 +1,8 @@
-use crate::print_and_ret;
+use crate::{blog_api::get_post_list, print_and_ret};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use axum_sqlx_tx::Tx;
-use shared_data::sqlx::{self, Postgres};
+use sqlx::Postgres;
 use axum::http::StatusCode;
 use sitewriter::{UrlEntry, ChangeFreq};
 use chrono::DateTime;
@@ -13,7 +13,7 @@ static SITEMAP_XML: Lazy<Arc<RwLock<String>>> = Lazy::new(Arc::default);
 static RSS_XML: Lazy<Arc<RwLock<String>>> = Lazy::new(Arc::default);
 
 pub async fn update_sitemap_xml(tx: &mut Tx<Postgres>) -> Result<(), sqlx::error::Error> {
-	let urls = crate::get_post_list(None, tx, i32::MAX as u32, 0).await?
+	let urls = get_post_list(None, tx, i32::MAX as u32, 0).await?
 		.into_iter()
 		.map(|post| UrlEntry {
 			loc: format!("https://itsjuneti.me/post/{}", post.id).parse().unwrap(),
@@ -41,7 +41,7 @@ pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> (StatusCode, String) {
 }
 
 pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::error::Error>> {
-	let posts = crate::get_post_list(None, tx, i32::MAX as u32, 0).await?;
+	let posts = get_post_list(None, tx, i32::MAX as u32, 0).await?;
 
 	let last_update = posts.iter()
 		.map(|p| p.created_at)

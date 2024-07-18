@@ -1,10 +1,10 @@
 use tower_sessions::Session;
 use axum_sqlx_tx::Tx;
 use axum::{response::Html, extract::Path, http::StatusCode};
-use shared_data::sqlx::Postgres;
+use sqlx::Postgres;
 use shared_data::Post;
 use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, Template, helper::doctype};
-use crate::check_auth;
+use crate::{blog_api::get_post, check_auth};
 
 pub async fn get_post_view(
 	session: Session,
@@ -12,7 +12,7 @@ pub async fn get_post_view(
 	Path(id): Path<i32>
 ) -> Result<Html<String>, StatusCode> {
 	let can_edit = check_auth!(session, noret).is_some();
-	let Ok(post) = crate::get_post(session, tx, Path(id)).await else {
+	let Ok(post) = get_post(session, tx, Path(id)).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
 

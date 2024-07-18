@@ -3,18 +3,33 @@ name = "backend"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }
-dotenv = "0.15.0"
-tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
-shared_data = { path = "../shared_data", features = ["sqlx"] }
-axum-sqlx-tx = { version = "0.8.0", features = ["postgres", "runtime-tokio-rustls"] }
 serde = { version = "1.0.197", features = ["serde_derive"] }
-axum-auth = { version = "0.7.0", default-features = false, features = ["auth-basic"] }
-argon2 = { version = "0.5.3", features = ["std"] }
 tower-sessions = "0.12.0"
+build-info = "0.0.37"
+leptos = { version = "0.6.12", features = ["hydrate", "nightly", "rustls", "experimental-islands"] }
+# leptos = { git = "https://github.com/leptos-rs/leptos.git", rev = "db02d3f581954ed6f21a477aee698440f6285aba", features = ["hydrate", "nightly", "rustls", "experimental-islands"] }
+# leptos = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7", features = ["hydrate", "nightly", "rustls", "experimental-islands"] }
+leptos_router = { version = "0.6.12", features = ["hydrate"] }
+# leptos_router = { git = "https://github.com/leptos-rs/leptos.git", rev = "db02d3f581954ed6f21a477aee698440f6285aba", features = ["nightly"] }
+# leptos_router = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7", features = ["nightly"] }
+wasm-bindgen = "0.2.92"
+http = "1.1.0"
+env_logger = "0.11.3"
+const_format = "0.2.32"
+# i don't actually use this but I need to activate that specific feature to get it to work so like whatever
+# getrandom = { version = "0.2.15", features = ["js"] }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"]  }
+dotenv = "0.15.0"
+shared_data = { path = "../shared_data", features = ["sqlx"]  }
+axum-sqlx-tx = { version = "0.8.0", features = ["postgres", "runtime-tokio-rustls"] }
+sqlx = { workspace = true }
 horrorshow = { version = "0.8.4", default-features = false, features = ["std", "ops"] }
 once_cell = { version = "1.19.0", default-features = false }
 rss = { version = "2.0.7", default-features = false }
@@ -22,8 +37,27 @@ sitewriter = { version = "1.0.4", default-features = false }
 chrono = { version = "0.4.35", default-features = false }
 tower-http = { version = "0.5.2", default-features = false, features = ["fs"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
-build-info = "0.0.37"
 tower-no-ai = "0.1.1"
+uuid = { version = "1.10.0", features = ["serde"] }
+leptos_axum = { version = "0.6.12", features = ["experimental-islands"] }
+# leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", rev = "db02d3f581954ed6f21a477aee698440f6285aba" }
+# leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7" }
+argon2 = { version = "0.5.3", features = ["std"] }
+axum-auth = { version = "0.7.0", default-features = false, features = ["auth-basic"] }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+http-body-util = "0.1.2"
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+console_error_panic_hook = "0.1.7"
+
+[features]
+ssr = ["leptos/ssr"]
+hydrate = ["leptos/hydrate"]
 
 [build-dependencies]
 build-info-build = "0.0.37"
+
+[package.metadata.leptos]
+bin-features = ["ssr"]
+lib-features = ["hydrate"]
