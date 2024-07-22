@@ -16,20 +16,19 @@ input {
 	background-color: var(--white);
 	border: 1px solid gray;
 	margin: -2px 0 10px 0;
-	font-size: 20px;
 	padding: 4px 12px 3px 12px;
 }
-#form-inputs, form > input, #form-side > div > *, #announcement-form > div {
+form > input, #form-side > div > * {
 	margin-left: 50%;
 	transform: translateX(-50%);
 	display: inline-block;
+	width: max-content;
 }
 #form-inputs {
 	margin-bottom: 6px;
-	width: max-content;
-	max-width: 60%;
 }
 #form-inputs > input {
+	margin-top: 4px;
 	width: 100%;
 }
 #img-and-overlay > * {
@@ -40,9 +39,9 @@ input {
 	position: relative;
 }
 #top-left-text {
-	top: 40px;
-	left: 80px;
-	font-size: 80px;
+	top: 4vw;
+	left: 8vw;
+	font-size: 4vw;
 }
 #bottom-right-text {
 	bottom: 10px;
@@ -50,7 +49,7 @@ input {
 	color: var(--white);
 	text-align: end;
 	text-shadow: 0px 0px 14px rgba(0, 0, 0, 0.9);
-	font-size: 64px;
+	font-size: 4vw;
 }
 #img-and-overlay > div {
 	z-index: 10;
@@ -59,36 +58,49 @@ input {
 }
 #second-row {
 	display: grid;
-	grid-template-columns: 2fr 3fr;
-	margin: 12px;
-	grid-row-gap: 10px;
+	margin: 1vw;
+}
+@media screen and (min-width: 500px) {
+	#second-row {
+		grid-template-columns: 2fr 3fr;
+	}
+}
+@media screen and (max-width: 500px) {
+	#second-row {
+		grid-template-rows: 1fr 1fr;
+		grid-row-gap: 20px;
+	}
+	#second-row > img {
+		order: 1;
+	}
 }
 #second-row > img {
 	border-radius: 12px;
+	max-width: 100%;
 }
 #form-side {
 	display: grid;
 	grid-template-rows: auto auto auto;
-	font-size: 24px;
-	margin: 20px 0;
+	font-size: 2vh;
+	margin: 2vw;
 }
 #form-side > div {
 	margin: auto 0;
 }
 #form-side > img {
 	position: absolute;
-	width: 12%;
+	width: 12vw;
 }
 #form-section > h1 {
 	text-align: center;
 }
-#top-left-corner-deco {
-	margin-left: 36px;
+div#form-section {
+	margin-top: 4vw;
 }
 #bottom-right-corner-deco {
 	rotate: 180deg;
 	right: 36px;
-	align-self: end;
+	align-self: end;margin
 }
 img {
 	max-width: 100%;
@@ -103,6 +115,12 @@ img {
 }
 #form-response {
 	text-align: center;
+}
+div#registry-section {
+	margin-bottom: 6vw;
+}
+announcement-form {
+	min-width: 60%;
 }
 "#);
 
@@ -155,11 +173,17 @@ fn email_submit_form() -> impl IntoView {
 			<ActionForm action=submit>
 				<div id="form-inputs">
 					<label for="name">"name: "</label>
+					<br/>
 					<input type="text" id="name" name="name" required />
+					<br/>
 					<label for="address">"address: "</label>
+					<br/>
 					<input type="text" id="address" name="address" required />
+					<br/>
 					<label for="email">"email: (in case we need to contact you)"</label>
+					<br/>
 					<input type="email" id="email" name="email" required />
+					<br/>
 				</div>
 				<input type="submit" value="yes please!" id="submit-button"/>
 			</ActionForm>
