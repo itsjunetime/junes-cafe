@@ -1,14 +1,11 @@
-// use leptos::prelude::*;
-use leptos::*;
+use leptos::prelude::*;
+// use leptos::*;
 
-#[cfg(not(target_family = "wasm"))]
 use const_format::concatcp;
-#[cfg(not(target_family = "wasm"))]
 use super::server::AddAnnouncementReq;
-#[cfg(not(target_family = "wasm"))]
-use leptos_router::ActionForm;
+// #[cfg(not(target_family = "wasm"))]
+// use leptos_router::ActionForm;
 
-#[cfg(not(target_family = "wasm"))]
 const STYLE: &str = concatcp!(super::SHARED_STYLE, r#"
 body {
 	background-color: var(--white);
@@ -104,9 +101,11 @@ img {
 	background-color: var(--beige);
 	transition: 0.2s linear;
 }
+#form-response {
+	text-align: center;
+}
 "#);
 
-#[cfg(not(target_family = "wasm"))]
 #[component]
 pub fn main_page() -> impl IntoView {
 	view! {
@@ -149,50 +148,42 @@ pub fn main_page() -> impl IntoView {
 
 #[island]
 fn email_submit_form() -> impl IntoView {
+	let submit = ServerAction::<AddAnnouncementReq>::new();
 
-	#[cfg(target_family = "wasm")]
-	view!{ }
-
-	#[cfg(not(target_family = "wasm"))]
-	{
-		//let submit = ServerAction::<AddAnnouncementReq>::new();
-		let submit = Action::<AddAnnouncementReq, _>::server();
-
-		view! {
-			<div>
-				{move || match submit.value().get() {
-					None => view! {
-						<ActionForm action=submit>
-							<div id="form-inputs">
-								<label for="name">"name: "</label>
-								<input type="text" id="name" name="name" required />
-								<label for="address">"address: "</label>
-								<input type="text" id="address" name="address" required />
-								<label for="email">"email: (in case we need to contact you)"</label>
-								<input type="email" id="email" name="email" required />
-							</div>
-							<input type="submit" value="yes please!" id="submit-button"/>
-						</ActionForm>
-					// }.into_any(),
-					},
-					Some(Err(e)) => view! {
-						<div>
-						{ move || format!("Couldn't submit data: {e}")}
-						<br/>
-						"Please contact us at junewelker@gmail.com to get this resolved :)"
-						</div>
-					//}.into_any(),
-					}.into_view(),
-					Some(Ok(())) => view!{
-						<div>
-							"Thank you! We'll be sending out announcements soon."
-							<br/>
-							"In the meantime, if you have anything to let us know, please email us at junewelker@gmail.com"
-						</div>
-					//}.into_any(),
-					}.into_view(),
-				}}
+	let content = move || match submit.value()() {
+		None => view! {
+			<ActionForm action=submit>
+				<div id="form-inputs">
+					<label for="name">"name: "</label>
+					<input type="text" id="name" name="name" required />
+					<label for="address">"address: "</label>
+					<input type="text" id="address" name="address" required />
+					<label for="email">"email: (in case we need to contact you)"</label>
+					<input type="email" id="email" name="email" required />
+				</div>
+				<input type="submit" value="yes please!" id="submit-button"/>
+			</ActionForm>
+		}.into_any(),
+		Some(Err(e)) => view! {
+			<div id="form-response">
+				{ move || format!("Couldn't submit data: {e}")}
+				<br/>
+				"Please contact us at junewelker@gmail.com to get this resolved :)"
 			</div>
-		}
+		}.into_any(),
+		Some(Ok(())) => view!{
+			<div id="form-response">
+				"Thank you! We'll be sending out announcements soon."
+				<br/>
+				"In the meantime, if you have anything to let us know, please email us at junewelker@gmail.com"
+			</div>
+		}.into_any(),
+	};
+
+	view! {
+		<div>
+			{content}
+			// <span>{move || submit_resource.get()}</span>
+		</div>
 	}
 }

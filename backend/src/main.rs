@@ -13,8 +13,8 @@ use axum::{
 	routing::{get, post},
 	Router
 };
-// use leptos::prelude::*;
-use leptos::*;
+use leptos::prelude::*;
+// use leptos::*;
 use tower_http::services::ServeDir;
 use tower_no_ai::NoAiLayer;
 use tower_sessions::{
@@ -31,7 +31,7 @@ use sqlx::{
 };
 use tokio::net::TcpListener;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
-use wedding::{app::WeddingApp, faq::wedding_faq, main_page::MainPage, server::AxumState};
+use wedding::{app::wedding_app, faq::wedding_faq, main_page::MainPage, server::AxumState};
 use http_body_util::BodyExt;
 
 mod images;
@@ -65,7 +65,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		}
 	}
 
-	// env_logger::init();
 	tracing_subscriber::fmt()
 		.with_max_level(tracing::Level::DEBUG)
 		.init();
@@ -184,8 +183,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let routes = generate_route_list(MainPage);
 
-	//let leptos_config = get_configuration(None)?;
-	let leptos_config = get_configuration(None).await?;
+	let leptos_config = get_configuration(None)?;
+	// let leptos_config = get_configuration(None).await?;
 	let leptos_opts = leptos_config.leptos_options;
 	let addr = leptos_opts.site_addr;
 	let pkg_dir = format!("{}/{}", leptos_opts.site_root, leptos_opts.site_pkg_dir);
@@ -224,7 +223,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 					let state = state.clone();
 					move || provide_context(state.clone())
 				},
-				WeddingApp
+				{
+					let state = state.clone();
+					move || wedding_app(state.clone())
+				}
 			)
 		)
 		.nest_service("/api/assets/", ServeDir::new(asset_dir))

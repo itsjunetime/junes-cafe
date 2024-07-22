@@ -80,6 +80,7 @@ Restart=always
 User=server_admin
 ExecStart=/home/server_admin/server_files/backend
 WorkingDirectory=/home/server_admin/server_files/
+Environment="LEPTOS_SITE_ROOT=/home/server_admin/server_files LEPTOS_SITE_PKG_DIR=pkg LEPTOS_SITE_ADDR=127.0.0.1:8080"
 
 [Install]
 WantedBy=multi-user.target

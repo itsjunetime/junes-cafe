@@ -10,18 +10,18 @@ crate-type = ["cdylib", "rlib"]
 serde = { version = "1.0.197", features = ["serde_derive"] }
 tower-sessions = "0.12.0"
 build-info = "0.0.37"
-leptos = { version = "0.6.12", features = ["hydrate", "nightly", "rustls", "experimental-islands"] }
+# leptos = { version = "0.6.12", features = ["hydrate", "nightly", "rustls", "experimental-islands"] }
 # leptos = { git = "https://github.com/leptos-rs/leptos.git", rev = "db02d3f581954ed6f21a477aee698440f6285aba", features = ["hydrate", "nightly", "rustls", "experimental-islands"] }
-# leptos = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7", features = ["hydrate", "nightly", "rustls", "experimental-islands"] }
-leptos_router = { version = "0.6.12", features = ["hydrate"] }
+leptos = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7", features = ["hydrate", "nightly", "rustls", "experimental-islands"] }
+# leptos_router = { version = "0.6.12", features = ["hydrate"] }
 # leptos_router = { git = "https://github.com/leptos-rs/leptos.git", rev = "db02d3f581954ed6f21a477aee698440f6285aba", features = ["nightly"] }
-# leptos_router = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7", features = ["nightly"] }
+leptos_router = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7", features = ["nightly"] }
 wasm-bindgen = "0.2.92"
 http = "1.1.0"
 env_logger = "0.11.3"
 const_format = "0.2.32"
 # i don't actually use this but I need to activate that specific feature to get it to work so like whatever
-# getrandom = { version = "0.2.15", features = ["js"] }
+getrandom = { version = "0.2.15", features = ["js"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }
@@ -39,9 +39,9 @@ tower-http = { version = "0.5.2", default-features = false, features = ["fs"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
 tower-no-ai = "0.1.1"
 uuid = { version = "1.10.0", features = ["serde"] }
-leptos_axum = { version = "0.6.12", features = ["experimental-islands"] }
+# leptos_axum = { version = "0.6.12", features = ["experimental-islands"] }
 # leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", rev = "db02d3f581954ed6f21a477aee698440f6285aba" }
-# leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7" }
+leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7" }
 argon2 = { version = "0.5.3", features = ["std"] }
 axum-auth = { version = "0.7.0", default-features = false, features = ["auth-basic"] }
 tracing = "0.1.40"
@@ -61,3 +61,5 @@ build-info-build = "0.0.37"
 [package.metadata.leptos]
 bin-features = ["ssr"]
 lib-features = ["hydrate"]
+lib-profile-release = "production"
+bin-profile-release = "production"

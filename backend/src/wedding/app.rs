@@ -1,6 +1,11 @@
-// use leptos::prelude::*;
+use leptos::prelude::*;
+use leptos_router::{StaticSegment, components::{Router, Route, FlatRoutes}};
 
-/*pub fn wedding_app(options: LeptosOptions) -> impl IntoView {
+use super::{main_page::MainPage, server::AxumState};
+
+pub fn wedding_app(state: AxumState) -> impl IntoView {
+	let options = state.leptos_opts;
+
 	view!{
 		<!DOCTYPE html>
 		<html lang="en">
@@ -10,15 +15,27 @@
 				<HydrationScripts options=options islands=true/>
 			</head>
 			<body>
-				<MainPage/>
+				<RouterApp/>
 			</body>
 		</html>
 	}
-}*/
+}
 
-use leptos::*;
+#[component]
+fn router_app() -> impl IntoView {
+	view! {
+		<Router>
+			<main>
+				<FlatRoutes fallback=move || "Not found">
+					<Route path=StaticSegment("") view=MainPage />
+				</FlatRoutes>
+			</main>
+		</Router>
+	}
+}
+
+/*use leptos::*;
 use leptos_router::{Route, Router, Routes, SsrMode};
-use super::main_page::MainPage;
 
 #[component]
 pub fn wedding_app() -> impl IntoView {
@@ -29,4 +46,4 @@ pub fn wedding_app() -> impl IntoView {
 			</Routes>
 		</Router>
 	}
-}
+}*/

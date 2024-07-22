@@ -1,9 +1,8 @@
 pub mod main_page;
+pub mod server;
 
 #[cfg(not(target_family = "wasm"))]
 pub mod app;
-#[cfg(not(target_family = "wasm"))]
-pub mod server;
 #[cfg(not(target_family = "wasm"))]
 pub mod faq;
 
@@ -15,7 +14,6 @@ use ::{
 #[cfg(not(target_family = "wasm"))]
 use server::{GUESTS_TABLE, RECIPS_TABLE};
 
-#[cfg(not(target_family = "wasm"))]
 pub const SHARED_STYLE: &str = r#"
 @import url('https://fonts.googleapis.com/css2?family=Euphoria+Script&display=swap');
 * {

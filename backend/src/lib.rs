@@ -13,5 +13,5 @@ pub fn hydrate() {
 	console_error_panic_hook::set_once();
 
 	// for 0.7:
-	// leptos::mount::hydrate_islands();
+	leptos::mount::hydrate_islands();
 }
