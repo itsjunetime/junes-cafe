@@ -5,11 +5,7 @@ use argon2::{
 	Argon2
 };
 use axum::{
-	body::{Body, Bytes},
 	extract::{DefaultBodyLimit, Request},
-	http::StatusCode,
-	middleware::{self, Next},
-	response::IntoResponse,
 	routing::{get, post},
 	Router
 };
@@ -32,7 +28,6 @@ use sqlx::{
 use tokio::net::TcpListener;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use wedding::{app::wedding_app, faq::wedding_faq, main_page::MainPage, server::AxumState};
-use http_body_util::BodyExt;
 
 mod images;
 mod home;
@@ -231,7 +226,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		)
 		.nest_service("/api/assets/", ServeDir::new(asset_dir))
 		.nest_service("/pkg/", ServeDir::new(pkg_dir))
-		.layer(middleware::from_fn(print_request_response))
 		// I want to be able to upload 10mb assets if I so please.
 		.layer(DefaultBodyLimit::max(10 * 1024 * 1024))
 		.layer(SessionManagerLayer::new(session_store))
@@ -245,37 +239,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	axum::serve(listener, app).await.unwrap();
 
 	Ok(())
-}
-
-async fn print_request_response(
-    req: Request,
-    next: Next,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let (parts, body) = req.into_parts();
-    let bytes = buffer_and_print("request", body).await?;
-    let req = Request::from_parts(parts, Body::from(bytes));
-
-    Ok(next.run(req).await)
-}
-
-async fn buffer_and_print<B>(direction: &str, body: B) -> Result<Bytes, (StatusCode, String)>
-where
-    B: axum::body::HttpBody<Data = Bytes>,
-    B::Error: std::fmt::Display,
-{
-    let bytes = match body.collect().await {
-        Ok(collected) => collected.to_bytes(),
-        Err(err) => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                format!("failed to read {direction} body: {err}"),
-            ));
-        }
-    };
-
-    if let Ok(body) = std::str::from_utf8(&bytes) {
-        tracing::debug!("{direction} body = {body:?}");
-    }
-
-    Ok(bytes)
 }

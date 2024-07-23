@@ -18,10 +18,9 @@ leptos = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7
 leptos_router = { git = "https://github.com/leptos-rs/leptos.git", branch = "leptos_0.7", features = ["nightly"] }
 wasm-bindgen = "0.2.92"
 http = "1.1.0"
-env_logger = "0.11.3"
 const_format = "0.2.32"
 # i don't actually use this but I need to activate that specific feature to get it to work so like whatever
-getrandom = { version = "0.2.15", features = ["js"] }
+getrandom = { version = "0.2.15", default-features = false, features = ["js"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }
@@ -46,7 +45,6 @@ argon2 = { version = "0.5.3", features = ["std"] }
 axum-auth = { version = "0.7.0", default-features = false, features = ["auth-basic"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
-http-body-util = "0.1.2"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 console_error_panic_hook = "0.1.7"
