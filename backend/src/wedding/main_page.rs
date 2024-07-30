@@ -124,37 +124,35 @@ announcement-form {
 #[component]
 pub fn main_page() -> impl IntoView {
 	view! {
-		<style>{ STYLE }</style>
+		<style>{STYLE}</style>
 		<div id="main-content">
 			<div id="img-and-overlay">
 				<div id="top-left-text">"We're getting married!"</div>
-				<img src="/api/assets/main_page_cover.webp"/>
+				<img src="/api/assets/main_page_cover.webp" />
 				<div id="bottom-right-text">
-					"Maggie Harper & June Welker"
-					<br/>
-					"December 14, 2024"
+					"Maggie Harper & June Welker" <br /> "December 14, 2024"
 				</div>
 			</div>
 			<div id="second-row">
-				<img src="/api/assets/vertical_left_under.webp"/>
+				<img src="/api/assets/vertical_left_under.webp" />
 				<span id="form-side">
-					<img src="/api/assets/gold_flower_corner.webp" id="top-left-corner-deco"/>
+					<img src="/api/assets/gold_flower_corner.webp" id="top-left-corner-deco" />
 					<div id="form-section">
 						<h1>"Want an announcement?"</h1>
 						<div id="announcement-form">
-							<EmailSubmitForm/>
+							<EmailSubmitForm />
 						</div>
 					</div>
 					<div id="faq-section">
 						<h1>"Questions?"</h1>
-						<br/>
+						<br />
 						<a href="/wedding/faq">"Check the FAQ here!"</a>
 					</div>
 					<div id="registry-section">
 						<h1>"Registry?"</h1>
 						<div>"We're working on that :) check the FAQ!"</div>
 					</div>
-					<img src="/api/assets/gold_flower_corner.webp" id="bottom-right-corner-deco"/>
+					<img src="/api/assets/gold_flower_corner.webp" id="bottom-right-corner-deco" />
 				</span>
 			</div>
 		</div>
@@ -170,36 +168,34 @@ fn email_submit_form() -> impl IntoView {
 			<ActionForm action=submit>
 				<div id="form-inputs">
 					<label for="name">"name: "</label>
-					<br/>
+					<br />
 					<input type="text" id="name" name="name" required />
-					<br/>
+					<br />
 					<label for="address">"address: "</label>
-					<br/>
+					<br />
 					<input type="text" id="address" name="address" required />
-					<br/>
+					<br />
 					<label for="email">"email: (in case we need to contact you)"</label>
-					<br/>
+					<br />
 					<input type="email" id="email" name="email" required />
-					<br/>
+					<br />
 				</div>
-				<input type="submit" value="yes please!" id="submit-button"/>
+				<input type="submit" value="yes please!" id="submit-button" />
 			</ActionForm>
 		}.into_any(),
 		Some(Err(e)) => view! {
 			<div id="form-response">
-				{ move || format!("Couldn't submit data: {e}")}
-				<br/>
+				{move || format!("Couldn't submit data: {e}")} <br />
 				"Please contact us at junewelker@gmail.com to get this resolved :)"
 			</div>
 		}.into_any(),
-		Some(Ok(())) => view!{
+		Some(Ok(())) => view! {
 			<div id="form-response">
-				"Thank you! We'll be sending out announcements soon."
-				<br/>
+				"Thank you! We'll be sending out announcements soon." <br />
 				"In the meantime, if you have anything to let us know, please email us at junewelker@gmail.com"
 			</div>
 		}.into_any(),
 	};
 
-	view! { <div> {content} </div> }
+	view! { <div>{content}</div> }
 }
