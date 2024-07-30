@@ -9,8 +9,8 @@ use axum::{
 	routing::{get, post},
 	Router
 };
+use const_format::concatcp;
 use leptos::prelude::*;
-// use leptos::*;
 use tower_http::services::ServeDir;
 use tower_no_ai::NoAiLayer;
 use tower_sessions::{
@@ -23,11 +23,17 @@ use shared_data::Post;
 use sqlx::{
 	query,
 	Postgres,
-	postgres::PgPoolOptions
+	postgres::PgPoolOptions,
+	PgPool
 };
 use tokio::net::TcpListener;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
-use wedding::{app::wedding_app, faq::wedding_faq, main_page::MainPage, server::AxumState};
+use wedding::{
+	app::wedding_app,
+	faq::wedding_faq,
+	main_page::MainPage,
+	server::{GUESTS_TABLE, RECIPS_TABLE, AxumState}
+};
 
 mod images;
 mod home;
@@ -132,7 +138,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	);").execute(&pool)
 		.await?;
 
-	wedding::create_tables(&pool).await?;
+	create_wedding_tables(&pool).await?;
 
 	match (username, password) {
 		(Ok(name), Ok(pass)) => {
@@ -237,6 +243,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let listener = TcpListener::bind(addr).await?;
 	axum::serve(listener, app).await.unwrap();
+
+	Ok(())
+}
+
+pub async fn create_wedding_tables(pool: &PgPool) -> Result<(), sqlx::Error> {
+	query(concatcp!("CREATE TABLE IF NOT EXISTS ", GUESTS_TABLE, "(
+		id uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
+		name text NOT NULL,
+		party_size INT NOT NULL,
+		full_address text,
+		email text,
+		extra_notes text
+	);")).execute(pool)
+		.await?;
+
+	query(concatcp!("CREATE TABLE IF NOT EXISTS ", RECIPS_TABLE, "(
+		id serial PRIMARY KEY,
+		name text NOT NULL,
+		address text,
+		email text
+	);")).execute(pool)
+		.await?;
 
 	Ok(())
 }

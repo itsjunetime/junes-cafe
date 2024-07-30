@@ -12,6 +12,6 @@ pub fn hydrate() {
 	#[cfg(target_family = "wasm")]
 	console_error_panic_hook::set_once();
 
-	// for 0.7:
+	#[cfg(feature = "hydrate")]
 	leptos::mount::hydrate_islands();
 }

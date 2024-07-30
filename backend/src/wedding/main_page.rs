@@ -1,10 +1,7 @@
 use leptos::prelude::*;
-// use leptos::*;
 
 use const_format::concatcp;
 use super::server::AddAnnouncementReq;
-// #[cfg(not(target_family = "wasm"))]
-// use leptos_router::ActionForm;
 
 const STYLE: &str = concatcp!(super::SHARED_STYLE, r#"
 body {
@@ -204,10 +201,5 @@ fn email_submit_form() -> impl IntoView {
 		}.into_any(),
 	};
 
-	view! {
-		<div>
-			{content}
-			// <span>{move || submit_resource.get()}</span>
-		</div>
-	}
+	view! { <div> {content} </div> }
 }

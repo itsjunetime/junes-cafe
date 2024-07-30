@@ -1,15 +1,27 @@
 use leptos::prelude::*;
+use serde::{Serialize, Deserialize};
+use uuid::Uuid;
 
 #[cfg(not(target_family = "wasm"))]
 pub use server_side::*;
 
 #[cfg(not(target_family = "wasm"))]
-macro_rules! ext{
-	() => {{
-		let state: server_side::AxumState = expect_context();
-		extract_with_state(&state).await
-			.map(|t| (t, expect_context()))
-	}};
+use ::{
+	axum::http::StatusCode,
+	axum_sqlx_tx::Tx,
+	sqlx::{Postgres, query_as, query},
+	const_format::concatcp
+};
+
+#[cfg(not(target_family = "wasm"))]
+async fn ext<T>() -> Result<(T, leptos_axum::ResponseOptions), ServerFnError>
+where
+	T: axum::extract::FromRequestParts<AxumState>,
+	<T as axum::extract::FromRequestParts<AxumState>>::Rejection: std::fmt::Debug
+{
+	let state: AxumState = expect_context();
+	leptos_axum::extract_with_state(&state).await
+		.map(|t| (t, expect_context()))
 }
 
 // ideally this would take an AnnouncementRecipient as an argument but I can't figure out how to
@@ -20,13 +32,7 @@ pub async fn add_announcement_req(
 	address: String,
 	email: String
 ) -> Result<(), ServerFnError> {
-	use axum_sqlx_tx::Tx;
-	use sqlx::{Postgres, query};
-	use axum::http::StatusCode;
-	use leptos_axum::{ResponseOptions, extract_with_state};
-	use const_format::concatcp;
-
-	let (mut tx, response): (Tx<Postgres>, ResponseOptions) = ext!()?;
+	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
 
 	if name.is_empty() || address.is_empty() {
 		response.set_status(StatusCode::BAD_REQUEST);
@@ -50,21 +56,196 @@ pub async fn add_announcement_req(
 		.map(|_| ())
 }
 
+impl Guest {
+	pub fn has_rsvpd(&self) -> bool {
+		self.email.is_some()
+	}
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
+pub enum PartySize {
+	// this is a party of multiple people
+	Group(u8),
+	// a single person who is not allowed a plus one
+	NoPlusOne,
+	// a single person who is allowed a plus one but has not specified whether they will be
+	// bringing one
+	AllowedPlusOne,
+	// a single person who is allowed a plus one but will not be bringing one
+	NotBringing,
+	// a single person who is allowed a plus one and will be bringing one
+	Bringing
+}
+
+impl PartySize {
+	pub fn total_size(&self) -> u8 {
+		match self {
+			Self::Group(size) => *size,
+			// if they haven't specified, just assume it's a no. for now. i guess.
+			Self::NoPlusOne | Self::NotBringing | Self::AllowedPlusOne => 1,
+			Self::Bringing => 2,
+		}
+	}
+
+	pub const fn to_int(self) -> i32 {
+		match self {
+			PartySize::Group(num) => i32::from_le_bytes([0, 0, 0, num]),
+			PartySize::NoPlusOne => 1,
+			PartySize::AllowedPlusOne => 2,
+			PartySize::NotBringing => 3,
+			PartySize::Bringing => 4
+			// WHENEVER YOU UPDATE THIS, MAKE SURE TO UPDATE THE TryFrom<i32> AS WELL TO MATCH
+		}
+	}
+}
+
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct UnknownTag(u8);
+
+// so this is kinda janky but it allows us to store this into the database
+impl TryFrom<i32> for PartySize {
+	type Error = UnknownTag;
+	fn try_from(value: i32) -> Result<Self, Self::Error> {
+		// this is just to ensure we don't run into any snags with the necessary bit shifting and
+		// the signed bit and such. I'm pretty certain it's basically invisible
+		let le_bytes = value.to_le_bytes();
+		let tag = le_bytes[0];
+
+		match tag {
+			0 => Ok(Self::Group(le_bytes[3])),
+			1 => Ok(Self::NoPlusOne),
+			2 => Ok(Self::AllowedPlusOne),
+			3 => Ok(Self::NotBringing),
+			4 => Ok(Self::Bringing),
+			_ => Err(UnknownTag(tag))
+		}
+	}
+}
+
+impl From<PartySize> for i32 {
+	fn from(value: PartySize) -> Self {
+		value.to_int()
+	}
+}
+
+#[cfg(test)]
+#[test]
+fn all_party_sizes_can_serde() {
+	fn check(size: PartySize) {
+		assert_eq!(PartySize::try_from(i32::from(size)), Ok(size));
+	}
+
+	for i in u8::MIN..=u8::MAX {
+		check(PartySize::Group(i));
+	}
+	check(PartySize::NoPlusOne);
+	check(PartySize::AllowedPlusOne);
+	check(PartySize::NotBringing);
+	check(PartySize::Bringing);
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(not(target_family = "wasm"), derive(sqlx::FromRow))]
+pub struct Guest {
+	pub id: Uuid,
+	pub name: String,
+	#[cfg_attr(not(target_family = "wasm"), sqlx(try_from = "i32"))]
+	pub party_size: PartySize,
+	pub full_address: Option<String>,
+	pub email: Option<String>,
+	pub extra_notes: String,
+}
+
+#[server(prefix = "/wedding_api")]
+pub async fn guest_with_id(id: Uuid) -> Result<Option<Guest>, ServerFnError> {
+	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
+
+	let query_resp = query_as(concatcp!("SELECT * FROM ", GUESTS_TABLE, " WHERE id = $1"))
+		.bind(id)
+		.fetch_one(&mut tx)
+		.await;
+
+	match query_resp {
+		Ok(g) => Ok(Some(g)),
+		Err(sqlx::Error::RowNotFound) => Ok(None),
+		Err(e) => {
+			response.set_status(StatusCode::INTERNAL_SERVER_ERROR);
+			Err(ServerFnError::ServerError(format!("Couldn't query database: {e}")))
+		}
+	}
+}
+
+// unfortunately, this API has to be designed to work with html forms, so that's why we got this
+// weirdness in types here.
+#[server(prefix = "/wedding_api")]
+async fn update_rsvp(
+	accepted_plus_one: Option<bool>,
+	group_size: Option<u8>,
+	full_address: String,
+	email: String,
+	extra_notes: String,
+	id: Uuid,
+) -> Result<(), ServerFnError> {
+	static GROUP_SIZE_COND: &str = concatcp!(
+		"party_size BETWEEN ", PartySize::Group(0).to_int(), " AND ", PartySize::Group(u8::MAX).to_int()
+	);
+	static PLUS_ONE_COND: &str = concatcp!(
+		"(party_size is ", PartySize::AllowedPlusOne.to_int(),
+		" OR ", PartySize::NotBringing.to_int(),
+		" OR ", PartySize::Bringing.to_int(), ")"
+	);
+	static ALONE_COND: &str = concatcp!("party_size IS ", PartySize::NoPlusOne.to_int());
+
+	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
+
+	let (party_size, extra_cond) = match (accepted_plus_one, group_size) {
+		// arbitrarily make group_size override accepted_plus_one. If they submit both, act as if
+		// they only submitted group_size
+		(_, Some(size)) => (PartySize::Group(size), GROUP_SIZE_COND),
+		(Some(accepted), None) => (
+			if accepted { PartySize::Bringing } else { PartySize::NotBringing },
+			PLUS_ONE_COND
+		),
+		(None, None) => (PartySize::NoPlusOne, ALONE_COND)
+	};
+
+	query(&format!(
+		"UPDATE {GUESTS_TABLE} SET party_size = $1, full_address = $2, email = $3, extra_notes = $4 WHERE id = $5 AND {extra_cond}"
+	))
+		.bind(i32::from(party_size))
+		.bind(full_address)
+		.bind(email)
+		.bind(extra_notes)
+		.bind(id)
+		.execute(&mut tx)
+		.await
+		.map_err(|e| match e {
+			sqlx::Error::RowNotFound => {
+				response.set_status(StatusCode::BAD_REQUEST);
+				ServerFnError::ServerError("No guest was found with the provided data (did you mess with the form?)".into())
+			},
+			_ => {
+				response.set_status(StatusCode::INTERNAL_SERVER_ERROR);
+				ServerFnError::ServerError(format!("Couldn't update rsvp: {e}"))
+			}
+		})
+		.map(|_| ())
+}
+
 #[cfg(not(target_family = "wasm"))]
 mod server_side {
-	use std::fmt::Debug;
-	use axum::{extract::{FromRequestParts, FromRef}, http::StatusCode};
+	use axum::{extract::FromRef, http::StatusCode};
 	use axum_sqlx_tx::{State, Tx};
 	use const_format::concatcp;
 	use leptos::prelude::*;
-	// use leptos::*;
-	use leptos_axum::{extract_with_state, ResponseOptions};
+	use leptos_axum::ResponseOptions;
 	use serde::{Serialize, Deserialize};
 	use sqlx::{query, query_as, FromRow, Postgres, Row};
 	use tower_sessions::Session;
 	use uuid::Uuid;
 
 	use crate::check_auth;
+	use super::{Guest, PartySize, ext};
 
 	pub const GUESTS_TABLE: &str = "wedding_guests";
 	pub const RECIPS_TABLE: &str = "announcement_recipients";
@@ -87,101 +268,6 @@ mod server_side {
 		}
 	}
 
-	#[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
-	pub struct Guest {
-		id: Uuid,
-		name: String,
-		#[sqlx(try_from = "i32")]
-		party_size: PartySize,
-		full_address: Option<String>,
-		email: Option<String>,
-		extra_notes: String,
-	}
-
-	impl Guest {
-		pub fn has_rsvpd(&self) -> bool {
-			self.email.is_some()
-		}
-	}
-
-	#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
-	#[cfg_attr(test, derive(PartialEq))]
-	enum PartySize {
-		// this is a party of multiple people
-		Group(u8),
-		// a single person who is not allowed a plus one
-		NoPlusOne,
-		// a single person who is allowed a plus one but has not specified whether they will be
-		// bringing one
-		AllowedPlusOne,
-		// a single person who is allowed a plus one but will not be bringing one
-		NotBringing,
-		// a single person who is allowed a plus one and will be bringing one
-		Bringing
-	}
-
-	impl PartySize {
-		pub fn total_size(&self) -> u8 {
-			match self {
-				Self::Group(size) => *size,
-				// if they haven't specified, just assume it's a no. for now. i guess.
-				Self::NoPlusOne | Self::NotBringing | Self::AllowedPlusOne => 1,
-				Self::Bringing => 2,
-			}
-		}
-	}
-
-	#[cfg_attr(test, derive(Debug, PartialEq))]
-	struct UnknownTag(u8);
-
-	// so this is kinda janky but it allows us to store this into the database
-	impl TryFrom<i32> for PartySize {
-		type Error = UnknownTag;
-		fn try_from(value: i32) -> Result<Self, Self::Error> {
-			// this is just to ensure we don't run into any snags with the necessary bit shifting and
-			// the signed bit and such. I'm pretty certain it's basically invisible
-			let le_bytes = value.to_le_bytes();
-			let tag = le_bytes[0];
-
-			match tag {
-				0 => Ok(Self::Group(le_bytes[3])),
-				1 => Ok(Self::NoPlusOne),
-				2 => Ok(Self::AllowedPlusOne),
-				3 => Ok(Self::NotBringing),
-				4 => Ok(Self::Bringing),
-				_ => Err(UnknownTag(tag))
-			}
-		}
-	}
-
-	impl From<PartySize> for i32 {
-		fn from(value: PartySize) -> Self {
-			match value {
-				PartySize::Group(num) => i32::from_le_bytes([0, 0, 0, num]),
-				PartySize::NoPlusOne => 1,
-				PartySize::AllowedPlusOne => 2,
-				PartySize::NotBringing => 3,
-				PartySize::Bringing => 4
-				// WHENEVER YOU UPDATE THIS, MAKE SURE TO UPDATE THE TryFrom<i32> AS WELL TO MATCH
-			}
-		}
-	}
-
-	#[cfg(test)]
-	#[test]
-	fn all_party_sizes_can_serde() {
-		fn check(size: PartySize) {
-			assert_eq!(PartySize::try_from(i32::from(size)), Ok(size));
-		}
-
-		for i in u8::MIN..=u8::MAX {
-			check(PartySize::Group(i));
-		}
-		check(PartySize::NoPlusOne);
-		check(PartySize::AllowedPlusOne);
-		check(PartySize::NotBringing);
-		check(PartySize::Bringing);
-	}
 
 	// we don't need a key for this struct 'cause we never need to select individuals from it. We're
 	// just gonna look at the whole list and check them off one by one as we send out invitations
@@ -192,21 +278,6 @@ mod server_side {
 		email: String
 	}
 
-	enum RetrievalErr {
-		NotAllowed,
-		Sqlx(sqlx::Error)
-	}
-
-	async fn ext<T>() -> Result<(T, ResponseOptions), ServerFnError>
-	where
-	T: FromRequestParts<AxumState>,
-	<T as FromRequestParts<AxumState>>::Rejection: Debug
-	{
-		let state: AxumState = expect_context::<AxumState>();
-		extract_with_state(&state).await
-			.map(|t| (t, expect_context()))
-	}
-
 	async fn is_june_auth(session: Session, resp: &ResponseOptions) -> Result<(), ServerFnError> {
 		match check_auth!(session, noret) {
 			Some(username) if username == "june" => Ok(()),
@@ -215,17 +286,6 @@ mod server_side {
 				Err(ServerFnError::ServerError("You're not allowed to access this".into()))
 			}
 		}
-	}
-
-	async fn guest_with_id(
-		mut tx: Tx<Postgres>,
-		id: Uuid
-	) -> Result<Guest, RetrievalErr> {
-		query_as(concatcp!("SELECT * FROM ", GUESTS_TABLE, " WHERE id = $1"))
-			.bind(id)
-			.fetch_one(&mut tx)
-			.await
-			.map_err(RetrievalErr::Sqlx)
 	}
 
 	#[derive(Deserialize, Serialize)]
@@ -253,30 +313,6 @@ mod server_side {
 			.map(Relation::AnnouncementOnly);
 
 		Ok(guests.chain(recips).collect())
-	}
-
-	#[server(prefix = "/wedding_api")]
-	async fn update_rsvp(guest: Guest) -> Result<(), ServerFnError> {
-		let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
-
-		query(concatcp!(
-			"UPDATE ", GUESTS_TABLE,
-			"SET name = $1, party_size = $2, full_address = $3, email = $4, extra_notes = $5
-			WHERE id = $6"
-		))
-			.bind(guest.name)
-			.bind(i32::from(guest.party_size))
-			.bind(guest.full_address)
-			.bind(guest.email)
-			.bind(guest.extra_notes)
-			.bind(guest.id)
-			.execute(&mut tx)
-			.await
-			.map_err(|e| {
-				response.set_status(StatusCode::INTERNAL_SERVER_ERROR);
-				ServerFnError::ServerError(format!("Couldn't update rsvp: {e}"))
-			})
-			.map(|_| ())
 	}
 
 	#[derive(Serialize, Deserialize, Clone, Debug)]
