@@ -48,7 +48,7 @@ h1 {
 
 				<div class="q-and-a">
 					<h3 class="question">Do you have a registry?</h3>
-					<p class="answer">Not yet, but we're still working on setting that up! This site should update once we've set it up, and if you register for an announcement before we've set up the registry, we'll send you an email with a link to it.</p>
+					<p class="answer">Yes! You can find it <a href="https://www.zola.com/registry/maggieandjune">here, on Zola.</a></p>
 				</div>
 				<div class="q-and-a">
 					<h3 class="question">How can I get an invite?</h3>
