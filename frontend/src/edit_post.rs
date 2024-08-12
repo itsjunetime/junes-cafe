@@ -388,7 +388,6 @@ pub fn edit_post(props: &PostProps) -> Html {
 						<span id="rendered">{
 							match AttrValue::from_str(details.rendered_content.as_str()) {
 								Ok(s) => Html::from_html_unchecked(s),
-								Err(infallible) => match infallible {}
 							}
 						}</span>
 					</div>

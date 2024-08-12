@@ -18,7 +18,7 @@ pub async fn get_post_list(
 	// If the user is logged in, then they can see all draft posts as well.
 	let draft_clause = match session {
 		Some(s) if let Some(username) = check_auth!(s, noret) => {
-			format!("WHERE u.username = \"{username}\"")
+			format!("WHERE u.username = '{username}'")
 		},
 		_ => "WHERE p.draft IS NOT TRUE".into()
 	};

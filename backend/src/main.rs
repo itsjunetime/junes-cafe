@@ -29,9 +29,8 @@ use sqlx::{
 use tokio::net::TcpListener;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use wedding::{
-	app::wedding_app,
+	app::{RouterApp, wedding_app},
 	faq::wedding_faq,
-	main_page::MainPage,
 	server::{GUESTS_TABLE, RECIPS_TABLE, AxumState}
 };
 
@@ -182,7 +181,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let (tx_state, tx_layer) = Tx::<Postgres>::setup(pool);
 
-	let routes = generate_route_list(MainPage);
+	let routes = generate_route_list(RouterApp);
 
 	let leptos_config = get_configuration(None)?;
 	// let leptos_config = get_configuration(None).await?;

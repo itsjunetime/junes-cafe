@@ -1,6 +1,7 @@
 pub mod main_page;
 pub mod server;
 pub mod rsvp_page;
+pub mod admin;
 
 #[cfg(not(target_family = "wasm"))]
 pub mod app;
