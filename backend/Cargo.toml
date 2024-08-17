@@ -23,6 +23,8 @@ const_format = "0.2.32"
 # i don't actually use this but I need to activate that specific feature to get it to work so like whatever
 getrandom = { version = "0.2.15", default-features = false, features = ["js"] }
 uuid = { version = "1.10.0", features = ["serde"] }
+web-sys = { version = "0.3.70", features = ["Clipboard", "Window", "Navigator", "Permissions"] }
+wasm-bindgen-futures = "0.4.43"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }

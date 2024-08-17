@@ -24,7 +24,7 @@ impl Params for UserId {
 #[component]
 pub fn rsvp_page() -> impl IntoView {
 	let Ok(UserId(user_id)) = use_params::<UserId>().get() else {
-		return view!{ "Please provide an id to work with (e.g. /wedding/rsvp/{id})" }.into_any()
+		return view! { "Please provide an id to work with (e.g. /wedding/rsvp/{id})" }.into_any()
 	};
 
 	let guest = Resource::new(|| (), move |()| guest_with_id(user_id));
@@ -101,8 +101,9 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 									type="number"
 									id="group_size"
 									name="group_size"
+									min="1"
 									required
-									value=size.to_string()
+									value=size
 								/>
 							</span>
 						}
@@ -137,9 +138,9 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 				<input type="text" id="extra_notes" name="extra_notes" />
 				<br />
 
-				<input type="text" id="id" name="id" hidden required />
+				<input type="text" id="id" name="id" value=guest.id.to_string() hidden required />
 
-				<input type="submit" />
+				<input type="submit" value="Submit" />
 			</ActionForm>
 		}.into_any(),
 		Some(Err(e)) => view! {

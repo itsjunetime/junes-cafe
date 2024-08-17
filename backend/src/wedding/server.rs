@@ -88,6 +88,11 @@ impl PartySize {
 	pub const SELECT_GROUP: &'static str = "Group";
 	pub const SELECT_NO_PLUS_ONE: &'static str = "Single; No plus one";
 	pub const SELECT_PLUS_ONE: &'static str = "Single with plus one";
+	pub const GROUP_MAX: i32 = 256i32;
+	pub const NO_PLUS_ONE_I32: i32 = Self::GROUP_MAX + 1;
+	pub const ALLOWED_PLUS_ONE_I32: i32 = Self::GROUP_MAX + 2;
+	pub const NOT_BRINGING_I32: i32 = Self::GROUP_MAX + 3;
+	pub const BRINGING_I32: i32 = Self::GROUP_MAX + 4;
 
 	pub fn total_size(&self) -> u8 {
 		match self {
@@ -100,11 +105,12 @@ impl PartySize {
 
 	pub const fn to_int(self) -> i32 {
 		match self {
-			PartySize::Group(num) => i32::from_le_bytes([0, 0, 0, num]),
-			PartySize::NoPlusOne => 1,
-			PartySize::AllowedPlusOne => 2,
-			PartySize::NotBringing => 3,
-			PartySize::Bringing => 4
+			// we have to do a shitty 'as' cast here 'cause i32::from() is not const
+			PartySize::Group(num) => num as i32,
+			PartySize::NoPlusOne => Self::NO_PLUS_ONE_I32,
+			PartySize::AllowedPlusOne => Self::ALLOWED_PLUS_ONE_I32,
+			PartySize::NotBringing => Self::NOT_BRINGING_I32,
+			PartySize::Bringing => Self::BRINGING_I32
 			// WHENEVER YOU UPDATE THIS, MAKE SURE TO UPDATE THE TryFrom<i32> AS WELL TO MATCH
 		}
 	}
@@ -119,24 +125,22 @@ impl PartySize {
 // we expect it to say it's dead cause it's never read but we only really care about reading
 // it through its debug
 #[expect(dead_code)]
-pub struct UnknownTag(u8);
+pub struct InvalidValue(i32);
 
 // so this is kinda janky but it allows us to store this into the database
 impl TryFrom<i32> for PartySize {
-	type Error = UnknownTag;
+	type Error = InvalidValue;
 	fn try_from(value: i32) -> Result<Self, Self::Error> {
-		// this is just to ensure we don't run into any snags with the necessary bit shifting and
-		// the signed bit and such. I'm pretty certain it's basically invisible
-		let le_bytes = value.to_le_bytes();
-		let tag = le_bytes[0];
+		if let Ok(group) = u8::try_from(value) {
+			return Ok(Self::Group(group));
+		}
 
-		match tag {
-			0 => Ok(Self::Group(le_bytes[3])),
-			1 => Ok(Self::NoPlusOne),
-			2 => Ok(Self::AllowedPlusOne),
-			3 => Ok(Self::NotBringing),
-			4 => Ok(Self::Bringing),
-			_ => Err(UnknownTag(tag))
+		match value {
+			Self::NO_PLUS_ONE_I32 => Ok(Self::NoPlusOne),
+			Self::ALLOWED_PLUS_ONE_I32 => Ok(Self::AllowedPlusOne),
+			Self::NOT_BRINGING_I32 => Ok(Self::NotBringing),
+			Self::BRINGING_I32 => Ok(Self::Bringing),
+			other_val => Err(InvalidValue(other_val))
 		}
 	}
 }
@@ -272,7 +276,12 @@ async fn update_rsvp(
 				ServerFnError::ServerError(format!("Couldn't update rsvp: {e}"))
 			}
 		})
-		.map(|_| ())
+		.and_then(|res| if res.rows_affected() == 0 {
+			response.set_status(StatusCode::INTERNAL_SERVER_ERROR);
+			Err(ServerFnError::ServerError("No guest was found with the provided data - this is likely an issue on our end. Please contact us :)".into()))
+		} else {
+			Ok(())
+		})
 }
 
 // we don't need a key for this struct 'cause we never need to select individuals from it. We're

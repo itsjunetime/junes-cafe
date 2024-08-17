@@ -150,7 +150,12 @@ pub fn main_page() -> impl IntoView {
 					</div>
 					<div id="registry-section">
 						<h1>"Registry?"</h1>
-						<div>"Yes! "<a href="https://www.zola.com/registry/maggieandjune">"Just click here"</a></div>
+						<div>
+							"Yes! "
+							<a href="https://www.zola.com/registry/maggieandjune">
+								"Just click here"
+							</a>
+						</div>
 					</div>
 					<img src="/api/assets/gold_flower_corner.webp" id="bottom-right-corner-deco" />
 				</span>

@@ -7,7 +7,7 @@ pub fn wedding_app(state: AxumState) -> impl IntoView {
 	let options = state.leptos_opts;
 
 	view! {
-		<!DOCTYPE html>
+		<!DOCTYPE html> 
 		<html lang="en">
 			<head>
 				<meta charset="utf-8" />
@@ -27,8 +27,8 @@ pub fn router_app() -> impl IntoView {
 		<Router>
 			<main>
 				<FlatRoutes fallback=move || "Not found">
+					<Route path=(StaticSegment("/rsvp"), ParamSegment("id")) view=RsvpPage />
 					<Route path=StaticSegment("/admin") view=Admin />
-					<Route path=(StaticSegment("/rsvp/"), ParamSegment("id")) view=RsvpPage />
 					<Route path=StaticSegment("") view=MainPage />
 				</FlatRoutes>
 			</main>
