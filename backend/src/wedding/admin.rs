@@ -1,6 +1,5 @@
-use leptos::{logging, prelude::*};
-use leptos::web_sys::window;
-use super::server::{all_relations, AddGuest, Relation, PartySize, NOT_AUTHORIZED_ERR};
+use leptos::{web_sys::window, prelude::*};
+use super::{SHARED_READABLE, server::{all_relations, AddGuest, Relation, PartySize, NOT_AUTHORIZED_ERR}};
 
 // unfortunately, this whole thing's gotta be an island 'cause we want the list of relations to be
 // reactive to when we add a new one
@@ -10,26 +9,27 @@ pub fn admin() -> impl IntoView {
 	let relations = Resource::new(move || new_guest.version(), move |_| all_relations());
 
 	view! {
+		<style>{ SHARED_READABLE }</style>
 		<Suspense>
 			{move || Suspend::new(async move {
+				// leptos. why do i have to do this. I think the trait system is being fucky 'cause
+				// `relations` impls IntoFuture. And rust admits that. But won't compile when I
+				// just try to await it. Who knows
+
 				let res = relations.by_ref().await;
 				{
+					// this `move` is necessary to make leptos render correctly - something about the
+					// owning/tracking system or whatever.
 					move || match *res {
 						Err(ServerFnError::ServerError(ref err)) if err == NOT_AUTHORIZED_ERR => {
 							view! {
-								// leptos. why do i have to do this. I think the trait system is being fucky 'cause
-								// `relations` impls IntoFuture. And rust admits that. But won't compile when I
-								// just try to await it. Who knows
-
-								// this `move` is necessary to make leptos render correctly - something about the
-								// owning/tracking system or whatever.
-								// mmm do we want to do a ref= thing with the login? to redirect to the right
-								// path? hmm
 								<!DOCTYPE html>
 								<html>
 									<head>
 										// just redirect them to the normal admin since that has the yew interactive login
 										// thing
+										// mmm do also we want to do a ref= thing with the login? to redirect to the right
+										// path? hmm
 										<meta http-equiv="refresh" content="0; url=/admin" />
 									</head>
 								</html>
@@ -38,21 +38,13 @@ pub fn admin() -> impl IntoView {
 						}
 						Err(ref e) => {
 							view! {
-								// leptos. why do i have to do this. I think the trait system is being fucky 'cause
-								// `relations` impls IntoFuture. And rust admits that. But won't compile when I
-								// just try to await it. Who knows
-
-								// this `move` is necessary to make leptos render correctly - something about the
-								// owning/tracking system or whatever.
-								// mmm do we want to do a ref= thing with the login? to redirect to the right
-								// path? hmm
-								// just redirect them to the normal admin since that has the yew interactive login
-								// thing
 								<div>{format!("Ran into an error: {e}")}</div>
 							}
 								.into_any()
 						}
 						Ok(ref relations) => {
+							// feels kinda bad to clone but if we could `await` `relations` itself, then it
+							// would be cloned away, so this isn't like a performance hit
 							let guests = relations
 								.iter()
 								.flat_map(|r| match r {
@@ -66,28 +58,15 @@ pub fn admin() -> impl IntoView {
 									_ => None,
 								});
 							view! {
-								// leptos. why do i have to do this. I think the trait system is being fucky 'cause
-								// `relations` impls IntoFuture. And rust admits that. But won't compile when I
-								// just try to await it. Who knows
-
-								// this `move` is necessary to make leptos render correctly - something about the
-								// owning/tracking system or whatever.
-								// mmm do we want to do a ref= thing with the login? to redirect to the right
-								// path? hmm
-								// just redirect them to the normal admin since that has the yew interactive login
-								// thing
-								// feels kinda bad to clone but if we could `await` `relations` itself, then it
-								// would be cloned away, so this isn't like a performance hit
-
 								<h1>"Guests"</h1>
 								{guests
 									.map(|g| {
 										view! {
 											<details>
 												<summary>
-													<strong>{g.name}</strong>
+													{g.name}
 													" "
-													{g.email.unwrap_or_else(|| "No email".into())}
+													<em>{g.email.unwrap_or_else(|| "No email".into())}</em>
 													<br />
 												</summary>
 												<div>"Party Size: "{g.party_size.to_string()}</div>

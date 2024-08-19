@@ -1,8 +1,9 @@
+use const_format::concatcp;
 use leptos::prelude::*;
 use leptos_router::{hooks::use_params, params::{ParamsMap, ParamsError, Params}};
 use uuid::Uuid;
 
-use super::server::{guest_with_id, Guest, UpdateRsvp, PartySize};
+use super::{SHARED_READABLE, server::{guest_with_id, Guest, UpdateRsvp, PartySize}};
 
 use std::{str::FromStr, sync::Arc};
 
@@ -21,6 +22,20 @@ impl Params for UserId {
 	}
 }
 
+const STYLE: &str = concatcp!(
+	SHARED_READABLE,
+	r#"
+	#full_address {
+		width: 100%;
+	}
+	textarea {
+		resize: vertical;
+		width: 100%;
+		margin-bottom: 16px;
+	}
+	"#
+);
+
 #[component]
 pub fn rsvp_page() -> impl IntoView {
 	let Ok(UserId(user_id)) = use_params::<UserId>().get() else {
@@ -30,6 +45,7 @@ pub fn rsvp_page() -> impl IntoView {
 	let guest = Resource::new(|| (), move |()| guest_with_id(user_id));
 
 	view! {
+		<style>{ STYLE }</style>
 		<Suspense>
 			{move || Suspend::new(async move {
 				match guest.await {
@@ -81,12 +97,12 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 					"What's your address (including city, state, and country if relevant)? We need this to send you an announcement :)"
 				</label>
 				<br />
-				<input type="text" id="full_address" name="full_address" required />
+				<input type="text" id="full_address" name="full_address" placeholder="make sure to include city and state :)" required />
 				<br />
 
-				<label for="email">"Email?"</label>
+				<label for="email">"What's your email?"</label>
 				<br />
-				<input type="email" id="email" name="email" required />
+				<input type="email" id="email" name="email" placeholder="email here :)" required />
 				<br />
 
 				{move || match guest.party_size {
@@ -132,10 +148,10 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 				<br />
 
 				<label for="extra_notes">
-					"Are there any dietary restrictions or facts that we should keep in mind for anyone in your party?"
+					"Are there any dietary restrictions or notes that we should keep in mind for anyone in your party?"
 				</label>
 				<br />
-				<input type="text" id="extra_notes" name="extra_notes" />
+				<textarea id="extra_notes" name="extra_notes" placeholder="dietary restrictions!" />
 				<br />
 
 				<input type="text" id="id" name="id" value=guest.id.to_string() hidden required />
