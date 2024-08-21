@@ -1,4 +1,4 @@
-use axum::{response::Html, extract::Path};
+use axum::{response::Html, extract::Path, http::{HeaderName, header}};
 use horrorshow::{html, Raw, helper::doctype, RenderOnce, TemplateBuffer, Template};
 use std::sync::OnceLock;
 use crate::post_list::PostList;
@@ -6,13 +6,17 @@ use crate::post_list::PostList;
 static MAPLE_MONO_LIGHT: &[u8] = include_bytes!("../../fonts/maple-mono/woff2/MapleMono-Light.woff2");
 static ISENHEIM_REGULAR: &[u8] = include_bytes!("../../fonts/isenheim/fonts/OpenType-PS/Isenheim_Regulier.otf");
 
-pub async fn get_font(Path(id): Path<String>) -> &'static [u8] {
-	// error tolerance babey
-	if id.contains("maple") {
-		MAPLE_MONO_LIGHT
-	} else {
-		ISENHEIM_REGULAR
-	}
+pub async fn get_font(Path(id): Path<String>) -> ([(HeaderName, &'static str); 1], &'static [u8]) {
+	(
+		// cache for a month
+		[(header::CACHE_CONTROL, "2592000")],
+		// error tolerance babey
+		if id.contains("maple") {
+			MAPLE_MONO_LIGHT
+		} else {
+			ISENHEIM_REGULAR
+		}
+	)
 }
 
 build_info::build_info!(pub fn build);

@@ -87,6 +87,11 @@ pub static BASE_STYLE: &str = r#"
 	src: local("Maple Mono"), url("/font/maple-mono");
 	font-display: swap;
 }
+@font-face {
+	font-family: "serif fallback";
+	src: local("serif");
+	size-adjust: 10%;
+}
 * {
 	--body-background: #3f3540;
 	--main-text: #f1f6ff;
@@ -96,7 +101,7 @@ pub static BASE_STYLE: &str = r#"
 	--border-color: #ac9fbb;
 	--title-text: #d1bbe4;
 	--code-background: #2b303b;
-	font-family: Isenheim, Arial;
+	font-family: Isenheim, "serif fallback";
 	color: var(--main-text);
 }
 body {

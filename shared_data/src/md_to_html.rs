@@ -9,7 +9,7 @@ use syntect::{
 };
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, Tag, TagEnd};
 
-static FRAPPE_THEME: &[u8] = include_bytes!("../../fonts/catppuccin_syntax/Catppuccin-frappe.tmTheme");
+static FRAPPE_THEME: &[u8] = include_bytes!("../../fonts/catppuccin_syntax/themes/Catppuccin Frappe.tmTheme");
 
 pub fn md_to_html(input: &str) -> String {
 	static THEME: OnceLock<Theme> = OnceLock::new();
