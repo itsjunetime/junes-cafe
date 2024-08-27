@@ -6,20 +6,20 @@ const TWITTER_ICON: &str = include_str!("../../assets/twitter.svg");
 const MATRIX_ICON: &str = include_str!("../../assets/matrix.svg");
 const RSS_ICON: &str = include_str!("../../assets/rss-icon.svg");
 
-pub struct PostList<C: RenderOnce + 'static> {
+pub struct PostList<'title, C: RenderOnce + 'static> {
 	pub content: C,
-	pub title: &'static str,
+	pub title: &'title str,
 	pub next_page_btn: bool,
 	pub current_page: u32
 }
 
-impl<C> RenderOnce for PostList<C> where C: RenderOnce + 'static {
+impl<C> RenderOnce for PostList<'_, C> where C: RenderOnce + 'static {
 	fn render_once(self, tmpl: &mut TemplateBuffer) {
 		tmpl << html! {
 			: doctype::HTML;
 			html(lang = "en") {
 				head {
-					title : "itsjuneti.me";
+					title : self.title;
 					style : Raw(shared_data::BASE_STYLE);
 					style : Raw(shared_data::POST_LIST_STYLE);
 					meta(name = "viewport", content = "width=device-width, initial-scale=1");
