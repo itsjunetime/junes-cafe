@@ -1,4 +1,4 @@
-the code for my blog, [itsjuneti.me](https://itsjuneti.me). hope y'all enjoy it, and please tell me if you find any vulnerabilities instead of exploiting them :)
+the code for my blog, [itsjuneti.me](https://itsjuneti.me) (and its new address, [june.cat](https://june.cat). hope y'all enjoy it, and please tell me if you find any vulnerabilities instead of exploiting them :)
 
 ## setup
 
