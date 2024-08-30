@@ -9,17 +9,27 @@ pub fn admin() -> impl IntoView {
 	let relations = Resource::new(move || new_guest.version(), move |_| all_relations());
 
 	view! {
+		<style>{ SHARED_READABLE }</style>
 		<style>
-			{ SHARED_READABLE }
 			{
-				"
-				form {
+				"form {
 					margin-bottom: 20px;
+				}
+				details > :not(summary) {
+					margin-left: 20px;
+				}
+				details > :not(summary) * {
+					font-size: 18px;
+				}
+				summary > em {
+					font-size: 18px;
+				}
+				details > button {
+					padding: 0 10px;
 				}
 				input, select, label {
 					margin-right: 10px;
-				}
-				"
+				}"
 			}
 		</style>
 		<Suspense>
@@ -78,15 +88,15 @@ pub fn admin() -> impl IntoView {
 												<summary>
 													{g.name}
 													" "
-													<em>{g.email.unwrap_or_else(|| "No email".into())}</em>
+													<em>{g.email.unwrap_or_else(|| "no email".into())}</em>
 													<br />
 												</summary>
-												<div>"Party Size: "{g.party_size.to_string()}</div>
+												<div><strong>"Party Size: "</strong>{g.party_size.to_string()}</div>
 												<div>
-													"Extra notes: "
-													{g.extra_notes.unwrap_or_else(|| "No notes".into())}
+													<strong>"Extra notes: "</strong>
+													{g.extra_notes.unwrap_or_else(|| "no notes".into())}
 												</div>
-												<div>"UUID: "{g.id.to_string()}</div>
+												<div><strong>"UUID: "</strong>{g.id.to_string()}</div>
 												<button on:click=move |_| copy_rsvp_link_to_clipboard(g.id)>
 													<em>"Copy link"</em>
 												</button>
