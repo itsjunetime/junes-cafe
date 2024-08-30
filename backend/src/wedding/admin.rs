@@ -9,7 +9,19 @@ pub fn admin() -> impl IntoView {
 	let relations = Resource::new(move || new_guest.version(), move |_| all_relations());
 
 	view! {
-		<style>{ SHARED_READABLE }</style>
+		<style>
+			{ SHARED_READABLE }
+			{
+				"
+				form {
+					margin-bottom: 20px;
+				}
+				input, select, label {
+					margin-right: 10px;
+				}
+				"
+			}
+		</style>
 		<Suspense>
 			{move || Suspend::new(async move {
 				// leptos. why do i have to do this. I think the trait system is being fucky 'cause
