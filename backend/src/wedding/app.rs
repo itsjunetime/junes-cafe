@@ -7,12 +7,12 @@ pub fn wedding_app(state: AxumState) -> impl IntoView {
 	let options = state.leptos_opts;
 
 	view! {
-		<!DOCTYPE html> 
+		<!DOCTYPE html>
 		<html lang="en">
 			<head>
 				<meta charset="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
-				<HydrationScripts options=options islands=true />
+				<HydrationScripts options islands=true />
 			</head>
 			<body>
 				<RouterApp />

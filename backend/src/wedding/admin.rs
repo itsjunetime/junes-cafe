@@ -1,5 +1,5 @@
 use leptos::{web_sys::window, prelude::*};
-use super::{SHARED_READABLE, server::{all_relations, AddGuest, Relation, PartySize, NOT_AUTHORIZED_ERR}};
+use super::{view_with_title, SHARED_READABLE, server::{all_relations, AddGuest, Relation, PartySize, NOT_AUTHORIZED_ERR}};
 
 // unfortunately, this whole thing's gotta be an island 'cause we want the list of relations to be
 // reactive to when we add a new one
@@ -8,7 +8,7 @@ pub fn admin() -> impl IntoView {
 	let new_guest = ServerMultiAction::<AddGuest>::new();
 	let relations = Resource::new(move || new_guest.version(), move |_| all_relations());
 
-	view! {
+	view_with_title("Wedding Admin", view! {
 		<style>{ SHARED_READABLE }</style>
 		<style>
 			{
@@ -58,12 +58,9 @@ pub fn admin() -> impl IntoView {
 							}
 								.into_any()
 						}
-						Err(ref e) => {
-							view! {
-								<div>{format!("Ran into an error: {e}")}</div>
-							}
-								.into_any()
-						}
+						Err(ref e) => view! {
+							<div>{format!("Ran into an error: {e}")}</div>
+						}.into_any(),
 						Ok(ref relations) => {
 							// feels kinda bad to clone but if we could `await` `relations` itself, then it
 							// would be cloned away, so this isn't like a performance hit
@@ -79,8 +76,12 @@ pub fn admin() -> impl IntoView {
 									Relation::AnnouncementOnly(r) => Some(r.clone()),
 									_ => None,
 								});
+
 							view! {
 								<h1>"Guests"</h1>
+								// todo: make a little table up here about total rsvp'd size, total
+								// invited size, estimated size accounting for current rsvp rate,
+								// etc.
 								{guests
 									.map(|g| {
 										view! {
@@ -151,7 +152,7 @@ pub fn admin() -> impl IntoView {
 				}
 			})}
 		</Suspense>
-	}
+	})
 }
 
 fn copy_rsvp_link_to_clipboard(id: uuid::Uuid) {

@@ -81,7 +81,9 @@ pub enum PartySize {
 	// a single person who is allowed a plus one but will not be bringing one
 	NotBringing,
 	// a single person who is allowed a plus one and will be bringing one
-	Bringing
+	Bringing,
+	// someone who we invited but was unable to come in the end
+	NotAttending
 }
 
 impl PartySize {
@@ -93,6 +95,7 @@ impl PartySize {
 	pub const ALLOWED_PLUS_ONE_I32: i32 = Self::GROUP_MAX + 2;
 	pub const NOT_BRINGING_I32: i32 = Self::GROUP_MAX + 3;
 	pub const BRINGING_I32: i32 = Self::GROUP_MAX + 4;
+	pub const NOT_ATTENDING_I32: i32 = Self::GROUP_MAX + 5;
 
 	pub fn total_size(&self) -> u8 {
 		match self {
@@ -100,6 +103,7 @@ impl PartySize {
 			// if they haven't specified, just assume it's a no. for now. i guess.
 			Self::NoPlusOne | Self::NotBringing | Self::AllowedPlusOne => 1,
 			Self::Bringing => 2,
+			Self::NotAttending => 0
 		}
 	}
 
@@ -110,7 +114,8 @@ impl PartySize {
 			PartySize::NoPlusOne => Self::NO_PLUS_ONE_I32,
 			PartySize::AllowedPlusOne => Self::ALLOWED_PLUS_ONE_I32,
 			PartySize::NotBringing => Self::NOT_BRINGING_I32,
-			PartySize::Bringing => Self::BRINGING_I32
+			PartySize::Bringing => Self::BRINGING_I32,
+			PartySize::NotAttending => Self::NOT_ATTENDING_I32
 			// WHENEVER YOU UPDATE THIS, MAKE SURE TO UPDATE THE TryFrom<i32> AS WELL TO MATCH
 		}
 	}
@@ -140,6 +145,7 @@ impl TryFrom<i32> for PartySize {
 			Self::ALLOWED_PLUS_ONE_I32 => Ok(Self::AllowedPlusOne),
 			Self::NOT_BRINGING_I32 => Ok(Self::NotBringing),
 			Self::BRINGING_I32 => Ok(Self::Bringing),
+			Self::NOT_ATTENDING_I32 => Ok(Self::NotAttending),
 			other_val => Err(InvalidValue(other_val))
 		}
 	}
@@ -170,7 +176,8 @@ impl Display for PartySize {
 			Self::NoPlusOne => write!(f, "Single person, no +1 allowed"),
 			Self::AllowedPlusOne => write!(f, "+1 allowed; no rsvp yet"),
 			Self::NotBringing => write!(f, "+1 allowed but not taking"),
-			Self::Bringing => write!(f, "Person with +1")
+			Self::Bringing => write!(f, "Person with +1"),
+			Self::NotAttending => write!(f, "Not Attending"),
 		}
 	}
 }
@@ -189,6 +196,7 @@ fn all_party_sizes_can_serde() {
 	check(PartySize::AllowedPlusOne);
 	check(PartySize::NotBringing);
 	check(PartySize::Bringing);
+	check(PartySize::NotAttending);
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -228,6 +236,7 @@ pub async fn guest_with_id(id: Uuid) -> Result<Option<Guest>, ServerFnError> {
 async fn update_rsvp(
 	accepted_plus_one: Option<bool>,
 	group_size: Option<u8>,
+	attending: bool,
 	full_address: String,
 	email: String,
 	extra_notes: String,
@@ -237,28 +246,35 @@ async fn update_rsvp(
 		"party_size BETWEEN ", PartySize::Group(0).to_int(), " AND ", PartySize::Group(u8::MAX).to_int()
 	);
 	static PLUS_ONE_COND: &str = concatcp!(
-		"(party_size is ", PartySize::AllowedPlusOne.to_int(),
-		" OR ", PartySize::NotBringing.to_int(),
-		" OR ", PartySize::Bringing.to_int(), ")"
+		"(party_size = ", PartySize::AllowedPlusOne.to_int(),
+		" OR party_size = ", PartySize::NotBringing.to_int(),
+		" OR party_size = ", PartySize::Bringing.to_int(), ")"
 	);
-	static ALONE_COND: &str = concatcp!("party_size IS ", PartySize::NoPlusOne.to_int());
+	static ALONE_COND: &str = concatcp!("party_size = ", PartySize::NoPlusOne.to_int());
 
 	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
 
-	let (party_size, extra_cond) = match (accepted_plus_one, group_size) {
-		// arbitrarily make group_size override accepted_plus_one. If they submit both, act as if
-		// they only submitted group_size
-		(_, Some(size)) => (PartySize::Group(size), GROUP_SIZE_COND),
-		(Some(accepted), None) => (
-			if accepted { PartySize::Bringing } else { PartySize::NotBringing },
-			PLUS_ONE_COND
-		),
-		(None, None) => (PartySize::NoPlusOne, ALONE_COND)
+	let (party_size, extra_cond) = if attending {
+		match (accepted_plus_one, group_size) {
+			// arbitrarily make group_size override accepted_plus_one. If they submit both, act as if
+			// they only submitted group_size
+			(_, Some(size)) => (PartySize::Group(size), GROUP_SIZE_COND),
+			(Some(accepted), None) => (
+				if accepted { PartySize::Bringing } else { PartySize::NotBringing },
+				PLUS_ONE_COND
+			),
+			(None, None) => (PartySize::NoPlusOne, ALONE_COND)
+		}
+	} else {
+		// just need a fully true condition for this case
+		(PartySize::NotAttending, "'1' = '1'")
 	};
 
-	query(&format!(
+	let q = format!(
 		"UPDATE {GUESTS_TABLE} SET party_size = $1, full_address = $2, email = $3, extra_notes = $4 WHERE id = $5 AND {extra_cond}"
-	))
+	);
+
+	query(&q)
 		.bind(i32::from(party_size))
 		.bind(full_address)
 		.bind(email)
