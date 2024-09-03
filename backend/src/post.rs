@@ -64,7 +64,7 @@ impl RenderOnce for PostView {
 							padding: 8px 0px;
 						}
 						#post-text {
-							padding: 12px 12px;
+							padding: 12px;
 						}
 						#post-text img {
 							max-width: 100%;

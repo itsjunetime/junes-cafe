@@ -39,7 +39,7 @@ impl RenderOnce for Posts {
 			Ok(posts) => tmpl << html! {
 				style : Raw(r#"
 				.post {
-					padding: 12px 16px;
+					padding: 12px;
 					background-color: var(--main-background);
 					border-radius: 8px;
 					margin: 10px auto;
@@ -82,9 +82,8 @@ impl RenderOnce for Posts {
 				}
 				.post-footer {
 					margin-top: 10px;
-				}
-				.post-footer span:first-of-type {
-					margin-left: 6px;
+					display: flex;
+					justify-content: space-between;
 				}
 				"#);
 				@ for post in posts {
@@ -116,11 +115,15 @@ impl RenderOnce for Posts {
 								 + "</p>"
 						);
 						div(class = "post-footer") {
-							: "Posted at ";
-							strong : shared_data::title_time_string(post.created_at);
-							@ for tag in post.tags.0 {
-								span(class = "tag") {
-									: tag;
+							span(class = "post-time") {
+								: "Posted at ";
+								strong : shared_data::title_time_string(post.created_at);
+							}
+							span(class = "tag-group") {
+								@ for tag in post.tags.0 {
+									span(class = "tag") {
+										: tag;
+									}
 								}
 							}
 						}

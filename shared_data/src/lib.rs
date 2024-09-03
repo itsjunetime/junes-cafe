@@ -108,10 +108,10 @@ body {
 	background-color: var(--body-background);
 }
 span.tag {
-	margin-right: 8px;
+	margin-left: 8px;
 	background-color: var(--secondary-background);
-	padding: 3px 6px;
-	border-radius: 4px;
+	padding: 3px 6px 2px 6px;
+	border-radius: 8px 0;
 }
 input, textarea {
 	background-color: var(--secondary-background);
