@@ -99,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	}
 
 	println!("Storing assets to/Reading assets from {asset_dir}");
-	println!("Read .env...");
+	println!("Trying to connect to postgres...");
 
 	let pool = PgPoolOptions::new()
 		.max_connections(num_connections)

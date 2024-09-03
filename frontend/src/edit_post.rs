@@ -334,8 +334,11 @@ pub fn edit_post(props: &PostProps) -> Html {
 						background: none;
 						color: var(--secondary-text);
 						border: none;
-						margin-right: -4px;
-						margin-left: 4px;
+						margin-left: 8px;
+						padding: 0;
+					}
+					#tags span.tag {
+						padding: 3px 6px 4px 6px;
 					}
 					#edit-and-render {
 						display: grid;
@@ -588,6 +591,7 @@ fn submit_resolved_view(code: u16, text: &String, post_id: u32, submit_state: Us
 
 	html! {
 		<>
+			<SharedStyle />
 			<style>
 			{
 				"
@@ -621,7 +625,6 @@ fn submit_resolved_view(code: u16, text: &String, post_id: u32, submit_state: Us
 				"
 			}
 			</style>
-			<SharedStyle />
 			{ res_html }
 		</>
 	}

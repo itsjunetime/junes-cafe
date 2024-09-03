@@ -5,3 +5,7 @@
 - Make a little table on the wedding admin page about total rsvp'd size, total invited size, estimated size accounting for current rsvp rate, etc.
 - Make table/field names based on constants - don't just trust everything to be correct each time
 - Maybe consider contributing to leptos to make compiles fail if `ActionForm`s don't contain all the necessary field names
+- Clear current inputs in new guest form when it's submitted
+- Contribute to leptos to note that if you're running into an issue with wasm panicking, make sure the output of your html when you inspect it in the browser is exactly what you're actually trying to render.
+	- If e.g. it inserts a `<tbody>` around the contents of your `<table>` inner html when you're not explicitly rendering that in the `view` macro, then that could be causing an issue.
+	- Also if you're trying to re-insert a `<!DOCTYPE>` or `<head>` somewhere nested inside a `<body>`, that will also cause issues.

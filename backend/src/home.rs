@@ -109,7 +109,7 @@ impl RenderOnce for Posts {
 						div(class = "post-content") : Raw(
 							// only do the first 5 paragraphs since it's gonna hide past that
 							post.html.split("</p>")
-								.take(5)
+								.take(4)
 								.collect::<Vec<&str>>()
 								.join("</p>")
 								 + "</p>"

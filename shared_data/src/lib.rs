@@ -93,14 +93,14 @@ pub static BASE_STYLE: &str = r#"
 	size-adjust: 10%;
 }
 * {
-	--body-background: #3f3540;
-	--main-text: #f1f6ff;
-	--secondary-text: #f7ebec;
-	--main-background: #1d1e2c;
+	--body-background: #31242b;
+	--main-text: #fbebe2;
+	--secondary-text: #ffd8f0;
+	--main-background: #3c2c35;
 	--secondary-background: #59656f;
-	--border-color: #ac9fbb;
+	--border-color: #a16d8f;
 	--title-text: #d1bbe4;
-	--code-background: #2b303b;
+	--code-background: #2a1e24;
 	font-family: Isenheim, "serif fallback";
 	color: var(--main-text);
 }
@@ -110,7 +110,7 @@ body {
 span.tag {
 	margin-left: 8px;
 	background-color: var(--secondary-background);
-	padding: 3px 6px 2px 6px;
+	padding: 6px 6px 2px 6px;
 	border-radius: 8px 0;
 }
 input, textarea {
