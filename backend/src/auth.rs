@@ -23,7 +23,6 @@ macro_rules! check_auth{
 	}
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub async fn login(
 	mut tx: Tx<Postgres>,
 	AuthBasic((username, password)): AuthBasic,

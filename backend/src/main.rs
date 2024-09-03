@@ -28,7 +28,7 @@ use sqlx::{
 };
 use tokio::net::TcpListener;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
-use wedding::{
+use backend::wedding::{
 	app::{RouterApp, wedding_app},
 	faq::wedding_faq,
 	server::{GUESTS_TABLE, RECIPS_TABLE, AxumState}
@@ -40,8 +40,6 @@ mod post_list;
 mod post;
 mod robots;
 mod fonts;
-mod wedding;
-mod auth;
 mod blog_api;
 
 #[macro_export]
@@ -206,7 +204,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/api/new_post", post(blog_api::submit_post))
 		.route("/api/edit_post/:id", post(blog_api::edit_post))
 		.route("/api/post_asset", post(upload_asset))
-		.route("/api/login", get(auth::login))
+		.route("/api/login", get(backend::auth::login))
 		.route("/wedding_api/*fn_name", {
 			let state = state.clone();
 			post(|req: Request| handle_server_fns_with_context(

@@ -5,9 +5,6 @@ use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 #[cfg(not(target_family = "wasm"))]
-use crate::check_auth;
-
-#[cfg(not(target_family = "wasm"))]
 use ::{
 	axum::{extract::FromRef, http::StatusCode},
 	axum_sqlx_tx::{Tx, State},
@@ -398,8 +395,14 @@ impl FromRef<AxumState> for LeptosOptions {
 }
 
 #[cfg(not(target_family = "wasm"))]
+#[cfg_attr(debug_assertions, allow(unused_variables))]
 pub async fn is_june_auth(session: Session, resp: &ResponseOptions) -> Result<(), ServerFnError> {
-	match check_auth!(session, noret) {
+	// When we're developing, we generally want to bypass auth. So let's just do this here.
+	#[cfg(debug_assertions)]
+	return Ok(());
+
+	#[cfg(not(debug_assertions))]
+	match crate::check_auth!(session, noret) {
 		Some(username) if username == "june" => Ok(()),
 		_ => {
 			resp.set_status(StatusCode::UNAUTHORIZED);

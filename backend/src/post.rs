@@ -4,7 +4,9 @@ use axum::{response::Html, extract::Path, http::StatusCode};
 use sqlx::Postgres;
 use shared_data::Post;
 use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, Template, helper::doctype};
-use crate::{blog_api::get_post, check_auth};
+use backend::check_auth;
+
+use crate::blog_api::get_post;
 
 pub async fn get_post_view(
 	session: Session,

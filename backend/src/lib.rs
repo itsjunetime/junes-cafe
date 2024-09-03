@@ -1,7 +1,8 @@
-mod wedding;
+pub mod wedding;
 #[cfg(not(target_family = "wasm"))]
-mod auth;
+pub mod auth;
 
+// necessary for wasm_bindgen to find islands to hydrate
 #[allow(unused_imports)]
 use wedding::*;
 

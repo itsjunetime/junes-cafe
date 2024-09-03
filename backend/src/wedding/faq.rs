@@ -63,6 +63,10 @@ h1 {
 					<p class="answer">December 14, 2024, in the evening.</p>
 				</div>
 				<div class="q-and-a">
+					<h3 class="question">I messed up when I filled out my RSVP form. Can I fill it out again?</h3>
+					<p class="answer">Yes! Up until December 1, you can continue filling out the RSVP form as many times as you want and only your most recent submission will be saved</p>
+				</div>
+				<div class="q-and-a">
 					<h3 class="question">This site is so cool! Can I view its source code?</h3>
 					<p class="answer">Absolutely! <a href="https://github.com/itsjunetime/junes-cafe">Here's the link to the repo!</a></p>
 				</div>

@@ -12,6 +12,7 @@ pub fn wedding_app(state: AxumState) -> impl IntoView {
 			<head>
 				<meta charset="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<AutoReload options=options.clone()/>
 				<HydrationScripts options islands=true />
 			</head>
 			<body>

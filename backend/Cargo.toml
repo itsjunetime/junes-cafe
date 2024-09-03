@@ -21,10 +21,11 @@ getrandom = { version = "0.2.15", default-features = false, features = ["js"] }
 uuid = { version = "1.10.0", features = ["serde"] }
 web-sys = { version = "0.3.70", features = ["Clipboard", "Window", "Navigator", "Permissions", "HtmlFormElement", "FormData"] }
 wasm-bindgen-futures = "0.4.43"
+leptos_meta = { git = "https://github.com/leptos-rs/leptos.git" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }
-tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"]  }
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 dotenv = "0.15.0"
 shared_data = { path = "../shared_data", features = ["sqlx"] }
 axum-sqlx-tx = "0.9.0"

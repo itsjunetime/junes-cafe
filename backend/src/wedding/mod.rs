@@ -1,5 +1,4 @@
 use const_format::concatcp;
-use leptos::prelude::*;
 
 pub mod main_page;
 pub mod server;
@@ -10,21 +9,6 @@ pub mod admin;
 pub mod app;
 #[cfg(not(target_family = "wasm"))]
 pub mod faq;
-
-fn view_with_title<T>(title: &'static str, view: T) -> impl IntoView
-where
-	T: IntoView
-{
-	view! {
-		<!DOCTYPE html>
-		<html>
-			<head>
-				<title>{ title }</title>
-			</head>
-		</html>
-		<body>{ view }</body>
-	}
-}
 
 pub const SHARED_STYLE: &str = concatcp!(r#"
 	@import url('https://fonts.googleapis.com/css2?family=Euphoria+Script&display=swap');
@@ -52,7 +36,6 @@ pub const SHARED_READABLE: &str = concatcp!(
 		max-width: 900px
 	}
 	body {
-		margin: 0;
 		background-color: var(--beige)
 	}
 	input, textarea {

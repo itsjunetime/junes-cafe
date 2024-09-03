@@ -4,7 +4,9 @@ use axum::{
 };
 use tower_sessions::Session;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::{print_and_ret, check_auth};
+use backend::check_auth;
+
+use crate::print_and_ret;
 
 pub async fn upload_asset(session: Session, mut form: Multipart) -> (StatusCode, String) {
 	check_auth!(session);

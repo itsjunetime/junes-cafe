@@ -4,8 +4,9 @@ use sqlx::{Postgres, query_as, query, Row};
 use serde::Deserialize;
 use axum::{http::StatusCode, extract::{Path, Query}, response::Json};
 use shared_data::{Post, PostReq};
+use backend::check_auth;
 
-use crate::{robots, check_auth, print_and_ret};
+use crate::{robots, print_and_ret};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 

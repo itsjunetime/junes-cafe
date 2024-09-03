@@ -1,11 +1,12 @@
 use const_format::concatcp;
 use leptos::prelude::*;
 use leptos_router::{hooks::use_params, params::{ParamsMap, ParamsError, Params}};
+use leptos_meta::Title;
 use uuid::Uuid;
 use web_sys::{FormData, HtmlFormElement, HtmlInputElement, SubmitEvent};
 use wasm_bindgen::JsCast;
 
-use super::{SHARED_READABLE, view_with_title, server::{guest_with_id, Guest, UpdateRsvp, PartySize}};
+use super::{SHARED_READABLE, server::{guest_with_id, Guest, UpdateRsvp, PartySize}};
 
 use std::{str::FromStr, sync::Arc};
 
@@ -60,10 +61,11 @@ pub fn rsvp_page() -> impl IntoView {
 		<Suspense>
 			{move || Suspend::new(async move {
 				match guest.await {
-					Ok(Some(guest)) => view_with_title("Harper/Welker Wedding RSVP form", view!{
+					Ok(Some(guest)) => view!{
+						<Title text="Harper/Welker Wedding RSVP form"/>
 						<h1>{format!("Welcome, {}", &guest.name)}</h1>
 						<RsvpForm guest />
-					}).into_any(),
+					}.into_any(),
 
 					Ok(None) => view! {
 						<div id="initial-response">
