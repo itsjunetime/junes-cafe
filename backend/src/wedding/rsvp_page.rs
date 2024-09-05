@@ -28,7 +28,7 @@ impl Params for UserId {
 const STYLE: &str = concatcp!(
 	SHARED_READABLE,
 	r#"
-	#full_address {
+	#full_address, #email {
 		width: 100%;
 	}
 	textarea {
@@ -167,10 +167,12 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 
 				{move || match guest.party_size {
 					PartySize::NotAttending => view!{
-						"You have previously indicated you are not able to attend our wedding celebration. If that is not the case anymore, please contact us personally :)"
+						<div>
+							"You have previously indicated you are not able to attend our wedding celebration. If that is not the case anymore, please contact us personally :)"
+						</div>
 					}.into_any(),
 					PartySize::Group(size) => view! {
-						<span id="party-size">
+						<div id="party-size">
 							<label for="group_size">
 								"How many people will be in your party, total?"
 							</label>
@@ -183,12 +185,12 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 								required
 								value=size
 							/>
-						</span>
+						</div>
 					}.into_any(),
 					PartySize::NoPlusOne => ().into_any(),
 					PartySize::AllowedPlusOne | PartySize::NotBringing | PartySize::Bringing => {
 						view! {
-							<span id="party-size">
+							<div id="party-size">
 								<input
 									type="checkbox"
 									id="accepted_plus_one"
@@ -198,11 +200,10 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 								<label for="accepted_plus_one">
 									"Check this is you will be bringing a plus-one"
 								</label>
-							</span>
+							</div>
 						}.into_any()
 					}
 				}}
-				<br />
 
 				<label for="extra_notes">
 					"Are there any dietary restrictions or notes that we should keep in mind for anyone in your party?"

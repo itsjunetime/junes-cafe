@@ -41,6 +41,10 @@ pub const SHARED_READABLE: &str = concatcp!(
 	input, textarea {
 		border-radius: 10px;
 		border: none;
+		box-sizing: border-box;
+	}
+	input, textarea, #checkbox-details {
+		margin-bottom: 16px;
 	}
 	input {
 		padding: 0 10px;

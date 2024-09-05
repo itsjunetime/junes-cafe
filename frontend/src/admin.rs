@@ -85,8 +85,7 @@ pub fn admin(props: &AdminProps) -> Html {
 			justify-content: flex-start;
 		}
 		.tag {
-			margin-right: 0px !important;
-			padding: 5px 6px 4px 6px !important;
+			margin-left: 0px !important;
 		}
 		.action-links {
 			justify-content: flex-end;
