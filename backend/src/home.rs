@@ -84,6 +84,17 @@ impl RenderOnce for Posts {
 					margin-top: 10px;
 					display: flex;
 					justify-content: space-between;
+					flex-wrap: wrap;
+					row-gap: 10px;
+				}
+				.tag-group {
+					display: flex;
+					justify-content: space-between;
+					column-gap: 8px;
+					overflow: auto;
+				}
+				.post-time {
+					align-self: flex-end;
 				}
 				"#);
 				@ for post in posts {

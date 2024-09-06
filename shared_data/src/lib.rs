@@ -108,7 +108,6 @@ body {
 	background-color: var(--body-background);
 }
 span.tag {
-	margin-left: 8px;
 	background-color: var(--secondary-background);
 	padding: 6px 6px 2px 6px;
 	border-radius: 8px 0;
