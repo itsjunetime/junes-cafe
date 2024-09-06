@@ -87,11 +87,6 @@ pub static BASE_STYLE: &str = r#"
 	src: local("Maple Mono"), url("/font/maple-mono");
 	font-display: swap;
 }
-@font-face {
-	font-family: "serif fallback";
-	src: local("serif");
-	size-adjust: 10%;
-}
 * {
 	--body-background: #31242b;
 	--main-text: #fbebe2;
@@ -101,8 +96,8 @@ pub static BASE_STYLE: &str = r#"
 	--border-color: #a16d8f;
 	--title-text: #d1bbe4;
 	--code-background: #2a1e24;
-	font-family: Isenheim, "serif fallback";
 	color: var(--main-text);
+	font-family: Isenheim;
 }
 body {
 	background-color: var(--body-background);
@@ -150,6 +145,11 @@ blockquote {
 	padding-left: 20px;
 	margin-left: 0px;
 }
+.tag-group {
+	display: flex;
+	column-gap: 8px;
+	overflow: auto;
+}
 "#;
 
 pub static POST_LIST_STYLE: &str = r"
@@ -195,5 +195,8 @@ a {
 #credits a {
 	color: var(--title-text);
 	text-decoration: underline;
+}
+.tag-group {
+	justify-content: space-between;
 }
 ";

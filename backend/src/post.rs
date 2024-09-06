@@ -72,8 +72,8 @@ impl RenderOnce for PostView {
 						#tag-title {
 							color: var(--secondary-text);
 						}
-						#tag-title ~ br {
-							margin-bottom: 10px;
+						.tag-group {
+							margin-top: 6px;
 						}
 					");
 					meta(name = "viewport", content = "width=device-width, initial-scale=1");
@@ -106,10 +106,11 @@ impl RenderOnce for PostView {
 						@ if !self.post.tags.0.is_empty() {
 							br; br;
 							div(id = "tags") {
-								span(id = "tag-title") : "Tags";
-								br;
-								@ for tag in self.post.tags.0 {
-									span(class = "tag") : tag;
+								span(id = "tag-title") : "tags";
+								span(class = "tag-group") {
+									@ for tag in self.post.tags.0 {
+										span(class = "tag") : tag;
+									}
 								}
 							}
 						}
