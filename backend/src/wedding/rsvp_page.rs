@@ -45,6 +45,9 @@ const STYLE: &str = concatcp!(
 	#err_title {
 		color: red;
 	}
+	h3 {
+		margin: 0;
+	}
 	"#
 );
 
@@ -81,6 +84,10 @@ pub fn rsvp_page() -> impl IntoView {
 				}
 			})}
 		</Suspense>
+		<div id="faq-suggestion">
+			<h3>"Questions?"</h3>
+			<span>"Check out the "<a href="/wedding/faq">"FAQ!"</a></span>
+		</div>
 	}.into_any()
 }
 
@@ -150,17 +157,26 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 					<span>"What's your address (including city, state, and country if relevant)?"</span>
 					<div class="sublabel">"We need this to send you an announcement :)"</div>
 				</label>
-				<input type="text" id="full_address" name="full_address" placeholder="make sure to include city and state!" required />
+				<input
+					type="text"
+					id="full_address"
+					name="full_address"
+					placeholder="make sure to include city and state!"
+					value={ guest.full_address.clone() }
+					required
+				/>
 				<br />
 
 				<label for="email">"What's your email?"</label>
 				<br />
-				<input type="email" id="email" name="email" placeholder="email here :)" required />
+				<input type="email" id="email" name="email" placeholder="email here :)" value={ guest.email.clone() } required/>
 				<br />
 
 				<input type="checkbox" id="attending" name="attending" prop:checked/><span>"I can attend"</span>
 				<div id="checkbox-details" class="sublabel">
-					<label for="attending">"^ Check this box if you are able to attend our wedding celebration on the evening of December 14, 2024, in SLC, Utah."</label>
+					<label for="attending">
+						"^ Check this box if you are able to attend our wedding celebration on the evening of December 14, 2024, in SLC, Utah."
+					</label>
 					<br/>
 					<span>"(Details about specific times and addresses will be emailed to you if so)"</span>
 				</div>
@@ -198,7 +214,7 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 									prop:checked={ guest.party_size == PartySize::Bringing }
 								/>
 								<label for="accepted_plus_one">
-									"Check this is you will be bringing a plus-one"
+									"Check this if you will be bringing a plus-one"
 								</label>
 							</div>
 						}.into_any()
@@ -209,7 +225,12 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 					"Are there any dietary restrictions or notes that we should keep in mind for anyone in your party?"
 				</label>
 				<br />
-				<textarea id="extra_notes" name="extra_notes" placeholder="dietary restrictions?" />
+				<textarea
+					id="extra_notes"
+					name="extra_notes"
+					placeholder="dietary restrictions?"
+					prop:value={ guest.extra_notes.clone() }
+				/>
 				<br />
 
 				<input type="text" id="id" name="id" value=guest.id.to_string() hidden required />
