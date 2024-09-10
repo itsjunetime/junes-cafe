@@ -9,4 +9,3 @@
 - Contribute to leptos to note that if you're running into an issue with wasm panicking, make sure the output of your html when you inspect it in the browser is exactly what you're actually trying to render.
 	- If e.g. it inserts a `<tbody>` around the contents of your `<table>` inner html when you're not explicitly rendering that in the `view` macro, then that could be causing an issue.
 	- Also if you're trying to re-insert a `<!DOCTYPE>` or `<head>` somewhere nested inside a `<body>`, that will also cause issues.
-- Check invitee emails and fill them in automatically if they already submitted in announcement recipients

@@ -212,7 +212,12 @@ pub struct Guest {
 pub async fn guest_with_id(id: Uuid) -> Result<Option<Guest>, ServerFnError> {
 	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
 
-	let query_resp = query_as(concatcp!("SELECT * FROM ", GUESTS_TABLE, " WHERE id = $1"))
+	let query_resp = query_as(concatcp!(
+		"SELECT g.id, g.name, g.party_size, g.full_address, g.extra_notes, COALESCE(g.email, r.email) as email
+		FROM ", GUESTS_TABLE, " g LEFT JOIN ", RECIPS_TABLE, " r
+		ON LOWER(g.name) = LOWER(r.name)
+		WHERE g.id = $1"
+	))
 		.bind(id)
 		.fetch_one(&mut tx)
 		.await;
