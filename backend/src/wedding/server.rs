@@ -6,12 +6,14 @@ use uuid::Uuid;
 
 #[cfg(not(target_family = "wasm"))]
 use ::{
-	axum::{extract::FromRef, http::StatusCode},
+	axum::{extract::{FromRef, FromRequestParts}, http::StatusCode},
 	axum_sqlx_tx::{Tx, State},
 	sqlx::{Postgres, query_as, query, Row, FromRow},
 	tower_sessions::Session,
 	leptos_axum::ResponseOptions,
-	const_format::concatcp
+	const_format::concatcp,
+	http::request::Parts,
+	std::{future::Future, pin::Pin}
 };
 
 pub const GUESTS_TABLE: &str = "wedding_guests";
@@ -20,8 +22,8 @@ pub const RECIPS_TABLE: &str = "announcement_recipients";
 #[cfg(not(target_family = "wasm"))]
 pub async fn ext<T>() -> Result<(T, leptos_axum::ResponseOptions), ServerFnError>
 where
-	T: axum::extract::FromRequestParts<AxumState>,
-	<T as axum::extract::FromRequestParts<AxumState>>::Rejection: std::fmt::Debug
+	T: FromRequestParts<AxumState>,
+	<T as FromRequestParts<AxumState>>::Rejection: std::fmt::Debug
 {
 	let state: AxumState = expect_context();
 	leptos_axum::extract_with_state(&state).await
@@ -321,23 +323,31 @@ pub enum Relation {
 // contract: this must return guests, and then invitees.
 #[server(prefix = "/wedding_api")]
 pub async fn all_relations() -> Result<Vec<Relation>, ServerFnError> {
-	let ((mut tx, session), response): ((Tx<Postgres>, _), _) = ext().await?;
+	let ((state, session), response): ((State<Postgres>, _), _) = ext().await?;
+	let pool = sqlx::Pool::from_ref(&state);
 
 	is_june_auth(session, &response).await?;
 
-	let guests = query_as(concatcp!("SELECT * FROM ", GUESTS_TABLE))
-		.fetch_all(&mut tx)
-		.await?
-		.into_iter()
-		.map(Relation::Invitee);
+	let guests_fut = query_as(concatcp!(
+		"SELECT * FROM ", GUESTS_TABLE,
+		" ORDER BY email DESC NULLS LAST, name DESC"
+	)).fetch_all(&pool);
 
-	let recips = query_as(concatcp!("SELECT * FROM ", RECIPS_TABLE))
-		.fetch_all(&mut tx)
-		.await?
-		.into_iter()
-		.map(Relation::AnnouncementOnly);
+	let recips_fut = query_as(concatcp!("SELECT * FROM ", RECIPS_TABLE))
+		.fetch_all(&pool);
 
-	Ok(guests.chain(recips).collect())
+	let (guests, recips) = tokio::try_join!(guests_fut, recips_fut)?;
+
+	Ok(
+		guests
+			.into_iter()
+			.map(Relation::Invitee)
+			.chain(
+				recips
+					.into_iter()
+					.map(Relation::AnnouncementOnly)
+			).collect()
+	)
 }
 
 #[server(prefix = "/wedding_api")]
@@ -400,7 +410,28 @@ impl FromRef<AxumState> for LeptosOptions {
 }
 
 #[cfg(not(target_family = "wasm"))]
-#[cfg_attr(debug_assertions, allow(unused_variables))]
+impl FromRequestParts<AxumState> for State<Postgres> {
+	type Rejection = std::convert::Infallible;
+
+	fn from_request_parts<
+		'life0,
+		'life1,
+		'async_trait
+	>(
+		_parts: &'life0 mut Parts,
+		state: &'life1 AxumState
+	) ->  Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
+	where
+		'life0: 'async_trait,
+		'life1: 'async_trait,
+		Self: 'async_trait
+	{
+		Box::pin(async move { Ok(state.tx_state.clone()) })
+	}
+}
+
+#[cfg(not(target_family = "wasm"))]
+#[cfg_attr(debug_assertions, expect(unused_variables))]
 pub async fn is_june_auth(session: Session, resp: &ResponseOptions) -> Result<(), ServerFnError> {
 	// When we're developing, we generally want to bypass auth. So let's just do this here.
 	#[cfg(debug_assertions)]

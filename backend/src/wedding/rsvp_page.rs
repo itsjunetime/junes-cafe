@@ -60,6 +60,7 @@ pub fn rsvp_page() -> impl IntoView {
 	let guest = Resource::new(|| (), move |()| guest_with_id(user_id));
 
 	view! {
+		<Title text="Harper/Welker Wedding RSVP"/>
 		<style>{ STYLE }</style>
 		<Suspense>
 			{move || Suspend::new(async move {
