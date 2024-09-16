@@ -32,7 +32,6 @@ pub fn admin() -> impl IntoView {
 			Ok(ref relations) => {
 				// todo)) use `partition` or smth to avoid the clone since we own
 				// `relations`
-
 				let guests = relations
 					.iter()
 					.flat_map(|r| match r {
@@ -46,8 +45,30 @@ pub fn admin() -> impl IntoView {
 						_ => None,
 					});
 
+				let rsvping = guests.clone().filter(|g| g.email.is_some());
+
+				let groups_rsvped = rsvping.clone().count();
+
+				let total_count_rsvped = rsvping.clone()
+					.map(|g| u16::from(g.party_size.total_size()))
+					.sum::<u16>();
+
+				let attending_perc = rsvping.clone()
+					.filter(|g| g.party_size != PartySize::NotAttending)
+					.count() as f32
+				/ groups_rsvped as f32;
+
+				let final_guess = guests.clone()
+					.map(|g| u16::from(g.party_size.total_size()))
+					.sum::<u16>() as f32
+					* attending_perc;
+
 				view! {
 					<h1>"Guests"</h1>
+					<div id="guest-stats">
+						<strong>"[RSVP'd so far]"</strong><span>"Groups: "{ groups_rsvped }", Guests: "{ total_count_rsvped }</span>
+						<strong>"[At current attendance rate "{ format!("({:.2}%)]", attending_perc * 100.) }</strong><span>{ final_guess }</span>
+					</div>
 					{ guests
 						.map(|g| {
 							view! {
@@ -141,6 +162,13 @@ pub fn admin() -> impl IntoView {
 				}
 				input, select, label {
 					margin-right: 10px;
+				}
+				#guest-stats {
+					display: grid;
+					grid-template-columns: 1fr 1fr;
+				}
+				#guest-stats > strong {
+					margin-right: 24px
 				}"
 			}
 		</style>

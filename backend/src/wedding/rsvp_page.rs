@@ -96,6 +96,7 @@ pub fn rsvp_page() -> impl IntoView {
 fn rsvp_form(guest: Guest) -> impl IntoView {
 	let submit = ServerAction::<UpdateRsvp>::new();
 	let (err, set_err) = signal(None);
+	let (attending, set_attending) = signal(true);
 
 	let submit_callback = move |ev: SubmitEvent| {
 		ev.prevent_default();
@@ -173,7 +174,20 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 				<input type="email" id="email" name="email" placeholder="email here :)" value={ guest.email.clone() } required/>
 				<br />
 
-				<input type="checkbox" id="attending" name="attending" prop:checked/><span>"I can attend"</span>
+				<input
+					type="checkbox"
+					id="attending"
+					name="attending"
+					prop:checked={ attending() }
+					on:input={move |ev| set_attending(
+							ev.target()
+								.expect("this has to have a target")
+								.dyn_into::<HtmlInputElement>()
+								.expect("that's what it has to be")
+								.checked()
+						)
+					}
+				/><span>"I can attend"</span>
 				<div id="checkbox-details" class="sublabel">
 					<label for="attending">
 						"^ Check this box if you are able to attend our wedding celebration on the evening of December 14, 2024, in SLC, Utah."
@@ -182,57 +196,64 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 					<span>"(Details about specific times and addresses will be emailed to you if so)"</span>
 				</div>
 
-				{move || match guest.party_size {
-					PartySize::NotAttending => view!{
-						<div>
-							"You have previously indicated you are not able to attend our wedding celebration. If that is not the case anymore, please contact us personally :)"
-						</div>
-					}.into_any(),
-					PartySize::Group(size) => view! {
-						<div id="party-size">
-							<label for="group_size">
-								"How many people will be in your party, total?"
-							</label>
-							<br />
-							<input
-								type="number"
-								id="group_size"
-								name="group_size"
-								min="1"
-								required
-								value=size
-							/>
-						</div>
-					}.into_any(),
-					PartySize::NoPlusOne => ().into_any(),
-					PartySize::AllowedPlusOne | PartySize::NotBringing | PartySize::Bringing => {
-						view! {
-							<div id="party-size">
-								<input
-									type="checkbox"
-									id="accepted_plus_one"
-									name="accepted_plus_one"
-									prop:checked={ guest.party_size == PartySize::Bringing }
-								/>
-								<label for="accepted_plus_one">
-									"Check this if you will be bringing a plus-one"
-								</label>
-							</div>
-						}.into_any()
-					}
-				}}
 
-				<label for="extra_notes">
-					"Are there any dietary restrictions or notes that we should keep in mind for anyone in your party?"
-				</label>
-				<br />
-				<textarea
-					id="extra_notes"
-					name="extra_notes"
-					placeholder="dietary restrictions?"
-					prop:value={ guest.extra_notes.clone() }
-				/>
-				<br />
+				{if attending() {
+					view!{
+						{ match guest.party_size {
+							PartySize::NoPlusOne => ().into_any(),
+							PartySize::NotAttending => view!{
+								<div>
+									"You have previously indicated you are not able to attend our wedding celebration. If that is not the case anymore, please contact us personally :)"
+								</div>
+							}.into_any(),
+							PartySize::Group(size) => view! {
+								<div id="party-size">
+									<label for="group_size">
+										"How many people will be in your party, total?"
+									</label>
+									<br />
+									<input
+										type="number"
+										id="group_size"
+										name="group_size"
+										min="1"
+										required
+										value=size
+									/>
+								</div>
+							}.into_any(),
+							PartySize::AllowedPlusOne | PartySize::NotBringing | PartySize::Bringing => {
+								view! {
+									<div id="party-size">
+										<input
+											type="checkbox"
+											id="accepted_plus_one"
+											name="accepted_plus_one"
+											prop:checked={ guest.party_size == PartySize::Bringing }
+										/>
+										<label for="accepted_plus_one">
+											"Check this if you will be bringing a plus-one"
+										</label>
+									</div>
+								}.into_any()
+							}
+						}}
+
+						<label for="extra_notes">
+							"Are there any dietary restrictions or notes that we should keep in mind for anyone in your party?"
+						</label>
+						<br />
+						<textarea
+							id="extra_notes"
+							name="extra_notes"
+							placeholder="dietary restrictions?"
+							prop:value={ guest.extra_notes.clone() }
+						/>
+						<br />
+					}.into_any()
+				} else {
+					().into_any()
+				}}
 
 				<input type="text" id="id" name="id" value=guest.id.to_string() hidden required />
 
