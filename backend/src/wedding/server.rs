@@ -215,7 +215,7 @@ pub async fn guest_with_id(id: Uuid) -> Result<Option<Guest>, ServerFnError> {
 	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
 
 	let query_resp = query_as(concatcp!(
-		"SELECT g.id, g.name, g.party_size, g.full_address, g.extra_notes, COALESCE(g.email, r.email) as email
+		"SELECT g.id, g.name, g.party_size, COALESCE(g.full_address, r.address) as full_address, g.extra_notes, COALESCE(g.email, r.email) as email
 		FROM ", GUESTS_TABLE, " g LEFT JOIN ", RECIPS_TABLE, " r
 		ON LOWER(g.name) = LOWER(r.name)
 		WHERE g.id = $1"
@@ -330,7 +330,7 @@ pub async fn all_relations() -> Result<Vec<Relation>, ServerFnError> {
 
 	let guests_fut = query_as(concatcp!(
 		"SELECT * FROM ", GUESTS_TABLE,
-		" ORDER BY email DESC NULLS LAST, name DESC"
+		" ORDER BY email DESC NULLS LAST, name ASC"
 	)).fetch_all(&pool);
 
 	let recips_fut = query_as(concatcp!("SELECT * FROM ", RECIPS_TABLE))
