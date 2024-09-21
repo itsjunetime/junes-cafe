@@ -48,6 +48,9 @@ const STYLE: &str = concatcp!(
 	h3 {
 		margin: 0;
 	}
+	#faq-suggestion {
+		margin-top: 16px;
+	}
 	"#
 );
 
@@ -153,6 +156,11 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 	// 5. Please enter your email address (for time & date information)
 	// 6. Please confirm your email address
 	let content = move || match submit.value()() {
+		None if guest.party_size == PartySize::NotAttending => view!{
+			<div>
+				"You have previously indicated you are not able to attend our wedding celebration. If that is not the case anymore, please contact us personally :)"
+			</div>
+		}.into_any(),
 		None => view! {
 			<form on:submit=submit_callback>
 				<label for="full_address">
@@ -200,12 +208,7 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 				{if attending() {
 					view!{
 						{ match guest.party_size {
-							PartySize::NoPlusOne => ().into_any(),
-							PartySize::NotAttending => view!{
-								<div>
-									"You have previously indicated you are not able to attend our wedding celebration. If that is not the case anymore, please contact us personally :)"
-								</div>
-							}.into_any(),
+							PartySize::NoPlusOne | PartySize::NotAttending => ().into_any(),
 							PartySize::Group(size) => view! {
 								<div id="party-size">
 									<label for="group_size">
@@ -252,7 +255,9 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 						<br />
 					}.into_any()
 				} else {
-					().into_any()
+					view!{
+						<input type="text" value="" style="display: none;" name="extra_notes" id="extra_notes"/>
+					}.into_any()
 				}}
 
 				<input type="text" id="id" name="id" value=guest.id.to_string() hidden required />

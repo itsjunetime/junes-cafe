@@ -35,7 +35,7 @@ once_cell = { version = "1.19.0", default-features = false }
 rss = { version = "2.0.7", default-features = false }
 sitewriter = { version = "1.0.4", default-features = false }
 chrono = { version = "0.4.35", default-features = false }
-tower-http = { version = "0.5.2", default-features = false, features = ["fs"] }
+tower-http = { version = "0.6.0", default-features = false, features = ["fs"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
 tower-no-ai = "0.1.1"
 leptos_axum = { git = "https://github.com/leptos-rs/leptos.git" }
