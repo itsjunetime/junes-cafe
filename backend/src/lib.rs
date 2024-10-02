@@ -3,7 +3,7 @@ pub mod wedding;
 pub mod auth;
 
 // necessary for wasm_bindgen to find islands to hydrate
-#[allow(unused_imports)]
+#[expect(unused_imports)]
 use wedding::*;
 
 use wasm_bindgen::prelude::wasm_bindgen;

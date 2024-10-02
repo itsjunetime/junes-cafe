@@ -1,6 +1,3 @@
-// the html macro produces false positives for this, so we just disable it
-#![allow(clippy::similar_names)]
-
 use yew::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{
@@ -399,12 +396,8 @@ pub fn edit_post(props: &PostProps) -> Html {
 						for="asset-upload"
 						class="upload-details"
 						ondrop={ on_asset_drop }
-						ondragover={ Callback::from(|e: DragEvent| {
-							e.prevent_default();
-						}) }
-						ondragenter={ Callback::from(|e: DragEvent| {
-							e.prevent_default();
-						}) }
+						ondragover={ Callback::from(|e: DragEvent| e.prevent_default()) }
+						ondragenter={ Callback::from(|e: DragEvent| e.prevent_default()) }
 					>
 						{
 							match &*asset {
@@ -674,10 +667,7 @@ fn upload_asset(file_list: Option<FileList>, asset: UseStateHandle<AssetUploadSt
 	wasm_bindgen_futures::spawn_local(async move {
 		let request = match Request::post("/api/post_asset").body(form) {
 			Ok(rq) => rq,
-			Err(e) => {
-				asset.set(AssetUploadState::PreflightError(format!("Couldn't create request: {e}")));
-				return;
-			}
+			Err(e) => fail!("Couldn't create request: {e}"),
 		};
 
 		let result = match request.send().await {

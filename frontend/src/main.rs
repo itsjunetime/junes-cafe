@@ -23,7 +23,7 @@ enum Route {
 	AdminHome
 }
 
-#[allow(clippy::needless_pass_by_value)]
+#[expect(clippy::needless_pass_by_value)]
 fn switch(route: Route) -> Html {
 	match route {
 		Route::EditPost { id } => html! {

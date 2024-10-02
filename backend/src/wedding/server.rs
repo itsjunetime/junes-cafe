@@ -121,14 +121,11 @@ impl PartySize {
 }
 
 #[cfg_attr(test, derive(PartialEq))]
-// we want debug to debug it
-#[derive(Debug)]
-// for some reason, the `expect` below causes a false positive unfulfilled_lint_expectations (I'm
-// pretty certain; it does get rid of the expected warning), so we want to ignore it.
-#[allow(unfulfilled_lint_expectations)]
 // we expect it to say it's dead cause it's never read but we only really care about reading
 // it through its debug
 #[expect(dead_code)]
+// we want debug to debug it
+#[derive(Debug)]
 pub struct InvalidValue(i32);
 
 // so this is kinda janky but it allows us to store this into the database

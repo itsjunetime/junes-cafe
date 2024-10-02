@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 serde = { version = "1.0.197", features = ["serde_derive"] }
 serde_json = "1.0.120"
 tower-sessions = "0.13.0"
-build-info = "0.0.38"
+build-info = "0.0.39"
 leptos = { git = "https://github.com/leptos-rs/leptos.git", features = ["nightly", "rustls", "experimental-islands"] }
 leptos_router = { git = "https://github.com/leptos-rs/leptos.git", features = ["nightly"] }
 wasm-bindgen = "0.2.92"
@@ -52,7 +52,7 @@ ssr = ["leptos/ssr"]
 hydrate = ["leptos/hydrate"]
 
 [build-dependencies]
-build-info-build = "0.0.38"
+build-info-build = "0.0.39"
 
 [package.metadata.leptos]
 bin-features = ["ssr"]
