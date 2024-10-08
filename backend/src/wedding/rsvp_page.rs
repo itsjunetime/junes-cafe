@@ -173,13 +173,7 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 					name="full_address"
 					placeholder="make sure to include city and state!"
 					value={ guest.full_address.clone() }
-					required
 				/>
-				<br />
-
-				<label for="email">"What's your email?"</label>
-				<br />
-				<input type="email" id="email" name="email" placeholder="email here :)" value={ guest.email.clone() } required/>
 				<br />
 
 				<input
@@ -207,6 +201,21 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 
 				{if attending() {
 					view!{
+						<label for="email">
+							<span>"What's your email?"</span>
+							<div class="sublabel">"We'll use this to send you more information coming up to the day"</div>
+						</label>
+						<br />
+						<input
+							type="email"
+							id="email"
+							name="email"
+							placeholder="email here :)"
+							value={ guest.email.clone() }
+							required
+						/>
+						<br />
+
 						{ match guest.party_size {
 							PartySize::NoPlusOne | PartySize::NotAttending => ().into_any(),
 							PartySize::Group(size) => view! {
@@ -280,7 +289,10 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 		}.into_any(),
 		Some(Ok(())) => view! {
 			<div id="form-response">
-				"Thank you! We'll email you once there's more details to share :)"
+				{ move || match attending() {
+					true => "Thank you! We'll email you once there's more details to share :)",
+					false => "Thank you; we'll miss you but we understand :)"
+				}}
 			</div>
 		}.into_any(),
 	};

@@ -239,7 +239,7 @@ async fn update_rsvp(
 	group_size: Option<u8>,
 	attending: bool,
 	full_address: String,
-	email: String,
+	email: Option<String>,
 	extra_notes: String,
 	id: Uuid,
 ) -> Result<(), ServerFnError> {
@@ -254,6 +254,13 @@ async fn update_rsvp(
 	static ALONE_COND: &str = concatcp!("party_size = ", PartySize::NoPlusOne.to_int());
 
 	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
+
+	if attending && email.is_none() {
+		response.set_status(StatusCode::BAD_REQUEST);
+		return Err(ServerFnError::ServerError(
+			"You said you were attending, but didn't provide an email; we need an email to coordinate with you before the event, so please provide one :)".to_string()
+		));
+	}
 
 	let (party_size, extra_cond) = if attending {
 		match (accepted_plus_one, group_size) {
