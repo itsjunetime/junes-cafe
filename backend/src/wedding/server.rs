@@ -64,7 +64,7 @@ pub async fn add_announcement_req(
 
 impl Guest {
 	pub fn has_rsvpd(&self) -> bool {
-		self.email.is_some()
+		self.email.is_some() || self.party_size == PartySize::NotAttending
 	}
 }
 
