@@ -205,7 +205,6 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 							<span>"What's your email?"</span>
 							<div class="sublabel">"We'll use this to send you more information coming up to the day"</div>
 						</label>
-						<br />
 						<input
 							type="email"
 							id="email"

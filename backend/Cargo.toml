@@ -13,7 +13,7 @@ tower-sessions = "0.13.0"
 build-info = "0.0.39"
 leptos = { git = "https://github.com/leptos-rs/leptos.git", features = ["nightly", "rustls", "experimental-islands"] }
 leptos_router = { git = "https://github.com/leptos-rs/leptos.git", features = ["nightly"] }
-wasm-bindgen = "0.2.92"
+wasm-bindgen = "0.2.93"
 http = "1.1.0"
 const_format = "0.2.32"
 # i don't actually use this but I need to activate that specific feature to get it to work so like whatever
