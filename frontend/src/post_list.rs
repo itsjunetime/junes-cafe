@@ -71,12 +71,12 @@ pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 			let res = web_sys::window()
 				.expect("There's gotta be a window")
 				.location()
-				.replace("/login?redir_to=admin");
+				.replace("/login?redir_to=/admin");
 			return match res {
 				Ok(()) => html!{},
 				Err(_) => html!{ <>
 					<p>{ "We couldn't redirect you to the login page. " }</p>
-					<a href="/login?redir_to=admin">{ "Please click this link." }</a>
+					<a href="/login?redir_to=/admin">{ "Please click this link." }</a>
 				</> }
 			}
 		},
