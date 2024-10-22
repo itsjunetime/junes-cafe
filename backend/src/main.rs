@@ -1,13 +1,13 @@
 #![feature(if_let_guard)]
 
+use std::convert::Infallible;
+
 use argon2::{
 	password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
 	Argon2
 };
 use axum::{
-	extract::{DefaultBodyLimit, Request},
-	routing::{get, post},
-	Router
+	extract::{DefaultBodyLimit, Request}, routing::{get, post, MethodRouter}, Router
 };
 use const_format::concatcp;
 use leptos::prelude::*;
@@ -27,11 +27,14 @@ use sqlx::{
 	PgPool
 };
 use tokio::net::TcpListener;
-use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
-use backend::wedding::{
-	app::{RouterApp, wedding_app},
-	faq::wedding_faq,
-	server::{GUESTS_TABLE, RECIPS_TABLE, AxumState}
+use leptos_axum::{generate_route_list, handle_server_fns_with_context, AxumRouteListing, LeptosRoutes};
+use backend::{
+	leptos_app,
+	wedding::{
+		app::RouterApp,
+		faq::wedding_faq,
+		server::{GUESTS_TABLE, RECIPS_TABLE},
+	}, AxumState
 };
 
 mod images;
@@ -41,6 +44,7 @@ mod post;
 mod robots;
 mod fonts;
 mod blog_api;
+mod pages;
 
 #[macro_export]
 macro_rules! print_and_ret{
@@ -179,7 +183,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let (tx_state, tx_layer) = Tx::<Postgres>::setup(pool);
 
-	let routes = generate_route_list(RouterApp);
+	let wedding_routes = generate_route_list(RouterApp);
 
 	let leptos_config = get_configuration(None)?;
 	// let leptos_config = get_configuration(None).await?;
@@ -204,29 +208,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/api/new_post", post(blog_api::submit_post))
 		.route("/api/edit_post/:id", post(blog_api::edit_post))
 		.route("/api/post_asset", post(upload_asset))
-		.route("/api/login", get(backend::auth::login))
-		.route("/wedding_api/*fn_name", {
-			let state = state.clone();
-			post(|req: Request| handle_server_fns_with_context(
-				move || provide_context(state.clone()),
-				req
-			))
-		})
+		.route("/login", get(pages::login::login_html))
+		.route("/api/login", post(backend::auth::login))
+		.route("/wedding_api/*fn_name", server_fns_with_state(state.clone()))
 		.route("/wedding/faq", get(wedding_faq))
-		.nest("/wedding", Router::new()
-			.leptos_routes_with_context(
-				&state,
-				routes,
-				{
-					let state = state.clone();
-					move || provide_context(state.clone())
-				},
-				{
-					let state = state.clone();
-					move || wedding_app(state.clone())
-				}
-			)
-		)
+		.nest("/wedding", leptos_routes(state.clone(), wedding_routes, RouterApp))
 		.nest_service("/api/assets/", ServeDir::new(asset_dir))
 		.nest_service("/pkg/", ServeDir::new(pkg_dir))
 		// I want to be able to upload 10mb assets if I so please.
@@ -242,6 +228,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	axum::serve(listener, app).await.unwrap();
 
 	Ok(())
+}
+
+fn server_fns_with_state(state: AxumState) -> MethodRouter<AxumState, Infallible> {
+	post(|req: Request| handle_server_fns_with_context(
+		move || provide_context(state.clone()),
+		req
+	))
+}
+
+fn leptos_routes<F, V>(state: AxumState, routes: Vec<AxumRouteListing>, router: F) -> Router<AxumState>
+where
+	F: Fn() -> V + Send + Clone + Copy + 'static,
+	V: IntoView + 'static
+{
+	let (ctx_state, app_state) = (state.clone(), state.clone());
+
+	Router::new()
+		.leptos_routes_with_context(
+			&state,
+			routes,
+			move || provide_context(ctx_state.clone()),
+			move || leptos_app(app_state.clone(), router)
+		)
 }
 
 pub async fn create_wedding_tables(pool: &PgPool) -> Result<(), sqlx::Error> {

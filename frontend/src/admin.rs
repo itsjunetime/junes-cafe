@@ -103,6 +103,6 @@ pub fn admin(props: &AdminProps) -> Html {
 		}
 		" }
 		</style>
-		<PostList<AdminPostView> page={ props.page } title={ "Admin" } post_view={ PhantomData }/>
+		<PostList<AdminPostView> page={ props.page } title={ "Admin" } force_logged_in={ true } post_view={ PhantomData }/>
 	</>}
 }

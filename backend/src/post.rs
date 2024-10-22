@@ -32,7 +32,7 @@ impl RenderOnce for PostView {
 		let user = self.post.display_user().to_owned();
 		tmpl << html! {
 			: doctype::HTML;
-			html(lange = "en") {
+			html(lang = "en") {
 				head {
 					title : &self.post.title;
 					style : Raw(shared_data::BASE_STYLE);

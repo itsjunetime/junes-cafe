@@ -24,7 +24,7 @@ wasm-bindgen-futures = "0.4.43"
 leptos_meta = { git = "https://github.com/leptos-rs/leptos.git" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2"] }
+axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form"] }
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 dotenv = "0.15.0"
 shared_data = { path = "../shared_data", features = ["sqlx"] }
@@ -40,9 +40,9 @@ oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] 
 tower-no-ai = "0.1.1"
 leptos_axum = { git = "https://github.com/leptos-rs/leptos.git" }
 argon2 = { version = "0.5.3", features = ["std"] }
-axum-auth = { version = "0.7.0", default-features = false, features = ["auth-basic"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
+serde_urlencoded = "0.7.1"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 console_error_panic_hook = "0.1.7"

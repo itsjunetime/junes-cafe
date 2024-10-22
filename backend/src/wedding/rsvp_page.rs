@@ -139,10 +139,7 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 		}
 
 		match UpdateRsvp::from_form_data(&data) {
-			Err(e) => {
-				set_err(Some(format!("Couldn't create update request: {e}")));
-				ev.prevent_default();
-			},
+			Err(e) => set_err(Some(format!("Couldn't create update request: {e}"))),
 			Ok(update) => drop(submit.dispatch(update)),
 		}
 	};
@@ -182,13 +179,12 @@ fn rsvp_form(guest: Guest) -> impl IntoView {
 					name="attending"
 					prop:checked={ attending() }
 					on:input={move |ev| set_attending(
-							ev.target()
-								.expect("this has to have a target")
-								.dyn_into::<HtmlInputElement>()
-								.expect("that's what it has to be")
-								.checked()
-						)
-					}
+						ev.target()
+							.expect("this has to have a target")
+							.dyn_into::<HtmlInputElement>()
+							.expect("that's what it has to be")
+							.checked()
+					)}
 				/><span>"I can attend"</span>
 				<div id="checkbox-details" class="sublabel">
 					<label for="attending">

@@ -1,13 +1,11 @@
 use yew_router::prelude::*;
 use yew::prelude::*;
 use edit_post::{EditPostParent, NO_POST};
-use auth::AuthView;
 use shared_data::Post;
 use admin::Admin;
 
 mod edit_post;
 mod style;
-mod auth;
 mod admin;
 mod post_list;
 
@@ -27,19 +25,13 @@ enum Route {
 fn switch(route: Route) -> Html {
 	match route {
 		Route::EditPost { id } => html! {
-			<AuthView>
-				<EditPostParent id={ id } />
-			</AuthView>
+			<EditPostParent id={ id } />
 		},
 		Route::NewPost => html! {
-			<AuthView>
-				<EditPostParent id={ NO_POST }/>
-			</AuthView>
+			<EditPostParent id={ NO_POST }/>
 		},
 		Route::Admin { page } => html! {
-			<AuthView>
-				<Admin page={ page }/>
-			</AuthView>
+			<Admin page={ page }/>
 		},
 		Route::AdminHome => switch(Route::Admin { page: 0 })
 	}
@@ -48,19 +40,19 @@ fn switch(route: Route) -> Html {
 #[derive(Debug)]
 pub enum GetPostErr {
 	NotFound,
+	Unauthorized,
 	Other(String)
 }
 
 pub fn get_post(id: u32, state: UseStateHandle<Option<Result<Post, GetPostErr>>>) {
 	wasm_bindgen_futures::spawn_local(async move {
 		let res = match gloo_net::http::Request::get(&format!("/api/post/{id}")).send().await {
-			Ok(res) => if res.ok() {
-				res.json::<Post>().await
-					.map_err(|e| GetPostErr::Other(format!("There was an error while decoding: {e:?}")))
-			} else if res.status() == 404 {
-				Err(GetPostErr::NotFound)
-			} else {
-				Err(GetPostErr::Other(match res.text().await {
+			Ok(res) => match res.status() {
+				200..300 => res.json::<Post>().await
+					.map_err(|e| GetPostErr::Other(format!("There was an error while decoding: {e:?}"))),
+				401 => Err(GetPostErr::Unauthorized),
+				404 => Err(GetPostErr::NotFound),
+				_ => Err(GetPostErr::Other(match res.text().await {
 					Err(err) => format!("There was an error getting the response: {err:?}"),
 					Ok(text) => format!("There was an error while getting the post: {text}")
 				}))
@@ -72,26 +64,38 @@ pub fn get_post(id: u32, state: UseStateHandle<Option<Result<Post, GetPostErr>>>
 	});
 }
 
-pub fn get_post_list(count: usize, offset: u32, state: UseStateHandle<Option<Result<Vec<Post>, String>>>) {
+pub enum GetPostListErr {
+	Unauthorized,
+	Other(String)
+}
+
+pub fn get_post_list(
+	count: usize,
+	offset: u32,
+	force_logged_in: bool,
+	state: UseStateHandle<Option<Result<Vec<Post>, GetPostListErr>>>
+) {
 	wasm_bindgen_futures::spawn_local(async move {
-		let url = format!("/api/posts?count={count}&offset={offset}");
+		let url = format!("/api/posts?count={count}&offset={offset}&force_logged_in={force_logged_in}");
 		// This could be such a pretty functional expression but we have to make it an
 		// ugly match statement cause we can't have await in blocks
 		let res = match gloo_net::http::Request::get(&url).send().await {
-			Ok(res) => if res.ok() {
-				res.json::<Vec<Post>>().await
-					.map_err(|e| format!("There was an error while decoding: {e:?}"))
-			} else {
-				let text = res.text().await.unwrap_or_else(|e| format!("{e:?}"));
-				let error_text = if text.is_empty() {
-					"No Error Text (The backend is probably not running)".into()
-				} else {
-					text
-				};
+			Ok(res) => match res.status() {
+				200..300 => res.json::<Vec<Post>>().await
+					.map_err(|e| GetPostListErr::Other(format!("There was an error while decoding: {e:?}"))),
+				401 => Err(GetPostListErr::Unauthorized),
+				status => {
+					let text = res.text().await.unwrap_or_else(|e| format!("{e:?}"));
+					let error_text = if text.is_empty() {
+						"No Error Text (The backend is probably not running)".into()
+					} else {
+						text
+					};
 
-				Err(format!("Request returned {}: {error_text}", res.status()))
+					Err(GetPostListErr::Other(format!("Request returned {status}: {error_text}")))
+				}
 			},
-			Err(err) => Err(format!("{err:?}"))
+			Err(err) => Err(GetPostListErr::Other(format!("{err:?}")))
 		};
 
 		state.set(Some(res));

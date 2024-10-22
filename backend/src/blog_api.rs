@@ -39,14 +39,19 @@ pub async fn get_post_list(
 #[derive(Deserialize)]
 pub struct PostListParams {
 	count: u32,
-	offset: u32
+	offset: u32,
+	force_logged_in: bool
 }
 
 pub async fn get_post_list_json(
 	session: Session,
 	mut tx: Tx<Postgres>,
-	Query(PostListParams { count, offset }): Query<PostListParams>
+	Query(PostListParams { count, offset, force_logged_in }): Query<PostListParams>
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
+	if force_logged_in && check_auth!(session, noret).is_none() {
+		return Err((StatusCode::UNAUTHORIZED, "Please login (/apiv2/login) first".into()))
+	}
+
 	get_post_list(Some(&session), &mut tx, count, offset)
 		.await
 		.map(Json)

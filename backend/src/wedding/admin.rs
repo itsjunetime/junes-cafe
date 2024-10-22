@@ -20,7 +20,7 @@ pub fn admin() -> impl IntoView {
 						// thing
 						// mmm do also we want to do a ref= thing with the login? to redirect to the right
 						// path? hmm
-						<meta http-equiv="refresh" content="0; url=/admin" />
+						<meta http-equiv="refresh" content="0; url=/login?redir_to=/wedding/admin" />
 					</head>
 				</html>
 			}.into_any(),
@@ -34,15 +34,15 @@ pub fn admin() -> impl IntoView {
 				// `relations`
 				let guests = relations
 					.iter()
-					.flat_map(|r| match r {
+					.filter_map(|r| match r {
 						Relation::Invitee(g) => Some(g.clone()),
-						_ => None,
+						Relation::AnnouncementOnly(_) => None,
 					});
 				let recips = relations
 					.iter()
-					.flat_map(|r| match r {
+					.filter_map(|r| match r {
 						Relation::AnnouncementOnly(r) => Some(r.clone()),
-						_ => None,
+						Relation::Invitee(_) => None,
 					});
 
 				let rsvping = guests.clone().filter(|g| g.email.is_some());
@@ -58,10 +58,11 @@ pub fn admin() -> impl IntoView {
 					.count() as f32
 				/ groups_rsvped as f32;
 
-				let final_guess = guests.clone()
-					.map(|g| u16::from(g.party_size.total_size()))
-					.sum::<u16>() as f32
-					* attending_perc;
+				let final_guess = f32::from(
+					guests.clone()
+						.map(|g| u16::from(g.party_size.total_size()))
+						.sum::<u16>()
+				) * attending_perc;
 
 				view! {
 					<h1>"Guests"</h1>
@@ -180,7 +181,7 @@ pub fn admin() -> impl IntoView {
 
 fn copy_rsvp_link_to_clipboard(id: uuid::Uuid) {
 	wasm_bindgen_futures::spawn_local(async move {
-		let url = format!("https://itsjuneti.me/wedding/rsvp/{}", id);
+		let url = format!("https://itsjuneti.me/wedding/rsvp/{id}");
 		let promise = window().expect("No window??")
 			.navigator()
 			.clipboard()

@@ -1,8 +1,5 @@
 - Add caching for page responses that get invalidated when we make a new post or whatever
-- Rewrite login page in leptos w/ auto-rerouting based on referrer ref
-	- Maybe add a hidden field of the form that contains the referrer so it's included as part of the login POST. Then if it's not included, we just redirect to main login page.
 - Rewrite edit page in leptos with same functionality
-- Make a little table on the wedding admin page about total rsvp'd size, total invited size, estimated size accounting for current rsvp rate, etc.
 - Make table/field names based on constants - don't just trust everything to be correct each time
 - Maybe consider contributing to leptos to make compiles fail if `ActionForm`s don't contain all the necessary field names
 - Clear current inputs in new guest form when it's submitted

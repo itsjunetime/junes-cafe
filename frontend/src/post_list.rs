@@ -1,9 +1,10 @@
 use yew::prelude::*;
+use yew_router::{prelude::Redirect, AnyRoute};
 use shared_data::Post;
 use std::marker::PhantomData;
 use crate::{
 	get_post_list,
-	style::SharedStyle,
+	style::SharedStyle, GetPostListErr,
 };
 
 // How many posts to request at a time
@@ -21,6 +22,7 @@ pub trait PostViewProvider: PartialEq {
 pub struct PostListProps<P: PostViewProvider> {
 	pub page: u32,
 	pub title: String,
+	pub force_logged_in: bool,
 	pub post_view: PhantomData<P>
 }
 
@@ -28,15 +30,16 @@ pub struct PostListProps<P: PostViewProvider> {
 pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 	// It would be nice to do [Post; Count] but it could return less than Count posts if there are
 	// only that many left, and that should be processed nicely, so oh well.
-	let post_list = use_state(|| Option::<Result<Vec<Post>, String>>::None);
+	let post_list = use_state(|| None);
 
 	// Load the first 10 posts
 	{
 		let page = props.page;
 		let list = post_list.clone();
+		let force_logged_in = props.force_logged_in;
 		use_effect(move || {
 			if list.is_none() {
-				get_post_list(REQ_BLOCK, page * REQ_BLOCK as u32, list);
+				get_post_list(REQ_BLOCK, page * REQ_BLOCK as u32, force_logged_in, list);
 			}
 
 			|| { }
@@ -62,7 +65,14 @@ pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 
 	let posts_html = match &*post_list {
 		None => html! { <p>{ "Loading posts..." }</p> },
-		Some(Err(err)) => html! { <><h1>{ "Couldn't get posts" }</h1><p>{ err }</p></> },
+		Some(Err(GetPostListErr::Unauthorized)) => return html! {
+			// we're assuming that if they get 'unauthorized', then they probably are trying to
+			// access the admin page.
+			<Redirect<AnyRoute> to={ AnyRoute::new("/login?redir_to=/admin") }/>
+		},
+		Some(Err(GetPostListErr::Other(err))) => html! {
+			<><h1>{ "Couldn't get posts" }</h1><p>{ err }</p></>
+		},
 		Some(Ok(posts)) => posts.iter().map(P::post_view).collect::<Html>(),
 	};
 

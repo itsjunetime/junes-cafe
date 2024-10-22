@@ -6,29 +6,16 @@ use uuid::Uuid;
 
 #[cfg(not(target_family = "wasm"))]
 use ::{
-	axum::{extract::{FromRef, FromRequestParts}, http::StatusCode},
+	axum::{extract::FromRef, http::StatusCode},
 	axum_sqlx_tx::{Tx, State},
 	sqlx::{Postgres, query_as, query, Row, FromRow},
 	tower_sessions::Session,
 	leptos_axum::ResponseOptions,
 	const_format::concatcp,
-	http::request::Parts,
-	std::{future::Future, pin::Pin}
 };
 
 pub const GUESTS_TABLE: &str = "wedding_guests";
 pub const RECIPS_TABLE: &str = "announcement_recipients";
-
-#[cfg(not(target_family = "wasm"))]
-pub async fn ext<T>() -> Result<(T, leptos_axum::ResponseOptions), ServerFnError>
-where
-	T: FromRequestParts<AxumState>,
-	<T as FromRequestParts<AxumState>>::Rejection: std::fmt::Debug
-{
-	let state: AxumState = expect_context();
-	leptos_axum::extract_with_state(&state).await
-		.map(|t| (t, expect_context()))
-}
 
 // ideally this would take an AnnouncementRecipient as an argument but I can't figure out how to
 // make that work
@@ -38,7 +25,7 @@ pub async fn add_announcement_req(
 	address: String,
 	email: String
 ) -> Result<(), ServerFnError> {
-	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
+	let (mut tx, response): (Tx<Postgres>, _) = crate::ext().await?;
 
 	if name.is_empty() || address.is_empty() {
 		response.set_status(StatusCode::BAD_REQUEST);
@@ -121,11 +108,11 @@ impl PartySize {
 }
 
 #[cfg_attr(test, derive(PartialEq))]
-// we expect it to say it's dead cause it's never read but we only really care about reading
-// it through its debug
-#[expect(dead_code)]
 // we want debug to debug it
 #[derive(Debug)]
+// we expect it to say it's dead cause it's never read but we only really care about reading
+// it through its debug
+#[allow(dead_code)]
 pub struct InvalidValue(i32);
 
 // so this is kinda janky but it allows us to store this into the database
@@ -209,7 +196,7 @@ pub struct Guest {
 
 #[server(prefix = "/wedding_api")]
 pub async fn guest_with_id(id: Uuid) -> Result<Option<Guest>, ServerFnError> {
-	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
+	let (mut tx, response): (Tx<Postgres>, _) = crate::ext().await?;
 
 	let query_resp = query_as(concatcp!(
 		"SELECT g.id, g.name, g.party_size, COALESCE(g.full_address, r.address) as full_address, g.extra_notes, COALESCE(g.email, r.email) as email
@@ -253,7 +240,7 @@ async fn update_rsvp(
 	);
 	static ALONE_COND: &str = concatcp!("party_size = ", PartySize::NoPlusOne.to_int());
 
-	let (mut tx, response): (Tx<Postgres>, _) = ext().await?;
+	let (mut tx, response): (Tx<Postgres>, _) = crate::ext().await?;
 
 	if attending && email.is_none() {
 		response.set_status(StatusCode::BAD_REQUEST);
@@ -327,7 +314,7 @@ pub enum Relation {
 // contract: this must return guests, and then invitees.
 #[server(prefix = "/wedding_api")]
 pub async fn all_relations() -> Result<Vec<Relation>, ServerFnError> {
-	let ((state, session), response): ((State<Postgres>, _), _) = ext().await?;
+	let ((state, session), response): ((State<Postgres>, _), _) = crate::ext().await?;
 	let pool = sqlx::Pool::from_ref(&state);
 
 	is_june_auth(session, &response).await?;
@@ -361,7 +348,7 @@ pub async fn add_guest(
 ) -> Result<String, ServerFnError> {
 	use server_fn::error::NoCustomError;
 
-	let ((session, mut tx), response): ((_, Tx<Postgres>), _) = ext().await?;
+	let ((session, mut tx), response): ((_, Tx<Postgres>), _) = crate::ext().await?;
 
 	is_june_auth(session, &response).await?;
 
@@ -393,48 +380,6 @@ pub async fn add_guest(
 }
 
 #[cfg(not(target_family = "wasm"))]
-#[derive(Clone)]
-pub struct AxumState {
-	pub tx_state: State<Postgres>,
-	pub leptos_opts: LeptosOptions
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl FromRef<AxumState> for State<Postgres> {
-	fn from_ref(input: &AxumState) -> Self {
-		input.tx_state.clone()
-	}
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl FromRef<AxumState> for LeptosOptions {
-	fn from_ref(input: &AxumState) -> Self {
-		input.leptos_opts.clone()
-	}
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl FromRequestParts<AxumState> for State<Postgres> {
-	type Rejection = std::convert::Infallible;
-
-	fn from_request_parts<
-		'life0,
-		'life1,
-		'async_trait
-	>(
-		_parts: &'life0 mut Parts,
-		state: &'life1 AxumState
-	) ->  Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
-	where
-		'life0: 'async_trait,
-		'life1: 'async_trait,
-		Self: 'async_trait
-	{
-		Box::pin(async move { Ok(state.tx_state.clone()) })
-	}
-}
-
-#[cfg(not(target_family = "wasm"))]
 #[cfg_attr(debug_assertions, expect(unused_variables))]
 pub async fn is_june_auth(session: Session, resp: &ResponseOptions) -> Result<(), ServerFnError> {
 	// When we're developing, we generally want to bypass auth. So let's just do this here.
@@ -452,14 +397,3 @@ pub async fn is_june_auth(session: Session, resp: &ResponseOptions) -> Result<()
 }
 
 pub const NOT_AUTHORIZED_ERR: &str = "You're not allowed to access this";
-
-// pages to contain:
-// - FAQ
-// - Little basic landing page (maybe people can put in their address+name here as well if they
-//   want an announcement)
-//   - this may actually benefit from wasm - we have a form that reloads some small bit of the page
-//     when they hit submit
-// - Place where specific guests can put in details about themselves attending the ceremony or
-//   reception
-// - Page after inputting details that says like 'email us at <email> if you want to change
-//   anything. the last date to change details is dec 1. whatever.

@@ -7,6 +7,7 @@ use web_sys::{
 	FileList,
 	FormData
 };
+use yew_router::{AnyRoute, prelude::Redirect};
 use std::str::FromStr;
 use super::{
 	style::SharedStyle,
@@ -156,12 +157,17 @@ pub fn edit_post(props: &PostProps) -> Html {
 	if props.id != NO_POST && details.title.is_empty() {
 		let retrieved_post = match post.as_ref() {
 			None => return html! { <p>{ "Checking if post exists to edit..." }</p> },
-			Some(Err(GetPostErr::Other(err))) => return html! {
-				<p>{ format!("Failed to check if post exists: {err}") }</p>
-			},
-			Some(Err(GetPostErr::NotFound)) => return html! {
-				<p>{ "The post you are trying to edit does not exist" }</p>
-			},
+			Some(Err(e)) => match e {
+				GetPostErr::Other(err) => return html! {
+					<p>{ format!("Failed to check if post exists: {err}") }</p>
+				},
+				GetPostErr::NotFound => return html! {
+					<p>{ "The post you are trying to edit does not exist" }</p>
+				},
+				GetPostErr::Unauthorized => return html! {
+					<Redirect<AnyRoute> to={ AnyRoute::new("/login") }/>
+				}
+			}
 			Some(Ok(post)) => post
 		};
 
