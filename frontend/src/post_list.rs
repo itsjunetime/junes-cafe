@@ -65,10 +65,20 @@ pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 
 	let posts_html = match &*post_list {
 		None => html! { <p>{ "Loading posts..." }</p> },
-		Some(Err(GetPostListErr::Unauthorized)) => return html! {
+		Some(Err(GetPostListErr::Unauthorized)) => {
 			// we're assuming that if they get 'unauthorized', then they probably are trying to
 			// access the admin page.
-			<Redirect<AnyRoute> to={ AnyRoute::new("/login?redir_to=/admin") }/>
+			let res = web_sys::window()
+				.expect("There's gotta be a window")
+				.location()
+				.replace("/login?redir_to=admin");
+			return match res {
+				Ok(()) => html!{},
+				Err(_) => html!{ <>
+					<p>{ "We couldn't redirect you to the login page. " }</p>
+					<a href="/login?redir_to=admin">{ "Please click this link." }</a>
+				</> }
+			}
 		},
 		Some(Err(GetPostListErr::Other(err))) => html! {
 			<><h1>{ "Couldn't get posts" }</h1><p>{ err }</p></>
