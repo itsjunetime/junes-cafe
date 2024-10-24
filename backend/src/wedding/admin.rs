@@ -1,6 +1,6 @@
 use leptos::{prelude::*, web_sys::window};
 use leptos_meta::Title;
-use super::{SHARED_READABLE, server::{all_relations, AddGuest, Relation, PartySize, NOT_AUTHORIZED_ERR}};
+use super::{SHARED_READABLE, server::{all_relations, AddGuest, Relation, PartySize, NOT_AUTHORIZED_ERR, Guest}};
 
 // unfortunately, this whole thing's gotta be an island 'cause we want the list of relations to be
 // reactive to when we add a new one
@@ -45,7 +45,7 @@ pub fn admin() -> impl IntoView {
 						Relation::Invitee(_) => None,
 					});
 
-				let rsvping = guests.clone().filter(|g| g.email.is_some());
+				let rsvping = guests.clone().filter(Guest::has_rsvpd);
 
 				let groups_rsvped = rsvping.clone().count();
 

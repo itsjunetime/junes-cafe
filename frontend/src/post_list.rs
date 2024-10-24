@@ -1,5 +1,4 @@
 use yew::prelude::*;
-use yew_router::{prelude::Redirect, AnyRoute};
 use shared_data::Post;
 use std::marker::PhantomData;
 use crate::{
