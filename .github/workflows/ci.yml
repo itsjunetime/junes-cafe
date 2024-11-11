@@ -25,18 +25,18 @@ jobs:
         uses: jetli/trunk-action@v0.5.0
         with:
           version: 'latest'
-      - name: Install wasm-opt
-        run: "curl -L -o binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz && tar -xzvf ./binaryen.tar.gz"
+          # - name: Install wasm-opt
+          # run: "curl -L -o binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz && tar -xzvf ./binaryen.tar.gz"
       - name: Install cargo-leptos
         run: curl --proto '=https' --tlsv1.2 -LsSf https://leptos-rs.artifacts.axodotdev.host/cargo-leptos/v0.2.21/cargo-leptos-installer.sh | sh
       - name: Build backend
         run: cargo leptos build --release
-      - name: Optimise backend wasm
-        run: "./binaryen-version_119/bin/wasm-opt -Oz -o target/site/pkg/backend.wasm target/site/pkg/backend.wasm"
+        # - name: Optimise backend wasm
+        # run: "./binaryen-version_119/bin/wasm-opt -Oz -o target/site/pkg/backend.wasm target/site/pkg/backend.wasm"
       - name: Build frontend
         run: "cd frontend && trunk build --release"
-      - name: Optimise wasm
-        run: "cd frontend/dist && ../../binaryen-version_119/bin/wasm-opt -Oz -o $(ls frontend*.wasm) $(ls frontend*.wasm)"
+        # - name: Optimise wasm
+        # run: "cd frontend/dist && ../../binaryen-version_119/bin/wasm-opt -Oz -o $(ls frontend*.wasm) $(ls frontend*.wasm)"
       - name: Stop currently-running backend
         uses: appleboy/ssh-action@v1.0.3
         with:
