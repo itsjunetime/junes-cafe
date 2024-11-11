@@ -15,11 +15,12 @@
 use axum::response::Html;
 use const_format::concatcp;
 
+#[allow(clippy::unused_async)]
 pub async fn wedding_faq() -> Html<&'static str> {
-	Html(concatcp!(r#"
+	Html(concatcp!(r"
 		<body>
 			<style>
-"#,
+",
 super::SHARED_READABLE,
 r#"
 * {

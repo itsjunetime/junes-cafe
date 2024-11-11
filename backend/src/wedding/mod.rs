@@ -57,7 +57,7 @@ pub const SHARED_READABLE: &str = concatcp!(
 	SHARED_NO_FONT
 );
 
-pub const SHARED_NO_FONT: &str = r#"
+pub const SHARED_NO_FONT: &str = r"
 * {
 	--gold: #8a944d;
 	--white: #eff1f3;
@@ -68,4 +68,4 @@ pub const SHARED_NO_FONT: &str = r#"
 	--dark-brown: #40332a;
 	color: var(--dark-brown);
 }
-"#;
+";

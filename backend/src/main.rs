@@ -1,6 +1,7 @@
 #![feature(if_let_guard)]
+#![feature(tcp_quickack)]
 
-use std::convert::Infallible;
+use std::{convert::Infallible, future::{ready, Ready}, os::linux::net::TcpStreamExt};
 
 use argon2::{
 	password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
@@ -9,6 +10,7 @@ use argon2::{
 use axum::{
 	extract::{DefaultBodyLimit, Request}, routing::{get, post, MethodRouter}, Router
 };
+use axum_server::accept::Accept;
 use const_format::concatcp;
 use leptos::prelude::*;
 use tower_http::services::ServeDir;
@@ -26,7 +28,7 @@ use sqlx::{
 	postgres::PgPoolOptions,
 	PgPool
 };
-use tokio::net::TcpListener;
+use tokio::net::TcpStream;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, AxumRouteListing, LeptosRoutes};
 use backend::{
 	leptos_app,
@@ -212,7 +214,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/api/login", post(backend::auth::login))
 		.route("/wedding_api/*fn_name", server_fns_with_state(state.clone()))
 		.route("/wedding/faq", get(wedding_faq))
-		.nest("/wedding", leptos_routes(state.clone(), wedding_routes, RouterApp))
+		.nest("/wedding", leptos_routes(&state, wedding_routes, RouterApp))
 		.nest_service("/api/assets/", ServeDir::new(asset_dir))
 		.nest_service("/pkg/", ServeDir::new(pkg_dir))
 		// I want to be able to upload 10mb assets if I so please.
@@ -224,8 +226,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	println!("Serving axum at http://{addr}...");
 
-	let listener = TcpListener::bind(addr).await?;
-	axum::serve(listener, app).await.unwrap();
+	axum_server::bind(addr)
+		.acceptor(QuickAckAcceptor)
+		.serve(app.into_make_service())
+		.await?;
 
 	Ok(())
 }
@@ -237,7 +241,7 @@ fn server_fns_with_state(state: AxumState) -> MethodRouter<AxumState, Infallible
 	))
 }
 
-fn leptos_routes<F, V>(state: AxumState, routes: Vec<AxumRouteListing>, router: F) -> Router<AxumState>
+fn leptos_routes<F, V>(state: &AxumState, route_list: Vec<AxumRouteListing>, router: F) -> Router<AxumState>
 where
 	F: Fn() -> V + Send + Clone + Copy + 'static,
 	V: IntoView + 'static
@@ -246,8 +250,8 @@ where
 
 	Router::new()
 		.leptos_routes_with_context(
-			&state,
-			routes,
+			state,
+			route_list,
 			move || provide_context(ctx_state.clone()),
 			move || leptos_app(app_state.clone(), router)
 		)
@@ -273,4 +277,23 @@ pub async fn create_wedding_tables(pool: &PgPool) -> Result<(), sqlx::Error> {
 		.await?;
 
 	Ok(())
+}
+
+#[derive(Clone)]
+struct QuickAckAcceptor;
+
+impl<S> Accept<TcpStream, S> for QuickAckAcceptor {
+	type Stream = TcpStream;
+	type Service = S;
+	type Future = Ready<std::io::Result<(Self::Stream, Self::Service)>>;
+
+	fn accept(&self, stream: TcpStream, service: S) -> Self::Future {
+		ready(
+			stream.into_std()
+				.and_then(|s| {
+					s.set_quickack(true)?;
+					TcpStream::from_std(s)
+				}).map(|s| (s, service))
+		)
+	}
 }

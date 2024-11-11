@@ -381,6 +381,7 @@ pub async fn add_guest(
 
 #[cfg(not(target_family = "wasm"))]
 #[cfg_attr(debug_assertions, expect(unused_variables))]
+#[cfg_attr(debug_assertions, expect(clippy::unused_async))]
 pub async fn is_june_auth(session: Session, resp: &ResponseOptions) -> Result<(), ServerFnError> {
 	// When we're developing, we generally want to bypass auth. So let's just do this here.
 	#[cfg(debug_assertions)]

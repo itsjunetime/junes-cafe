@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use const_format::concatcp;
 use super::server::AddAnnouncementReq;
 
-const STYLE: &str = concatcp!(super::SHARED_STYLE, r#"
+const STYLE: &str = concatcp!(super::SHARED_STYLE, r"
 body {
 	background-color: var(--white);
 	margin: 0 0 10px 0;
@@ -119,7 +119,7 @@ div#registry-section {
 announcement-form {
 	min-width: 60%;
 }
-"#);
+");
 
 #[component]
 pub fn main_page() -> impl IntoView {

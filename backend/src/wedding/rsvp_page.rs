@@ -27,7 +27,7 @@ impl Params for UserId {
 
 const STYLE: &str = concatcp!(
 	SHARED_READABLE,
-	r#"
+	r"
 	#full_address, #email {
 		width: 100%;
 	}
@@ -51,7 +51,7 @@ const STYLE: &str = concatcp!(
 	#faq-suggestion {
 		margin-top: 16px;
 	}
-	"#
+	"
 );
 
 #[component]
