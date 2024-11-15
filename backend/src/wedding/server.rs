@@ -321,7 +321,7 @@ pub async fn all_relations() -> Result<Vec<Relation>, ServerFnError> {
 
 	let guests_fut = query_as(concatcp!(
 		"SELECT * FROM ", GUESTS_TABLE,
-		" ORDER BY email DESC NULLS LAST, name ASC"
+		" ORDER BY party_size / ", PartySize::NOT_ATTENDING_I32, " ASC, email DESC NULLS LAST, name ASC"
 	)).fetch_all(&pool);
 
 	let recips_fut = query_as(concatcp!("SELECT * FROM ", RECIPS_TABLE))

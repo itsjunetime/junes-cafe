@@ -77,7 +77,11 @@ pub fn admin() -> impl IntoView {
 									<summary>
 										{g.name}
 										" "
-										<em>{g.email.unwrap_or_else(|| "no email".into())}</em>
+										<em>{match g.email {
+											_ if g.party_size == PartySize::NotAttending => "❌ Not Attending".into(),
+											Some(e) => e,
+											None => "no email".into()
+										}}</em>
 										<br />
 									</summary>
 									<div><strong>"Party Size: "</strong>{g.party_size.to_string()}</div>
