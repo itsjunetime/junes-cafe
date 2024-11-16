@@ -1,6 +1,6 @@
 use leptos::{prelude::*, web_sys::window};
 use leptos_meta::Title;
-use super::{SHARED_READABLE, server::{all_relations, AddGuest, Relation, PartySize, NOT_AUTHORIZED_ERR, Guest}};
+use super::{SHARED_READABLE, server::{all_relations, AddGuest, Relation, PartySize, NOT_AUTHORIZED_ERR}};
 
 // unfortunately, this whole thing's gotta be an island 'cause we want the list of relations to be
 // reactive to when we add a new one
@@ -37,7 +37,8 @@ pub fn admin() -> impl IntoView {
 					.filter_map(|r| match r {
 						Relation::Invitee(g) => Some(g.clone()),
 						Relation::AnnouncementOnly(_) => None,
-					});
+					})
+					.collect::<Vec<_>>();
 				let recips = relations
 					.iter()
 					.filter_map(|r| match r {
@@ -45,32 +46,34 @@ pub fn admin() -> impl IntoView {
 						Relation::Invitee(_) => None,
 					});
 
-				let rsvping = guests.clone().filter(Guest::has_rsvpd);
+				let rsvping = guests.iter().filter(|g| g.has_rsvpd());
+				let attending = rsvping.clone().filter(|g| g.party_size != PartySize::NotAttending);
 
 				let groups_rsvped = rsvping.clone().count();
+				let groups_attending = attending.clone().count();
+				let attending_perc = groups_attending as f32 / groups_rsvped as f32;
 
-				let total_count_rsvped = rsvping.clone()
+				let total_attending = attending
 					.map(|g| u16::from(g.party_size.total_size()))
 					.sum::<u16>();
 
-				let attending_perc = rsvping.clone()
-					.filter(|g| g.party_size != PartySize::NotAttending)
-					.count() as f32
-				/ groups_rsvped as f32;
-
-				let final_guess = f32::from(
-					guests.clone()
-						.map(|g| u16::from(g.party_size.total_size()))
-						.sum::<u16>()
-				) * attending_perc;
+				let final_guess = (
+					f32::from(
+						guests.iter()
+							.filter(|g| !g.has_rsvpd())
+							.map(|g| u16::from(g.party_size.total_size()))
+							.sum::<u16>()
+					) * attending_perc
+				) + (total_attending as f32);
 
 				view! {
 					<h1>"Guests"</h1>
 					<div id="guest-stats">
-						<strong>"[RSVP'd so far]"</strong><span>"Groups: "{ groups_rsvped }", Guests: "{ total_count_rsvped }</span>
+						<strong>"[Attending so far]"</strong><span>"Groups: "{ groups_attending }", Guests: "{ total_attending }</span>
 						<strong>"[At current attendance rate "{ format!("({:.2}%)]", attending_perc * 100.) }</strong><span>{ final_guess }</span>
 					</div>
 					{ guests
+						.into_iter()
 						.map(|g| {
 							view! {
 								<details>
