@@ -64,7 +64,7 @@ pub fn admin() -> impl IntoView {
 							.map(|g| u16::from(g.party_size.total_size()))
 							.sum::<u16>()
 					) * attending_perc
-				) + (total_attending as f32);
+				) + (f32::from(total_attending));
 
 				view! {
 					<h1>"Guests"</h1>

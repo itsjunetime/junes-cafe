@@ -48,7 +48,7 @@ pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 	// Only have a prev page if this is not the first page
 	let show_prev = props.page != 0;
 	// Make sure we received the amount of posts we requested
-	let show_next = post_list.as_ref().map_or(false, |e| e.as_ref().map_or(false, |p| p.len() == REQ_BLOCK));
+	let show_next = post_list.as_ref().is_some_and(|e| e.as_ref().is_ok_and(|p| p.len() == REQ_BLOCK));
 
 	// Construct the buttons on the bottom of the page based on if we should show them
 	let button_html = if show_prev || show_next {
