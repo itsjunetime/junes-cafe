@@ -28,7 +28,7 @@ jobs:
           # - name: Install wasm-opt
           # run: "curl -L -o binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz && tar -xzvf ./binaryen.tar.gz"
       - name: Install cargo-leptos
-        run: curl --proto '=https' --tlsv1.2 -LsSf https://leptos-rs.artifacts.axodotdev.host/cargo-leptos/v0.2.21/cargo-leptos-installer.sh | sh
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://leptos-rs.artifacts.axodotdev.host/cargo-leptos/v0.2.22/cargo-leptos-installer.sh | sh
       - name: Build backend
         run: cargo leptos build --release
         # - name: Optimise backend wasm
