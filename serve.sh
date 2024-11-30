@@ -18,8 +18,9 @@ backend_pid=$!
 
 echo -e "\nGiving backend a few seconds to startup, then launching \e[1mtrunk\e[0m for \e[1mfrontend\e[0m\n"
 
+# shellcheck disable=SC2164
 cd frontend
-trunk serve --proxy-backend='http://localhost:3000/api/' &
+trunk serve &
 trunk_pid=$!
 
 if ! ps -p "$backend_pid" >/dev/null 2>&1

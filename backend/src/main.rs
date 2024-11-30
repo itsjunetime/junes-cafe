@@ -59,8 +59,21 @@ macro_rules! print_and_ret{
 	}
 }
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+	// We want to read this one first so that there's the least amount of time between this being
+	// loaded into memory and being cleared from memory
+	let password = dotenv::var("BASE_PASSWORD");
+	// Reset it so nobody else can somehow read it from the env
+	// SAFETY: This is safe because the program is completely single-threaded at this point, so no
+	// other threads can be reading from or writing to the env. That's also why we don't start up
+	// the tokio runtime until after this - so that we can be certain about the single-threadedness
+	unsafe { std::env::remove_var("BASE_PASSWORD"); }
+
+	main_with_password(password)
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main_with_password(password: std::result::Result<String, dotenv::Error>) -> Result<(), Box<dyn std::error::Error>> {
 	macro_rules! dotenv_num{
 		($key:expr, $default:expr, $type:ident) => {
 			dotenv::var($key).ok()
@@ -73,11 +86,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.with_max_level(tracing::Level::DEBUG)
 		.init();
 
-	// We want to read this one first so that there's the least amount of time between this being
-	// loaded into memory and being cleared from memory
-	let password = dotenv::var("BASE_PASSWORD");
-	// Reset it so nobody else can somehow read it from the env
-	std::env::set_var("BASE_PASSWORD", "");
 	let username = dotenv::var("BASE_USERNAME");
 
 	// let backend_port = dotenv_num!("BACKEND_PORT", 444, u16);

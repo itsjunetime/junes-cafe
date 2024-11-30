@@ -1,7 +1,7 @@
 [package]
 name = "backend"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -11,8 +11,8 @@ serde = { version = "1.0.197", features = ["serde_derive"] }
 serde_json = "1.0.120"
 tower-sessions = "0.13.0"
 build-info = "0.0.39"
-leptos = { version = "0.7.0-rc2", features = ["nightly", "rustls", "islands"] }
-leptos_router = { version = "0.7.0-rc2", features = ["nightly"] }
+leptos = { version = "0.7.0", features = ["nightly", "rustls", "islands"] }
+leptos_router = { version = "0.7.0", features = ["nightly"] }
 wasm-bindgen = "0.2.93"
 http = "1.1.0"
 const_format = "0.2.32"
@@ -21,7 +21,7 @@ getrandom = { version = "0.2.15", default-features = false, features = ["js"] }
 uuid = { version = "1.10.0", features = ["serde"] }
 web-sys = { version = "0.3.70", features = ["Clipboard", "Window", "Navigator", "Permissions", "HtmlFormElement", "FormData"] }
 wasm-bindgen-futures = "0.4.43"
-leptos_meta = "0.7.0-rc2"
+leptos_meta = "0.7.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form"] }
@@ -39,7 +39,7 @@ chrono = { version = "0.4.35", default-features = false }
 tower-http = { version = "0.6.0", default-features = false, features = ["fs"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
 tower-no-ai = "0.1.1"
-leptos_axum = "0.7.0-rc2"
+leptos_axum = "0.7.0"
 argon2 = { version = "0.5.3", features = ["std"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
