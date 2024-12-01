@@ -4441,9 +4441,9 @@ checksum = "121c2a6cda46980bb0fcd1647ffaf6cd3fc79a013de288782836f6df9c48780e"
 
 [[package]]
 name = "tower-no-ai"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2b75f2ce36b190b0854bff780252cfc79a5117f6bb9477f10a660f70ba2c000"
+checksum = "1ab4938301e63b0497319293bc07383110ecc1e8b4b87f7b43a8543c83d212b4"
 dependencies = [
  "http 1.1.0",
  "tower-layer",

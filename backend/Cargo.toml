@@ -38,7 +38,7 @@ sitewriter = { version = "1.0.4", default-features = false }
 chrono = { version = "0.4.35", default-features = false }
 tower-http = { version = "0.6.0", default-features = false, features = ["fs"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
-tower-no-ai = "0.1.1"
+tower-no-ai = "0.2.0"
 leptos_axum = "0.7.0"
 argon2 = { version = "0.5.3", features = ["std"] }
 tracing = "0.1.40"
