@@ -2,13 +2,14 @@ use axum::{
 	extract::Multipart,
 	http::StatusCode
 };
+use tower_cache::invalidator::Invalidator;
 use tower_sessions::Session;
 use std::time::{SystemTime, UNIX_EPOCH};
 use backend::check_auth;
 
 use crate::print_and_ret;
 
-pub async fn upload_asset(session: Session, mut form: Multipart) -> (StatusCode, String) {
+pub async fn upload_asset(session: Session, inval: Invalidator, mut form: Multipart) -> (StatusCode, String) {
 	check_auth!(session);
 
 	let mut name = None;
@@ -55,7 +56,7 @@ pub async fn upload_asset(session: Session, mut form: Multipart) -> (StatusCode,
 				let mut save_path = asset_path.join(&file_name);
 
 				if let Some(ref name) = name {
-					if let Some(ext) = name.split('.').last() {
+					if let Some(ext) = name.split('.').next_back() {
 						_ = save_path.set_extension(ext);
 					}
 				}
@@ -63,10 +64,16 @@ pub async fn upload_asset(session: Session, mut form: Multipart) -> (StatusCode,
 				let res = std::fs::write(&save_path, asset_data)
 					.map_or_else(
 						|e| print_and_ret!("Couldn't save the asset to {save_path:?}: {e:?}"),
-						|()| (
-							StatusCode::OK,
-							save_path.file_name().and_then(|s| s.to_os_string().into_string().ok()).unwrap()
-						)
+						|()| {
+							let path = save_path.file_name()
+								.and_then(|s| s.to_os_string().into_string().ok())
+								.unwrap();
+
+							let asset_path = format!("/api/assets/{path}");
+							inval.invalidate_all_with_pred(|(_, uri)| uri.path() == asset_path);
+
+							(StatusCode::OK, path)
+						}
 					);
 
 				if name.is_some_and(|name| name.ends_with("png")) {

@@ -12,7 +12,9 @@ use axum::{
 };
 use axum_server::accept::Accept;
 use const_format::concatcp;
+use http::{Method, StatusCode};
 use leptos::prelude::*;
+use tower_cache::{cache::SendLinearMap, options::CacheOptions, CacheLayer};
 use tower_http::services::ServeDir;
 use tower_no_ai::NoAiLayer;
 use tower_sessions::{
@@ -36,7 +38,8 @@ use backend::{
 		app::RouterApp,
 		faq::wedding_faq,
 		server::{GUESTS_TABLE, RECIPS_TABLE},
-	}, AxumState
+	},
+	AxumState
 };
 
 mod images;
@@ -202,17 +205,29 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 	let pkg_dir = format!("{}/{}", leptos_opts.site_root, leptos_opts.site_pkg_dir);
 	println!("Packages at {pkg_dir} served at /pkg");
 
-	let state = AxumState { leptos_opts, tx_state };
+	let cache_options = CacheOptions::new(
+		Some(StatusCode::OK..StatusCode::INTERNAL_SERVER_ERROR),
+		Some(Method::GET)
+	);
+
+	let invalidator = cache_options.invalidator();
+
+	let state = AxumState { leptos_opts, tx_state, invalidator };
 
 	let app = Router::<AxumState>::new()
-		.route("/", get(home::get_home_view))
 		.route("/sitemap.xml", get(robots::get_sitemap_xml))
 		.route("/index.xml", get(robots::get_rss_xml))
 		.route("/robots.txt", get(robots::get_robots_txt))
-		.route("/page/:id", get(home::get_page_view))
 		.route("/post/:id", get(post::get_post_view))
-		.route("/font/:id", get(fonts::get_font))
 		.route("/licenses", get(fonts::get_license_page))
+		// hmmmmmmm... caching... how do we insert 'sessions' as dependencies... who knows...
+		// We're putting this layer right here for now so that it only applies to the routes added
+		// before it is called. Those are the things that, at least at the moment, shouldn't really
+		// change regardless of logged-in status or not.
+		.layer(CacheLayer::<_, SendLinearMap<_, _>, _, _, _>::new(cache_options))
+		.route("/", get(home::get_home_view))
+		.route("/page/:id", get(home::get_page_view))
+		.route("/font/:id", get(fonts::get_font))
 		.route("/api/post/:id", get(blog_api::get_post_json))
 		.route("/api/posts", get(blog_api::get_post_list_json))
 		.route("/api/new_post", post(blog_api::submit_post))

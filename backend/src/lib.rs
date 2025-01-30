@@ -12,6 +12,7 @@ pub mod state {
 	use axum_sqlx_tx::State;
 	use sqlx::Postgres;
 	use http::request::Parts;
+use tower_cache::invalidator::Invalidator;
 	use std::{future::Future, pin::Pin};
 	use leptos::prelude::*;
 
@@ -28,7 +29,8 @@ pub mod state {
 	#[derive(Clone)]
 	pub struct AxumState {
 		pub tx_state: State<Postgres>,
-		pub leptos_opts: LeptosOptions
+		pub leptos_opts: LeptosOptions,
+		pub invalidator: Invalidator
 	}
 
 	impl FromRef<AxumState> for State<Postgres> {
@@ -43,14 +45,16 @@ pub mod state {
 		}
 	}
 
+	impl FromRef<AxumState> for Invalidator {
+		fn from_ref(input: &AxumState) -> Self {
+			input.invalidator.clone()
+		}
+	}
+
 	impl FromRequestParts<AxumState> for State<Postgres> {
 		type Rejection = std::convert::Infallible;
 
-		fn from_request_parts<
-			'life0,
-			'life1,
-			'async_trait
-		>(
+		fn from_request_parts<'life0, 'life1, 'async_trait>(
 			_parts: &'life0 mut Parts,
 			state: &'life1 AxumState
 		) -> Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
@@ -63,14 +67,11 @@ pub mod state {
 		}
 	}
 
-	pub fn leptos_app<V>(
+	pub fn leptos_app<V: IntoView>(
 		state: AxumState,
 		#[expect(non_snake_case)] // leptos won't actually render it unless it's non-snake-case
 		Router: impl Fn() -> V
-	) -> impl IntoView
-	where
-		V: IntoView
-	{
+	) -> impl IntoView {
 		let options = state.leptos_opts;
 
 		view! {

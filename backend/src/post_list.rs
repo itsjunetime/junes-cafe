@@ -1,10 +1,6 @@
 use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, helper::doctype, box_html};
 use build_info::{VersionControl, GitInfo};
-
-const GITHUB_ICON: &str = include_str!("../../assets/github-mark.svg");
-const TWITTER_ICON: &str = include_str!("../../assets/twitter.svg");
-const MATRIX_ICON: &str = include_str!("../../assets/matrix.svg");
-const RSS_ICON: &str = include_str!("../../assets/rss-icon.svg");
+use shared_data::{RSS_ICON, MATRIX_ICON, GITHUB_ICON, BLUESKY_ICON};
 
 pub struct PostList<'title, C: RenderOnce + 'static> {
 	pub content: C,
@@ -33,7 +29,7 @@ impl<C> RenderOnce for PostList<'_, C> where C: RenderOnce + 'static {
 							a(href = "/index.xml", aria-label = "RSS Feed") : Raw(RSS_ICON);
 							a(href = "https://matrix.to/#/@janshai:beeper.com", aria-label = "My Matrix Account") : Raw(MATRIX_ICON);
 							a(href = "https://github.com/itsjunetime", aria-label = "My Github") : Raw(GITHUB_ICON);
-							a(href = "https://twitter.com/itsjunetime", aria-label = "My Twitter") : Raw(TWITTER_ICON);
+							a(href = "https://bsky.app/profile/june.cat", aria-label = "My Twitter") : Raw(BLUESKY_ICON);
 						}
 					}
 					div(id = "posts") : self.content;

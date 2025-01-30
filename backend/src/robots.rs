@@ -1,20 +1,40 @@
-use crate::{blog_api::get_post_list, print_and_ret};
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use crate::blog_api::get_post_list;
 use axum_sqlx_tx::Tx;
 use sqlx::Postgres;
-use axum::http::StatusCode;
+use axum::{http::StatusCode, response::IntoResponse};
 use sitewriter::{UrlEntry, ChangeFreq};
 use chrono::DateTime;
-use once_cell::sync::Lazy;
 use rss::{Item, Category, Source, Channel};
 
-static SITEMAP_XML: Lazy<Arc<RwLock<String>>> = Lazy::new(Arc::default);
-static RSS_XML: Lazy<Arc<RwLock<String>>> = Lazy::new(Arc::default);
+use std::{borrow::Cow, fmt::Display};
 
-pub async fn update_sitemap_xml(tx: &mut Tx<Postgres>) -> Result<(), sqlx::error::Error> {
-	let urls = get_post_list(None, tx, i32::MAX as u32, 0).await?
-		.into_iter()
+#[cfg_attr(not(debug_assertions), expect(dead_code))]
+pub(crate) struct ErrorOnDebug<E> {
+	error: E
+}
+
+impl<E> IntoResponse for ErrorOnDebug<E> where E: Display {
+	fn into_response(self) -> axum::response::Response {
+		#[cfg(debug_assertions)]
+		let tup = (StatusCode::INTERNAL_SERVER_ERROR, Cow::Owned(format!("Internal Error: {}", self.error)));
+
+		#[cfg(not(debug_assertions))]
+		let tup = (StatusCode::INTERNAL_SERVER_ERROR, Cow::Borrowed("We ran into an issue. Please try again later."));
+
+		<(_, Cow<'static, str>) as IntoResponse>::into_response(tup)
+	}
+}
+
+impl<E> From<E> for ErrorOnDebug<E> {
+	fn from(error: E) -> Self {
+		Self { error }
+	}
+}
+
+pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sqlx::Error>> {
+	let posts = get_post_list(None, &mut tx, i32::MAX as u32, 0).await?;
+
+	let urls = posts.into_iter()
 		.map(|post| UrlEntry {
 			loc: format!("https://itsjuneti.me/post/{}", post.id).parse().unwrap(),
 			lastmod: DateTime::from_timestamp(post.created_at as i64, 0),
@@ -23,25 +43,11 @@ pub async fn update_sitemap_xml(tx: &mut Tx<Postgres>) -> Result<(), sqlx::error
 		})
 		.collect::<Vec<_>>();
 
-	let xml = sitewriter::generate_str(&urls);
-
-	let mut sitemap = SITEMAP_XML.write().await;
-	*sitemap = xml;
-
-	Ok(())
+	Ok(sitewriter::generate_str(&urls))
 }
 
-pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> (StatusCode, String) {
-	if SITEMAP_XML.read().await.is_empty() &&
-		update_sitemap_xml(&mut tx).await.is_err() {
-			print_and_ret!("Couldn't update sitemap.xml")
-		}
-
-	(StatusCode::OK, SITEMAP_XML.read().await.clone())
-}
-
-pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::error::Error>> {
-	let posts = get_post_list(None, tx, i32::MAX as u32, 0).await?;
+pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sqlx::Error>> {
+	let posts = get_post_list(None, &mut tx, i32::MAX as u32, 0).await?;
 
 	let last_update = posts.iter()
 		.map(|p| p.created_at)
@@ -66,7 +72,7 @@ pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::er
 				title: None
 			}),
 			content: Some(post.html),
-			..Default::default()
+			..Item::default()
 		})
 		.collect::<Vec<_>>();
 
@@ -93,20 +99,10 @@ pub async fn update_rss_xml(tx: &mut Tx<Postgres>) -> Result<(), Box<dyn std::er
 		generator: Some("https://crates.io/crates/rss".into()),
 		ttl: Some("1440".into()),
 		items,
-		..Default::default()
+		..Channel::default()
 	};
 
-	let mut rss_xml = RSS_XML.write().await;
-	*rss_xml = channel.to_string();
-	Ok(())
-}
-
-pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> (StatusCode, String) {
-	if RSS_XML.read().await.is_empty() && update_rss_xml(&mut tx).await.is_err() {
-		print_and_ret!("Couldn't update index.xml")
-	}
-
-	(StatusCode::OK, RSS_XML.read().await.clone())
+	Ok(channel.to_string())
 }
 
 pub async fn get_robots_txt() -> &'static str {

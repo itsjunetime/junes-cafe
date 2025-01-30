@@ -261,7 +261,7 @@ pub fn edit_post(props: &PostProps) -> Html {
 	// the textarea, we need to do so
 	if let AssetUploadState::Resolved(Ok((ref asset_id, false))) = *asset {
 		let is_image = asset_id.split('.')
-			.last()
+			.next_back()
 			.is_some_and(|ext| ["jpeg", "jpg", "png", "webp", "heic", "heif"].contains(&ext));
 
 		let exclamation = if is_image { "!" } else { "" };

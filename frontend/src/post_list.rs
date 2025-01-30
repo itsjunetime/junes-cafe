@@ -1,5 +1,5 @@
 use yew::prelude::*;
-use shared_data::Post;
+use shared_data::{Post, BLUESKY_ICON, GITHUB_ICON, MATRIX_ICON, RSS_ICON};
 use std::marker::PhantomData;
 use crate::{
 	get_post_list,
@@ -8,10 +8,6 @@ use crate::{
 
 // How many posts to request at a time
 pub const REQ_BLOCK: usize = 10;
-
-const GITHUB_ICON: &str = include_str!("../../assets/github-mark.svg");
-const TWITTER_ICON: &str = include_str!("../../assets/twitter.svg");
-const MATRIX_ICON: &str = include_str!("../../assets/matrix.svg");
 
 pub trait PostViewProvider: PartialEq {
 	fn post_view(post: &Post) -> Html;
@@ -92,9 +88,10 @@ pub fn post_list<P: PostViewProvider>(props: &PostListProps<P>) -> Html {
 			<div id="home-title">
 				<h1 id="title-text">{ &props.title }</h1>
 				<span id="social-icons">
+					<a href="/index.xml" aria-label="RSS Feed">{ Html::from_html_unchecked(RSS_ICON.into()) }</a>
 					<a href="https://matrix.to/#/@janshai:beeper.com">{ Html::from_html_unchecked(MATRIX_ICON.into()) }</a>
 					<a href="https://github.com/itsjunetime">{ Html::from_html_unchecked(GITHUB_ICON.into()) }</a>
-					<a href="https://twitter.com/itsjunetime">{ Html::from_html_unchecked(TWITTER_ICON.into()) }</a>
+					<a href="https://bsky.app/profile/june.cat">{ Html::from_html_unchecked(BLUESKY_ICON.into()) }</a>
 				</span>
 			</div>
 			<div id="posts">

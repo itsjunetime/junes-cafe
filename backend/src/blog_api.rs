@@ -1,3 +1,4 @@
+use tower_cache::invalidator::Invalidator;
 use tower_sessions::Session;
 use axum_sqlx_tx::Tx;
 use sqlx::{Postgres, query_as, query, Row};
@@ -6,7 +7,7 @@ use axum::{http::StatusCode, extract::{Path, Query}, response::Json};
 use shared_data::{Post, PostReq};
 use backend::check_auth;
 
-use crate::{robots, print_and_ret};
+use crate::print_and_ret;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -109,6 +110,7 @@ pub async fn get_post_json(
 pub async fn submit_post(
 	session: Session,
 	mut tx: Tx<Postgres>,
+	inval: Invalidator,
 	Json(payload): Json<PostReq>
 ) -> (StatusCode, String) {
 	let username = check_auth!(session);
@@ -131,7 +133,7 @@ pub async fn submit_post(
 	// we're just assuming the average wpm for these articles is 220
 	let minutes = details.reading_time();
 
-	let ret = query("INSERT INTO posts
+	query("INSERT INTO posts
 		(created_by_user, created_at, title, html, orig_markdown, tags, reading_time, draft)
 		SELECT id, $1, $2, $3, $4, $5, $6, $7 FROM users WHERE username = $8
 		RETURNING id
@@ -150,24 +152,18 @@ pub async fn submit_post(
 			|r| r.try_get::<i32, _>("id")
 				.map_or_else(
 					|e| print_and_ret!(StatusCode::CREATED, "Post created at {created_at} returned no id: {e}"),
-					|i| (StatusCode::OK, i.to_string())
+					|i| {
+						inval_all_for_post(i, &inval);
+						(StatusCode::OK, i.to_string())
+					}
 				)
-		);
-
-	if let Err(e) = robots::update_sitemap_xml(&mut tx).await {
-		eprintln!("Couldn't update sitemap after submit: {e}");
-	}
-
-	if let Err(e) = robots::update_rss_xml(&mut tx).await {
-		eprintln!("Couldn't update rss xml after submit: {e}");
-	}
-
-	ret
+		)
 }
 
 pub async fn edit_post(
 	session: Session,
 	mut tx: Tx<Postgres>,
+	inval: Invalidator,
 	Path(id): Path<i32>,
 	Json(payload): Json<PostReq>
 ) -> (StatusCode, String) {
@@ -182,7 +178,7 @@ pub async fn edit_post(
 	let reading_time = details.reading_time() as i32;
 	println!("Trying to edit post with id {id}");
 
-	let ret = query("UPDATE posts SET html = $1, orig_markdown = $2, title = $3, tags = $4, reading_time = $5, draft = $6 WHERE id = $7")
+	query("UPDATE posts SET html = $1, orig_markdown = $2, title = $3, tags = $4, reading_time = $5, draft = $6 WHERE id = $7")
 		.bind(details.html)
 		.bind(details.content)
 		.bind(details.title)
@@ -194,21 +190,11 @@ pub async fn edit_post(
 		.await
 		.map_or_else(
 			|e| print_and_ret!("Couldn't update/edit post with id {id}: {e:?}"),
-			|_| (StatusCode::OK, "OK".into())
-		);
-
-	// The only reason we'd need to udpate the sitemap is if we made a post public
-	if details.draft {
-		if let Err(e) = robots::update_sitemap_xml(&mut tx).await {
-			eprintln!("Couldn't update sitemap after edit: {e}");
-		}
-	}
-
-	if let Err(e) = robots::update_rss_xml(&mut tx).await {
-		eprintln!("Couldn't udpate rss xml after edit: {e}");
-	}
-
-	ret
+			|_| {
+				inval_all_for_post(id, &inval);
+				(StatusCode::OK, "OK".into())
+			}
+		)
 }
 
 struct SqlPostDetails {
@@ -231,4 +217,16 @@ fn post_details(payload: PostReq) -> SqlPostDetails {
 	let PostReq { content, title, tags, draft } = payload;
 	let html = shared_data::md_to_html(&content);
 	SqlPostDetails { content, html, title, draft, tags: tags.join(",") }
+}
+
+fn inval_all_for_post(id: i32, inval: &Invalidator) {
+	let post_page = format!("/post/{id}");
+	inval.invalidate_all_with_pred(|(_, uri)| {
+		let path = uri.path();
+		path.starts_with("/home") ||
+			path.starts_with("/page") ||
+			path == post_page ||
+			path == "/sitemap.xml" ||
+			path == "/index.xml"
+	});
 }

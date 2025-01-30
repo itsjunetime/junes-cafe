@@ -3,6 +3,11 @@ use chrono::DateTime;
 mod md_to_html;
 pub use md_to_html::md_to_html;
 
+pub const GITHUB_ICON: &str = include_str!("../../assets/github-mark.svg");
+pub const BLUESKY_ICON: &str = include_str!("../../assets/bluesky.svg");
+pub const MATRIX_ICON: &str = include_str!("../../assets/matrix.svg");
+pub const RSS_ICON: &str = include_str!("../../assets/rss-icon.svg");
+
 #[cfg(feature = "sqlx")]
 use sqlx::{Row, FromRow, postgres::PgRow};
 
