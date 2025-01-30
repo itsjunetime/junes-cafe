@@ -10,23 +10,23 @@ crate-type = ["cdylib", "rlib"]
 serde = { version = "1.0.197", features = ["serde_derive"] }
 serde_json = "1.0.120"
 build-info = "0.0.39"
-leptos = { version = "0.7.0", features = ["nightly", "rustls", "islands"] }
-leptos_router = { version = "0.7.0", features = ["nightly"] }
+leptos = { git = "https://github.com/leptos-rs/leptos", rev = "8465716a19e2b596953b20cd36cc5b2c519294f4", features = ["nightly", "rustls", "islands"] }
+leptos_router = { git = "https://github.com/leptos-rs/leptos", rev = "8465716a19e2b596953b20cd36cc5b2c519294f4", features = ["nightly"] }
 wasm-bindgen = "0.2.93"
 http = "1.1.0"
 const_format = "0.2.32"
 uuid = { version = "1.10.0", features = ["serde"] }
 web-sys = { version = "0.3.70", features = ["Clipboard", "Window", "Navigator", "Permissions", "HtmlFormElement", "FormData"] }
 wasm-bindgen-futures = "0.4.43"
-leptos_meta = "0.7.0"
+leptos_meta = { git = "https://github.com/leptos-rs/leptos", rev = "8465716a19e2b596953b20cd36cc5b2c519294f4" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-axum = { version = "0.7.4", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form"] }
+axum = { version = "0.8.1", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form"] }
 axum-server = { version = "0.7.1", default-features = false }
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 dotenv = "0.15.0"
 shared_data = { path = "../shared_data", features = ["sqlx"] }
-axum-sqlx-tx = "0.9.0"
+axum-sqlx-tx = "0.10.0"
 sqlx = { workspace = true }
 horrorshow = { version = "0.8.4", default-features = false, features = ["std", "ops"] }
 rss = { version = "2.0.7", default-features = false }
@@ -34,10 +34,10 @@ sitewriter = { version = "1.0.4", default-features = false }
 chrono = { version = "0.4.35", default-features = false }
 tower-http = { version = "0.6.0", default-features = false, features = ["fs"] }
 tower-no-ai = "0.2.0"
-tower-sessions = "0.13.0"
+tower-sessions = "0.14.0"
 tower-cache = { git = "https://github.com/itsjunetime/tower-cache.git", features = ["axum"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
-leptos_axum = "0.7.0"
+leptos_axum = { git = "https://github.com/leptos-rs/leptos", rev = "8465716a19e2b596953b20cd36cc5b2c519294f4" }
 argon2 = { version = "0.5.3", features = ["std"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"

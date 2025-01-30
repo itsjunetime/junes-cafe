@@ -1,17 +1,16 @@
 #![feature(if_let_guard)]
 #![feature(tcp_quickack)]
 
-use std::{convert::Infallible, future::{ready, Ready}, os::linux::net::TcpStreamExt};
+use std::{future::{ready, Ready}, os::linux::net::TcpStreamExt};
 
 use argon2::{
 	password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
 	Argon2
 };
 use axum::{
-	extract::{DefaultBodyLimit, Request}, routing::{get, post, MethodRouter}, Router
+	extract::DefaultBodyLimit, routing::{get, post}, Router
 };
 use axum_server::accept::Accept;
-use const_format::concatcp;
 use http::{Method, StatusCode};
 use leptos::prelude::*;
 use tower_cache::{cache::SendLinearMap, options::CacheOptions, CacheLayer};
@@ -28,19 +27,9 @@ use sqlx::{
 	query,
 	Postgres,
 	postgres::PgPoolOptions,
-	PgPool
 };
 use tokio::net::TcpStream;
-use leptos_axum::{generate_route_list, handle_server_fns_with_context, AxumRouteListing, LeptosRoutes};
-use backend::{
-	leptos_app,
-	wedding::{
-		app::RouterApp,
-		faq::wedding_faq,
-		server::{GUESTS_TABLE, RECIPS_TABLE},
-	},
-	AxumState
-};
+use backend::AxumState;
 
 mod images;
 mod home;
@@ -152,8 +141,6 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 	);").execute(&pool)
 		.await?;
 
-	create_wedding_tables(&pool).await?;
-
 	match (username, password) {
 		(Ok(name), Ok(pass)) => {
 			println!("Adding user {name} to the db if not already exists (else updating password)");
@@ -196,8 +183,6 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 
 	let (tx_state, tx_layer) = Tx::<Postgres>::setup(pool);
 
-	let wedding_routes = generate_route_list(RouterApp);
-
 	let leptos_config = get_configuration(None)?;
 	// let leptos_config = get_configuration(None).await?;
 	let leptos_opts = leptos_config.leptos_options;
@@ -218,26 +203,23 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 		.route("/sitemap.xml", get(robots::get_sitemap_xml))
 		.route("/index.xml", get(robots::get_rss_xml))
 		.route("/robots.txt", get(robots::get_robots_txt))
-		.route("/post/:id", get(post::get_post_view))
+		.route("/post/{id}", get(post::get_post_view))
 		.route("/licenses", get(fonts::get_license_page))
 		// hmmmmmmm... caching... how do we insert 'sessions' as dependencies... who knows...
 		// We're putting this layer right here for now so that it only applies to the routes added
 		// before it is called. Those are the things that, at least at the moment, shouldn't really
 		// change regardless of logged-in status or not.
-		.layer(CacheLayer::<_, SendLinearMap<_, _>, _, _, _>::new(cache_options))
+		.layer(CacheLayer::<SendLinearMap<_, _>, _, _>::new(cache_options))
 		.route("/", get(home::get_home_view))
-		.route("/page/:id", get(home::get_page_view))
-		.route("/font/:id", get(fonts::get_font))
-		.route("/api/post/:id", get(blog_api::get_post_json))
+		.route("/page/{id}", get(home::get_page_view))
+		.route("/font/{id}", get(fonts::get_font))
+		.route("/api/post/{id}", get(blog_api::get_post_json))
 		.route("/api/posts", get(blog_api::get_post_list_json))
 		.route("/api/new_post", post(blog_api::submit_post))
-		.route("/api/edit_post/:id", post(blog_api::edit_post))
+		.route("/api/edit_post/{id}", post(blog_api::edit_post))
 		.route("/api/post_asset", post(upload_asset))
 		.route("/login", get(pages::login::login_html))
 		.route("/api/login", post(backend::auth::login))
-		.route("/wedding_api/*fn_name", server_fns_with_state(state.clone()))
-		.route("/wedding/faq", get(wedding_faq))
-		.nest("/wedding", leptos_routes(&state, wedding_routes, RouterApp))
 		.nest_service("/api/assets/", ServeDir::new(asset_dir))
 		.nest_service("/pkg/", ServeDir::new(pkg_dir))
 		// I want to be able to upload 10mb assets if I so please.
@@ -252,51 +234,6 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 	axum_server::bind(addr)
 		.acceptor(QuickAckAcceptor)
 		.serve(app.into_make_service())
-		.await?;
-
-	Ok(())
-}
-
-fn server_fns_with_state(state: AxumState) -> MethodRouter<AxumState, Infallible> {
-	post(|req: Request| handle_server_fns_with_context(
-		move || provide_context(state.clone()),
-		req
-	))
-}
-
-fn leptos_routes<F, V>(state: &AxumState, route_list: Vec<AxumRouteListing>, router: F) -> Router<AxumState>
-where
-	F: Fn() -> V + Send + Clone + Copy + 'static,
-	V: IntoView + 'static
-{
-	let (ctx_state, app_state) = (state.clone(), state.clone());
-
-	Router::new()
-		.leptos_routes_with_context(
-			state,
-			route_list,
-			move || provide_context(ctx_state.clone()),
-			move || leptos_app(app_state.clone(), router)
-		)
-}
-
-pub async fn create_wedding_tables(pool: &PgPool) -> Result<(), sqlx::Error> {
-	query(concatcp!("CREATE TABLE IF NOT EXISTS ", GUESTS_TABLE, "(
-		id uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-		name text NOT NULL,
-		party_size INT NOT NULL,
-		full_address text,
-		email text,
-		extra_notes text
-	);")).execute(pool)
-		.await?;
-
-	query(concatcp!("CREATE TABLE IF NOT EXISTS ", RECIPS_TABLE, "(
-		id serial PRIMARY KEY,
-		name text NOT NULL,
-		address text,
-		email text
-	);")).execute(pool)
 		.await?;
 
 	Ok(())

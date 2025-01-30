@@ -1,10 +1,5 @@
-pub mod wedding;
 #[cfg(not(target_family = "wasm"))]
 pub mod auth;
-
-// necessary for wasm_bindgen to find islands to hydrate
-#[expect(unused_imports)]
-use wedding::*;
 
 #[cfg(not(target_family = "wasm"))]
 pub mod state {
@@ -12,19 +7,8 @@ pub mod state {
 	use axum_sqlx_tx::State;
 	use sqlx::Postgres;
 	use http::request::Parts;
-use tower_cache::invalidator::Invalidator;
-	use std::{future::Future, pin::Pin};
+	use tower_cache::invalidator::Invalidator;
 	use leptos::prelude::*;
-
-	pub async fn ext<T>() -> Result<(T, leptos_axum::ResponseOptions), ServerFnError>
-	where
-		T: FromRequestParts<AxumState>,
-		<T as FromRequestParts<AxumState>>::Rejection: std::fmt::Debug
-	{
-		let state: AxumState = expect_context();
-		leptos_axum::extract_with_state(&state).await
-			.map(|t| (t, expect_context()))
-	}
 
 	#[derive(Clone)]
 	pub struct AxumState {
@@ -54,39 +38,11 @@ use tower_cache::invalidator::Invalidator;
 	impl FromRequestParts<AxumState> for State<Postgres> {
 		type Rejection = std::convert::Infallible;
 
-		fn from_request_parts<'life0, 'life1, 'async_trait>(
-			_parts: &'life0 mut Parts,
-			state: &'life1 AxumState
-		) -> Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
-		where
-			'life0: 'async_trait,
-			'life1: 'async_trait,
-			Self: 'async_trait
-		{
-			Box::pin(async move { Ok(state.tx_state.clone()) })
-		}
-	}
-
-	pub fn leptos_app<V: IntoView>(
-		state: AxumState,
-		#[expect(non_snake_case)] // leptos won't actually render it unless it's non-snake-case
-		Router: impl Fn() -> V
-	) -> impl IntoView {
-		let options = state.leptos_opts;
-
-		view! {
-			<!DOCTYPE html>
-			<html lang="en">
-				<head>
-					<meta charset="utf-8" />
-					<meta name="viewport" content="width=device-width, initial-scale=1" />
-					<AutoReload options=options.clone()/>
-					<HydrationScripts options islands=true />
-				</head>
-				<body>
-					<Router />
-				</body>
-			</html>
+		async fn from_request_parts(
+			_parts: &mut Parts,
+			state: &AxumState
+		) -> Result<Self, Self::Rejection> {
+			Ok(state.tx_state.clone())
 		}
 	}
 }
