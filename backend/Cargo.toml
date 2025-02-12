@@ -10,15 +10,15 @@ crate-type = ["cdylib", "rlib"]
 serde = { version = "1.0.197", features = ["serde_derive"] }
 serde_json = "1.0.120"
 build-info = "0.0.39"
-leptos = { git = "https://github.com/leptos-rs/leptos", rev = "597175a54bd01ada4d06ec2f03418a73e996e5cc", features = ["nightly", "rustls", "islands"] }
-leptos_router = { git = "https://github.com/leptos-rs/leptos", rev = "597175a54bd01ada4d06ec2f03418a73e996e5cc", features = ["nightly"] }
+leptos = { git = "https://github.com/leptos-rs/leptos", rev = "6ad300c59234bdd1301fb4c018a49568904d59be", features = ["nightly", "rustls", "islands"] }
+leptos_router = { git = "https://github.com/leptos-rs/leptos", rev = "6ad300c59234bdd1301fb4c018a49568904d59be", features = ["nightly"] }
 wasm-bindgen = "0.2.93"
 http = "1.1.0"
 const_format = "0.2.32"
 uuid = { version = "1.10.0", features = ["serde"] }
 web-sys = { version = "0.3.70", features = ["Clipboard", "Window", "Navigator", "Permissions", "HtmlFormElement", "FormData"] }
 wasm-bindgen-futures = "0.4.43"
-leptos_meta = { git = "https://github.com/leptos-rs/leptos", rev = "597175a54bd01ada4d06ec2f03418a73e996e5cc" }
+leptos_meta = { git = "https://github.com/leptos-rs/leptos", rev = "6ad300c59234bdd1301fb4c018a49568904d59be" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 axum = { version = "0.8.1", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form"] }
@@ -37,7 +37,7 @@ tower-no-ai = "0.2.0"
 tower-sessions = "0.14.0"
 tower-cache = { git = "https://github.com/itsjunetime/tower-cache.git", features = ["axum"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
-leptos_axum = { git = "https://github.com/leptos-rs/leptos", rev = "597175a54bd01ada4d06ec2f03418a73e996e5cc" }
+leptos_axum = { git = "https://github.com/leptos-rs/leptos", rev = "6ad300c59234bdd1301fb4c018a49568904d59be" }
 argon2 = { version = "0.5.3", features = ["std"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
