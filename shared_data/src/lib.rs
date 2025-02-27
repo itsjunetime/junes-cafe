@@ -81,12 +81,7 @@ pub fn title_time_string(time: u64) -> String {
 		)
 }
 
-pub static BASE_STYLE: &str = r#"
-@font-face {
-	font-family: "Isenheim";
-	src: local("Isenheim"), url("/font/isenheim") format("opentype");
-	font-display: swap;
-}
+pub static BASE_STYLE: &str = r##"
 @font-face {
 	font-family: "Maple Mono";
 	src: local("Maple Mono"), url("/font/maple-mono");
@@ -102,7 +97,8 @@ pub static BASE_STYLE: &str = r#"
 	--title-text: #d1bbe4;
 	--code-background: #2a1e24;
 	color: var(--main-text);
-	font-family: Isenheim;
+	font-family: "Maple Mono", monospace,monospace;
+	font-weight: 300;
 }
 body {
 	background-color: var(--body-background);
@@ -144,6 +140,9 @@ code {
 pre > code {
 	padding: 0px;
 }
+p > code {
+	color: var(--title-text);
+}
 blockquote {
 	opacity: 0.8;
 	border-left: 3px solid var(--border-color);
@@ -155,7 +154,15 @@ blockquote {
 	column-gap: 8px;
 	overflow: auto;
 }
-"#;
+.post-text h2::before {
+	content: "#";
+	position: relative;
+	left: -30px;
+	max-wdth: 0px;
+	display: inline-block;
+	color: coral;
+}
+"##;
 
 pub static POST_LIST_STYLE: &str = r"
 #posts {
