@@ -154,7 +154,7 @@ blockquote {
 	column-gap: 8px;
 	overflow: auto;
 }
-.post-text h2::before {
+#post-text h2::before {
 	content: "#";
 	position: relative;
 	left: -30px;
