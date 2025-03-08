@@ -1,8 +1,26 @@
 use horrorshow::{helper::doctype, html, Raw};
 use axum::{extract::Query, response::Html};
-use backend::auth::LoginQuery;
+use backend::{auth::LoginQuery, check_auth};
+use tower_sessions::Session;
 
-pub async fn login_html(Query(query): Query<LoginQuery>) -> Html<String> {
+pub async fn login_html(
+	session: Session,
+	Query(LoginQuery { redir_to, err_msg }): Query<LoginQuery>
+) -> Html<String> {
+	if check_auth!(session, noret).is_some() {
+		return Html(format!(
+r#"<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="refresh" content="0; url='{}'" />
+	</head>
+	<body></body>
+</html>
+"#,
+redir_to.unwrap_or_else(|| "/admin".to_string())
+		));
+	}
+
 	Html(html! {
 		: doctype::HTML;
 		html(lang = "en") {
@@ -34,10 +52,10 @@ pub async fn login_html(Query(query): Query<LoginQuery>) -> Html<String> {
 					br; br;
 					input(placeholder = "password", type = "password", name = "password", autocomplete = "current-password");
 					br;
-					@ if let Some(ref err_msg) = query.err_msg {
+					@ if let Some(ref err_msg) = err_msg {
 						span(class = "login-status") : err_msg;
 					}
-					@ if let Some(ref redir) = query.redir_to {
+					@ if let Some(ref redir) = redir_to {
 						input(type = "text", name = "redir_to", value = redir, style = "display: none;");
 					}
 					br; br;

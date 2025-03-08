@@ -13,11 +13,13 @@ pub async fn get_post_view(
 	tx: Tx<Postgres>,
 	Path(id): Path<i32>
 ) -> Result<Html<String>, StatusCode> {
-	let can_edit = check_auth!(session, noret).is_some();
+	let username = check_auth!(session, noret);
+	println!("username: {username:?}");
 	let Ok(post) = get_post(session, tx, Path(id)).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
 
+	let can_edit = username.is_some_and(|username| username == post.username);
 	let view = PostView { post, can_edit };
 	Ok(Html(view.into_string().unwrap()))
 }
