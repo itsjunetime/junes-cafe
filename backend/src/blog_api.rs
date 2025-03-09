@@ -2,67 +2,51 @@ use tower_cache::invalidator::Invalidator;
 use tower_sessions::Session;
 use axum_sqlx_tx::Tx;
 use sqlx::{Postgres, query_as, query, Row};
-use serde::Deserialize;
-use axum::{http::StatusCode, extract::{Path, Query}, response::Json};
+use axum::{http::StatusCode, extract::Path, response::Json};
 use shared_data::{Post, PostReq};
-use backend::check_auth;
+use backend::{auth::get_username, check_auth};
 
 use crate::print_and_ret;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub async fn get_post_list(
-	session: Option<&Session>,
+	session: Option<Session>,
 	tx: &mut Tx<Postgres>,
 	count: u32,
-	offset: u32
+	offset: u32,
 ) -> Result<Vec<Post>, sqlx::Error> {
-	// If the user is logged in, then they can see all draft posts as well.
-	let draft_clause = match session {
-		Some(s) if let Some(username) = check_auth!(s, noret) => {
-			format!("WHERE u.username = '{username}'")
-		},
-		_ => "WHERE p.draft IS NOT TRUE".into()
+	let username = match session {
+		Some(s) => get_username(&s).await,
+		None => None
 	};
+	get_post_list_with_user(tx, count, offset, username).await
+}
 
-	query_as::<_, Post>(&format!("SELECT \
+pub async fn get_post_list_with_user(
+	tx: &mut Tx<Postgres>,
+	count: u32,
+	offset: u32,
+	username: Option<String>,
+) -> Result<Vec<Post>, sqlx::Error> {
+	let username_clause = username.as_ref().map_or("", |_| "u.username = $1 OR");
+
+	let q_string = format!("SELECT \
 		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, p.draft, u.username \
 		FROM posts p \
 		LEFT JOIN users u ON u.id = p.created_by_user \
-		{draft_clause} \
+		WHERE {username_clause} p.draft IS NOT TRUE \
 		ORDER BY id DESC \
 		LIMIT {count} \
 		OFFSET {offset} \
-	;")).fetch_all(tx)
-		.await
-}
+	;");
+	let mut q = query_as::<_, Post>(&q_string);
 
-#[derive(Deserialize)]
-pub struct PostListParams {
-	count: u32,
-	offset: u32,
-	force_logged_in: bool
-}
-
-pub async fn get_post_list_json(
-	session: Session,
-	mut tx: Tx<Postgres>,
-	Query(PostListParams { count, offset, force_logged_in }): Query<PostListParams>
-) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
-	if force_logged_in && check_auth!(session, noret).is_none() {
-		return Err((StatusCode::UNAUTHORIZED, "Please login (/apiv2/login) first".into()))
+	if let Some(name) = username {
+		q = q.bind(name);
 	}
 
-	get_post_list(Some(&session), &mut tx, count, offset)
-		.await
-		.map(Json)
-		.map_err(|e| {
-			eprintln!("Couldn't retrieve posts {offset},{count}: {e:?}");
-			match e {
-				sqlx::Error::RowNotFound => (StatusCode::NOT_FOUND, format!("The specified offset,limit of {offset},{count} corresponds to no posts")),
-				_ => (StatusCode::INTERNAL_SERVER_ERROR, format!("Couldn't retrieve posts: {e:?}"))
-			}
-		})
+	q.fetch_all(tx).await
 }
 
 pub async fn get_post(
@@ -71,8 +55,11 @@ pub async fn get_post(
 	Path(id): Path<i32>
 ) -> Result<Post, sqlx::Error> {
 	// If they're logged in, they should be able to view drafts
-	let where_clause = if check_auth!(session, noret).is_some() {
-		"WHERE p.id = $1"
+	let username = get_username(&session).await;
+	let where_clause = if username.is_some() {
+		// If they're signed in with a specific username, they should be able to see all the draft
+		// posts for that specific username; not others.
+		"WHERE (p.id = $1 OR p.username = $2)"
 	} else {
 		"WHERE (p.id = $1 AND p.draft IS NOT TRUE)"
 	};
@@ -84,27 +71,14 @@ pub async fn get_post(
 		{where_clause}\
 	;");
 
-	query_as::<_, Post>(&query_str)
-		.bind(id)
-		.fetch_one(&mut tx)
-		.await
-}
+	let mut q = query_as::<_, Post>(&query_str)
+		.bind(id);
 
-pub async fn get_post_json(
-	session: Session,
-	tx: Tx<Postgres>,
-	path: Path<i32>
-) -> Result<Json<Post>, (StatusCode, String)> {
-	get_post(session, tx, path)
-		.await
-		.map(Json)
-		.map_err(|e| {
-			eprintln!("Couldn't get post: {e:?}");
-			match e {
-				sqlx::Error::RowNotFound => (StatusCode::NOT_FOUND, "Post not found".into()),
-				_ => (StatusCode::INTERNAL_SERVER_ERROR, format!("Couldn't retrieve post: {e:?}"))
-			}
-		})
+	if let Some(name) = username {
+		q = q.bind(name);
+	}
+
+	q.fetch_one(&mut tx).await
 }
 
 pub async fn submit_post(

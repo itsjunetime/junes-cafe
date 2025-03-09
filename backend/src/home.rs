@@ -4,7 +4,7 @@ use sqlx::Postgres;
 use axum_sqlx_tx::Tx;
 use axum::{response::Html, extract::Path};
 use horrorshow::{html, Raw, RenderOnce, TemplateBuffer, Template};
-use crate::{Post, post_list::PostList};
+use crate::{blog_api::get_post_list, post_list::PostList, Post};
 
 pub async fn get_home_view(session: Session, tx: Tx<Postgres>, headers: HeaderMap) -> Html<String> {
 	get_page_view(session, tx, Path(0), headers).await
@@ -16,7 +16,7 @@ pub async fn get_page_view(
 	Path(page): Path<u32>,
 	headers: HeaderMap
 ) -> Html<String> {
-	let posts = crate::blog_api::get_post_list(Some(&session), &mut tx, 10, page * 10).await;
+	let posts = get_post_list(Some(session), &mut tx, 10, page * 10).await;
 	let show_next = posts.as_ref().is_ok_and(|p| p.len() == 10);
 	Html(PostList {
 		content: Posts(posts),
@@ -98,7 +98,7 @@ impl RenderOnce for Posts {
 							span(class = "post-subtitle-box") {
 								span(class = "post-subtitle") {
 									: " by ";
-									: post.display_user();
+									: Post::display_user(&post.username);
 									: ", ";
 									@ if post.reading_time == 0 {
 										: "a quick read";

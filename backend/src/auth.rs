@@ -10,17 +10,18 @@ use axum::{response::Redirect, Form};
 
 pub const USERNAME_KEY: &str = "authenticated_username";
 
+pub async fn get_username(session: &Session) -> Option<String> {
+	session.get::<String>(crate::auth::USERNAME_KEY).await.ok().flatten()
+}
+
 #[macro_export]
 macro_rules! check_auth{
 	($session:ident) => {
-		match check_auth!($session, noret) {
+		match $crate::auth::get_username(&$session).await {
 			Some(user) => user,
 			None => return (StatusCode::UNAUTHORIZED, "User did not login (/apiv2/login) first".to_string())
 		}
 	};
-	($session:ident, noret) => {
-		$session.get::<String>($crate::auth::USERNAME_KEY).await.ok().flatten()
-	}
 }
 
 #[derive(Deserialize, Serialize)]
@@ -57,7 +58,7 @@ pub async fn login(
 	let all_good = || Redirect::to(redir_to.as_ref().map_or_else(|| "/admin", String::as_str));
 
 	// Just in case they've already logged in
-	if check_auth!(session, noret).is_some() {
+	if get_username(&session).await.is_some() {
 		return all_good();
 	};
 

@@ -1,27 +1,30 @@
+use std::str::FromStr;
+
 use horrorshow::{helper::doctype, html, Raw};
-use axum::{extract::Query, response::Html};
-use backend::{auth::LoginQuery, check_auth};
+use axum::extract::Query;
+use backend::auth::{get_username, LoginQuery};
 use tower_sessions::Session;
+
+use super::{HtmlOrRedirect, RedirLocation};
 
 pub async fn login_html(
 	session: Session,
 	Query(LoginQuery { redir_to, err_msg }): Query<LoginQuery>
-) -> Html<String> {
-	if check_auth!(session, noret).is_some() {
-		return Html(format!(
-r#"<!DOCTYPE html>
-<html>
-	<head>
-		<meta http-equiv="refresh" content="0; url='{}'" />
-	</head>
-	<body></body>
-</html>
-"#,
-redir_to.unwrap_or_else(|| "/admin".to_string())
-		));
+) -> HtmlOrRedirect {
+	if get_username(&session).await.is_some() {
+		let redir_to: RedirLocation = redir_to
+			.as_deref()
+			.map(FromStr::from_str)
+			.and_then(Result::ok)
+			.unwrap_or_default();
+
+		return HtmlOrRedirect::Redirect {
+			force_login: false,
+			redir_to
+		};
 	}
 
-	Html(html! {
+	HtmlOrRedirect::Html(html! {
 		: doctype::HTML;
 		html(lang = "en") {
 			head {
@@ -63,5 +66,5 @@ redir_to.unwrap_or_else(|| "/admin".to_string())
 				}
 			}
 		}
-	}.to_string())
+	}.to_string().into())
 }

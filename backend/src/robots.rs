@@ -15,20 +15,22 @@ pub(crate) struct ErrorOnDebug<E> {
 
 impl<E> IntoResponse for ErrorOnDebug<E> where E: Display {
 	fn into_response(self) -> axum::response::Response {
-		#[cfg(debug_assertions)]
-		let tup = (StatusCode::INTERNAL_SERVER_ERROR, Cow::Owned(format!("Internal Error: {}", self.error)));
-
-		#[cfg(not(debug_assertions))]
-		let tup = (StatusCode::INTERNAL_SERVER_ERROR, Cow::Borrowed("We ran into an issue. Please try again later."));
-
-		<(_, Cow<'static, str>) as IntoResponse>::into_response(tup)
-	}
+		(StatusCode::INTERNAL_SERVER_ERROR, desc_if_debug(self.error)).into_response()
+}
 }
 
 impl<E> From<E> for ErrorOnDebug<E> {
 	fn from(error: E) -> Self {
 		Self { error }
 	}
+}
+
+pub fn desc_if_debug(error: impl Display) -> Cow<'static, str> {
+		#[cfg(debug_assertions)]
+		{ Cow::Owned(format!("Internal Error: {error}")) }
+
+		#[cfg(not(debug_assertions))]
+		{ Cow::Borrowed("We ran into an issue. Please try again later or report this if it keeps happening.") }
 }
 
 pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sqlx::Error>> {

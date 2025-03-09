@@ -2,11 +2,9 @@ use yew_router::prelude::*;
 use yew::prelude::*;
 use edit_post::{EditPostParent, NO_POST};
 use shared_data::Post;
-use admin::Admin;
 
 mod edit_post;
 mod style;
-mod admin;
 mod post_list;
 
 #[derive(Clone, Routable, PartialEq)]
@@ -15,10 +13,6 @@ enum Route {
 	EditPost { id: u32 },
 	#[at("/admin/new_post")]
 	NewPost,
-	#[at("/admin/:page")]
-	Admin { page: u32 },
-	#[at("/admin")]
-	AdminHome
 }
 
 #[expect(clippy::needless_pass_by_value)]
@@ -30,10 +24,6 @@ fn switch(route: Route) -> Html {
 		Route::NewPost => html! {
 			<EditPostParent id={ NO_POST }/>
 		},
-		Route::Admin { page } => html! {
-			<Admin page={ page }/>
-		},
-		Route::AdminHome => switch(Route::Admin { page: 0 })
 	}
 }
 

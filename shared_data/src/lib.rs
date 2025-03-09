@@ -32,11 +32,11 @@ pub struct Post {
 
 impl Post {
 	#[must_use]
-	pub fn display_user(&self) -> &str {
-		if self.username.is_empty() {
+	pub fn display_user(username: &str) -> &str {
+		if username.is_empty() {
 			"Unknown"
 		} else {
-			self.username.as_str()
+			username
 		}
 	}
 }

@@ -4,7 +4,7 @@ use axum::{response::Html, extract::Path, http::StatusCode};
 use sqlx::Postgres;
 use shared_data::Post;
 use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, Template, helper::doctype};
-use backend::check_auth;
+use backend::auth::get_username;
 
 use crate::blog_api::get_post;
 
@@ -13,8 +13,7 @@ pub async fn get_post_view(
 	tx: Tx<Postgres>,
 	Path(id): Path<i32>
 ) -> Result<Html<String>, StatusCode> {
-	let username = check_auth!(session, noret);
-	println!("username: {username:?}");
+	let username = get_username(&session).await;
 	let Ok(post) = get_post(session, tx, Path(id)).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
@@ -31,7 +30,6 @@ struct PostView {
 
 impl RenderOnce for PostView {
 	fn render_once(self, tmpl: &mut TemplateBuffer) {
-		let user = self.post.display_user().to_owned();
 		tmpl << html! {
 			: doctype::HTML;
 			html(lang = "en") {
@@ -68,7 +66,7 @@ impl RenderOnce for PostView {
 						#post-text {
 							padding: 12px;
 						}
-						#post-text img {
+					&	#post-text img {
 							max-width: 100%;
 						}
 						#tag-title {
@@ -94,7 +92,7 @@ impl RenderOnce for PostView {
 								: "At ";
 								strong : shared_data::title_time_string(self.post.created_at);
 								: " by ";
-								strong : user;
+								strong : Post::display_user(&self.post.username);
 								: "; ";
 								@ if self.post.reading_time == 0 {
 									: "a quick read";
