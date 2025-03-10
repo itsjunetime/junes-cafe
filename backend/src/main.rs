@@ -217,8 +217,8 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 		.route("/api/edit_post/{id}", post(blog_api::edit_post))
 		.route("/api/post_asset", post(upload_asset))
 		.route("/login", get(pages::login::login_html))
-		.route("/admin", get(pages::admin::admin))
 		.route("/api/login", post(backend::auth::login))
+		.route("/admin", get(pages::admin::admin))
 		.nest_service("/api/assets/", ServeDir::new(asset_dir))
 		.nest_service("/pkg/", ServeDir::new(pkg_dir))
 		// I want to be able to upload 10mb assets if I so please.

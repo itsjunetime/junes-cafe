@@ -8,7 +8,6 @@ use rss::{Item, Category, Source, Channel};
 
 use std::{borrow::Cow, fmt::Display};
 
-#[cfg_attr(not(debug_assertions), expect(dead_code))]
 pub(crate) struct ErrorOnDebug<E> {
 	error: E
 }
@@ -25,12 +24,13 @@ impl<E> From<E> for ErrorOnDebug<E> {
 	}
 }
 
+#[cfg_attr(not(debug_assertions), expect(dead_code))]
 pub fn desc_if_debug(error: impl Display) -> Cow<'static, str> {
-		#[cfg(debug_assertions)]
-		{ Cow::Owned(format!("Internal Error: {error}")) }
+	#[cfg(debug_assertions)]
+	{ Cow::Owned(format!("Internal Error: {error}")) }
 
-		#[cfg(not(debug_assertions))]
-		{ Cow::Borrowed("We ran into an issue. Please try again later or report this if it keeps happening.") }
+	#[cfg(not(debug_assertions))]
+	{ Cow::Borrowed("We ran into an issue. Please try again later or report this if it keeps happening.") }
 }
 
 pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sqlx::Error>> {
