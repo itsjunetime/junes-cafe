@@ -37,6 +37,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
           script: |
             sudo /usr/bin/systemctl stop itsjunetime.service
             rm /home/junkie/server_files/frontend* 2>/dev/null || :
@@ -46,6 +47,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
           source: "target/production/backend,frontend/dist/*,target/site/pkg/*"
           target: /home/junkie/server_files/
           strip_components: 2
@@ -56,6 +58,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
           script: |
             sudo /usr/bin/systemctl daemon-reload
             sudo /usr/bin/systemctl start itsjunetime.service
