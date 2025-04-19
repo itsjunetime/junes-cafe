@@ -2,14 +2,13 @@ use axum::{
 	extract::Multipart,
 	http::StatusCode
 };
-use tower_cache::invalidator::Invalidator;
 use tower_sessions::Session;
 use std::time::{SystemTime, UNIX_EPOCH};
 use backend::check_auth;
 
 use crate::print_and_ret;
 
-pub async fn upload_asset(session: Session, inval: Invalidator, mut form: Multipart) -> (StatusCode, String) {
+pub async fn upload_asset(session: Session, mut form: Multipart) -> (StatusCode, String) {
 	check_auth!(session);
 
 	let mut name = None;
@@ -69,8 +68,8 @@ pub async fn upload_asset(session: Session, inval: Invalidator, mut form: Multip
 								.and_then(|s| s.to_os_string().into_string().ok())
 								.unwrap();
 
-							let asset_path = format!("/api/assets/{path}");
-							inval.invalidate_all_with_pred(|(_, uri)| uri.path() == asset_path);
+							// let asset_path = format!("/api/assets/{path}");
+							// inval.invalidate_all_with_pred(|(_, uri)| uri.path() == asset_path);
 
 							(StatusCode::OK, path)
 						}

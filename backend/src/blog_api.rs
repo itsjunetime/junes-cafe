@@ -59,7 +59,7 @@ pub async fn get_post(
 	let where_clause = if username.is_some() {
 		// If they're signed in with a specific username, they should be able to see all the draft
 		// posts for that specific username; not others.
-		"WHERE (p.id = $1 OR p.username = $2)"
+		"WHERE (p.id = $1 AND (p.draft IS NOT TRUE OR u.username = $2))"
 	} else {
 		"WHERE (p.id = $1 AND p.draft IS NOT TRUE)"
 	};
@@ -84,7 +84,7 @@ pub async fn get_post(
 pub async fn submit_post(
 	session: Session,
 	mut tx: Tx<Postgres>,
-	inval: Invalidator,
+	// inval: Invalidator,
 	Json(payload): Json<PostReq>
 ) -> (StatusCode, String) {
 	let username = check_auth!(session);
@@ -127,7 +127,7 @@ pub async fn submit_post(
 				.map_or_else(
 					|e| print_and_ret!(StatusCode::CREATED, "Post created at {created_at} returned no id: {e}"),
 					|i| {
-						inval_all_for_post(i, &inval);
+						// inval_all_for_post(i, &inval);
 						(StatusCode::OK, i.to_string())
 					}
 				)
@@ -137,7 +137,7 @@ pub async fn submit_post(
 pub async fn edit_post(
 	session: Session,
 	mut tx: Tx<Postgres>,
-	inval: Invalidator,
+	// inval: Invalidator,
 	Path(id): Path<i32>,
 	Json(payload): Json<PostReq>
 ) -> (StatusCode, String) {
@@ -165,7 +165,7 @@ pub async fn edit_post(
 		.map_or_else(
 			|e| print_and_ret!("Couldn't update/edit post with id {id}: {e:?}"),
 			|_| {
-				inval_all_for_post(id, &inval);
+				// inval_all_for_post(id, &inval);
 				(StatusCode::OK, "OK".into())
 			}
 		)

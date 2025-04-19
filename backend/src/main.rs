@@ -209,7 +209,7 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 		// We're putting this layer right here for now so that it only applies to the routes added
 		// before it is called. Those are the things that, at least at the moment, shouldn't really
 		// change regardless of logged-in status or not.
-		.layer(CacheLayer::<SendLinearMap<_, _>, _, _>::new(cache_options))
+		// .layer(CacheLayer::<SendLinearMap<_, _>, _, _>::new(cache_options))
 		.route("/", get(home::get_home_view))
 		.route("/page/{id}", get(home::get_page_view))
 		.route("/font/{id}", get(fonts::get_font))
