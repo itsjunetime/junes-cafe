@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use chrono::DateTime;
 
 mod md_to_html;
@@ -60,11 +62,12 @@ impl FromRow<'_, PgRow> for Tags {
 	}
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct PostReq {
+	pub id: Option<u32>,
 	pub title: String,
 	pub content: String,
-	pub tags: Vec<String>,
+	pub tags: HashSet<String>,
 	pub draft: bool
 }
 

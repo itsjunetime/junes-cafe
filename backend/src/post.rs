@@ -11,7 +11,7 @@ use crate::blog_api::get_post;
 pub async fn get_post_view(
 	session: Session,
 	tx: Tx<Postgres>,
-	Path(id): Path<i32>
+	Path(id): Path<u32>
 ) -> Result<Html<String>, StatusCode> {
 	let username = get_username(&session).await;
 	let Ok(post) = get_post(session, tx, Path(id)).await else {

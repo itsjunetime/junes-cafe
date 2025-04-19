@@ -21,7 +21,6 @@ use tower_sessions::{
 	SessionManagerLayer
 };
 use axum_sqlx_tx::Tx;
-use images::upload_asset;
 use shared_data::Post;
 use sqlx::{
 	query,
@@ -65,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::main]
-async fn main_with_password(password: std::result::Result<String, dotenv::Error>) -> Result<(), Box<dyn std::error::Error>> {
+async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(), Box<dyn std::error::Error>> {
 	macro_rules! dotenv_num{
 		($key:expr, $default:expr, $type:ident) => {
 			dotenv::var($key).ok()
@@ -203,7 +202,6 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 		.route("/sitemap.xml", get(robots::get_sitemap_xml))
 		.route("/index.xml", get(robots::get_rss_xml))
 		.route("/robots.txt", get(robots::get_robots_txt))
-		.route("/post/{id}", get(post::get_post_view))
 		.route("/licenses", get(fonts::get_license_page))
 		// hmmmmmmm... caching... how do we insert 'sessions' as dependencies... who knows...
 		// We're putting this layer right here for now so that it only applies to the routes added
@@ -211,14 +209,14 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 		// change regardless of logged-in status or not.
 		// .layer(CacheLayer::<SendLinearMap<_, _>, _, _>::new(cache_options))
 		.route("/", get(home::get_home_view))
+		.route("/post/{id}", get(post::get_post_view))
 		.route("/page/{id}", get(home::get_page_view))
 		.route("/font/{id}", get(fonts::get_font))
-		.route("/api/post/{id}", get(blog_api::get_post_json))
-		.route("/api/new_post", post(blog_api::submit_post))
 		.route("/api/edit_post/{id}", post(blog_api::edit_post))
-		.route("/api/post_asset", post(upload_asset))
 		.route("/login", get(pages::login::login_html))
 		.route("/api/login", post(backend::auth::login))
+		.route("/admin/new_post", get(pages::edit_post::new_post))
+		.route("/admin/edit_post/{id}", get(pages::edit_post::edit_post_handler))
 		.route("/admin", get(pages::admin::admin))
 		.nest_service("/api/assets/", ServeDir::new(asset_dir))
 		.nest_service("/pkg/", ServeDir::new(pkg_dir))

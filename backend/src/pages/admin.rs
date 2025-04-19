@@ -9,12 +9,12 @@ use crate::{blog_api::get_post_list_with_user, post_list::PostList, robots::desc
 
 use super::{HtmlOrRedirect, RedirLocation};
 
-pub async fn admin(session: Session, mut tx: Tx<Postgres>) -> HtmlOrRedirect {
+pub async fn admin(session: Session, mut tx: Tx<Postgres>) -> HtmlOrRedirect<Box<str>> {
 	let Some(username) = get_username(&session).await else {
-		return HtmlOrRedirect::Redirect {
+		return HtmlOrRedirect::Redirect(super::Redirect {
 			force_login: true,
 			redir_to: RedirLocation::Admin
-		};
+		});
 	};
 
 	match get_post_list_with_user(&mut tx, u32::MAX, 0, Some(username)).await {

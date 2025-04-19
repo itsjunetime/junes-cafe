@@ -110,7 +110,7 @@ pub async fn login(
 		},
 		Err(e) => {
 			if e == argon2::password_hash::Error::Password {
-				println!("Given password '{password}' is incorrect (ugh)");
+				println!("Given password is incorrect (ugh)");
 			} else {
 				println!("Password verification failed with error {e}");
 			}

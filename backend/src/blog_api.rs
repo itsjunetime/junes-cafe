@@ -1,7 +1,8 @@
+use itertools::Itertools;
 use tower_cache::invalidator::Invalidator;
 use tower_sessions::Session;
 use axum_sqlx_tx::Tx;
-use sqlx::{Postgres, query_as, query, Row};
+use sqlx::{query, query_as, Executor, Postgres, Row};
 use axum::{http::StatusCode, extract::Path, response::Json};
 use shared_data::{Post, PostReq};
 use backend::{auth::get_username, check_auth};
@@ -52,10 +53,17 @@ pub async fn get_post_list_with_user(
 pub async fn get_post(
 	session: Session,
 	mut tx: Tx<Postgres>,
-	Path(id): Path<i32>
+	Path(id): Path<u32>
+) -> Result<Post, sqlx::Error> {
+	get_post_for_user(&mut tx, id, get_username(&session).await).await
+}
+
+pub async fn get_post_for_user<'e, E: Executor<'e, Database = Postgres>>(
+	tx: E,
+	id: u32,
+	username: Option<String>
 ) -> Result<Post, sqlx::Error> {
 	// If they're logged in, they should be able to view drafts
-	let username = get_username(&session).await;
 	let where_clause = if username.is_some() {
 		// If they're signed in with a specific username, they should be able to see all the draft
 		// posts for that specific username; not others.
@@ -71,14 +79,13 @@ pub async fn get_post(
 		{where_clause}\
 	;");
 
-	let mut q = query_as::<_, Post>(&query_str)
-		.bind(id);
+	let mut q = query_as::<_, Post>(&query_str).bind(id as i32);
 
 	if let Some(name) = username {
 		q = q.bind(name);
 	}
 
-	q.fetch_one(&mut tx).await
+	q.fetch_one(tx).await
 }
 
 pub async fn get_post_json(
@@ -205,9 +212,10 @@ impl SqlPostDetails {
 
 // Returns an err string or (Text, HTML, Title, Tags)
 fn post_details(payload: PostReq) -> SqlPostDetails {
-	let PostReq { content, title, tags, draft } = payload;
+	let PostReq { id: _, content, title, tags, draft } = payload;
 	let html = shared_data::md_to_html(&content);
-	SqlPostDetails { content, html, title, draft, tags: tags.join(",") }
+	let tags = Itertools::intersperse(tags.iter().map(String::as_str), ",").collect::<String>();
+	SqlPostDetails { content, html, title, draft, tags }
 }
 
 fn inval_all_for_post(id: i32, inval: &Invalidator) {

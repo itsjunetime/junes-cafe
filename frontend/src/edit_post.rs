@@ -22,11 +22,6 @@ use std::{
 	cell::RefCell
 };
 
-// Since postgres starts ids at 1, we know that no post should have an id of 0, and thus we should
-// be safe to use it as the identifier meaning 'No post'
-// It irks me to have a sentinel value but since we're communicating over HTTP APIs, it's necessary
-// sometimes
-pub const NO_POST: u32 = 0;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum SubmissionState {
@@ -118,6 +113,12 @@ impl Reducible for PostDetails {
 		}
 	}
 }
+
+// Since postgres starts ids at 1, we know that no post should have an id of 0, and thus we should
+// be safe to use it as the identifier meaning 'No post'
+// It irks me to have a sentinel value but since we're communicating over HTTP APIs, it's necessary
+// sometimes
+pub const NO_POST: u32 = 0;
 
 #[derive(Properties, PartialEq)]
 pub struct PostProps {
@@ -236,9 +237,10 @@ pub fn edit_post(props: &PostProps) -> Html {
 
 			// Create the data structure to send with the request
 			let post_req = shared_data::PostReq {
+				id: Some(id),
 				title: details_clone.title.clone(),
 				content: details_clone.content.clone(),
-				tags: Vec::from_iter(details_clone.tags.clone()),
+				tags: HashSet::from_iter(details_clone.tags.clone()),
 				draft
 			};
 
@@ -260,12 +262,6 @@ pub fn edit_post(props: &PostProps) -> Html {
 	// If, at this point, we've uploaded an asset, gotten a response, but not yet inserted it into
 	// the textarea, we need to do so
 	if let AssetUploadState::Resolved(Ok((ref asset_id, false))) = *asset {
-		let is_image = asset_id.split('.')
-			.next_back()
-			.is_some_and(|ext| ["jpeg", "jpg", "png", "webp", "heic", "heif"].contains(&ext));
-
-		let exclamation = if is_image { "!" } else { "" };
-		let new_text = format!("{}\n\n{exclamation}[Asset](/api/assets/{asset_id})\n\n", details.content);
 
 		asset.set(AssetUploadState::Resolved(Ok((asset_id.to_string(), true))));
 		set_text(new_text, &render_uuid, &details);
@@ -287,19 +283,20 @@ pub fn edit_post(props: &PostProps) -> Html {
 	let content_clone = details.clone();
 	let render_clone = render_uuid.clone();
 	let content_callback = move |e: InputEvent| if let Some(input) = e.target()
-		.and_then(|t| t.dyn_into::<HtmlTextAreaElement>().ok()) {
-			let new_text = input.value();
-			set_text(new_text, &render_clone, &content_clone);
+		.and_then(|t| t.dyn_into::<HtmlTextAreaElement>().ok())
+	{
+		let new_text = input.value();
+		set_text(new_text, &render_clone, &content_clone);
 
-			let style = input.style();
-			if let Err(e) = style.set_property("height", "auto") {
-				log!("Couldn't set height to auto: ", e);
-			}
-			let new_height = format!("{}px", input.scroll_height());
-			if let Err(e) = style.set_property("height", new_height.as_str()) {
-				log!("Couldn't update height correctly: ", e);
-			}
-		};
+		let style = input.style();
+		if let Err(e) = style.set_property("height", "auto") {
+			log!("Couldn't set height to auto: ", e);
+		}
+		let new_height = format!("{}px", input.scroll_height());
+		if let Err(e) = style.set_property("height", new_height.as_str()) {
+			log!("Couldn't update height correctly: ", e);
+		}
+	};
 	let title_callback = input_callback!(Title);
 	let tag_callback = input_callback!(AddTag);
 

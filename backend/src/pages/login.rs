@@ -10,7 +10,7 @@ use super::{HtmlOrRedirect, RedirLocation};
 pub async fn login_html(
 	session: Session,
 	Query(LoginQuery { redir_to, err_msg }): Query<LoginQuery>
-) -> HtmlOrRedirect {
+) -> HtmlOrRedirect<Box<str>> {
 	if get_username(&session).await.is_some() {
 		let redir_to: RedirLocation = redir_to
 			.as_deref()
@@ -18,10 +18,10 @@ pub async fn login_html(
 			.and_then(Result::ok)
 			.unwrap_or_default();
 
-		return HtmlOrRedirect::Redirect {
+		return HtmlOrRedirect::Redirect(super::Redirect {
 			force_login: false,
 			redir_to
-		};
+		});
 	}
 
 	HtmlOrRedirect::Html(html! {

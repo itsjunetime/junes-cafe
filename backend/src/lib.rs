@@ -45,6 +45,24 @@ pub mod state {
 			Ok(state.tx_state.clone())
 		}
 	}
+
+	impl FromRequestParts<AxumState> for LeptosOptions {
+		type Rejection = std::convert::Infallible;
+
+		async fn from_request_parts(_: &mut Parts, state: &AxumState) -> Result<Self,Self::Rejection> {
+			Ok(Self::from_ref(state))
+		}
+	}
+
+	pub async fn ext<T>() -> Result<(T, leptos_axum::ResponseOptions), ServerFnError>
+	where
+		T: FromRequestParts<AxumState>,
+		<T as FromRequestParts<AxumState>>::Rejection: std::fmt::Debug
+	{
+		let state: AxumState = expect_context();
+		leptos_axum::extract_with_state(&state).await
+			.map(|t| (t, expect_context()))
+	}
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -52,11 +70,19 @@ pub use state::*;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
+#[cfg(target_family = "wasm")]
+pub mod pages;
+
 #[wasm_bindgen]
 pub fn hydrate() {
 	#[cfg(target_family = "wasm")]
 	console_error_panic_hook::set_once();
 
+	gloo_console::log!("yunh");
+
 	#[cfg(feature = "hydrate")]
-	leptos::mount::hydrate_islands();
+	{
+		leptos::mount::hydrate_islands();
+		leptos::mount::mount_to_body(pages::edit_post::EditPostWithoutContext);
+	}
 }
