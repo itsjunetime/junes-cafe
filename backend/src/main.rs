@@ -213,6 +213,7 @@ async fn main_with_password(password: std::result::Result<String, dotenv::Error>
 		.route("/", get(home::get_home_view))
 		.route("/page/{id}", get(home::get_page_view))
 		.route("/font/{id}", get(fonts::get_font))
+		.route("/api/post/{id}", get(blog_api::get_post_json))
 		.route("/api/new_post", post(blog_api::submit_post))
 		.route("/api/edit_post/{id}", post(blog_api::edit_post))
 		.route("/api/post_asset", post(upload_asset))

@@ -81,6 +81,23 @@ pub async fn get_post(
 	q.fetch_one(&mut tx).await
 }
 
+pub async fn get_post_json(
+	session: Session,
+	tx: Tx<Postgres>,
+	path: Path<i32>
+) -> Result<Json<Post>, (StatusCode, String)> {
+	get_post(session, tx, path)
+		.await
+		.map(Json)
+		.map_err(|e| {
+			eprintln!("Couldn't get post: {e:?}");
+			match e {
+				sqlx::Error::RowNotFound => (StatusCode::NOT_FOUND, "Post not found".into()),
+				_ => (StatusCode::INTERNAL_SERVER_ERROR, format!("Couldn't retrieve post: {e:?}"))
+			}
+		})
+}
+
 pub async fn submit_post(
 	session: Session,
 	mut tx: Tx<Postgres>,
