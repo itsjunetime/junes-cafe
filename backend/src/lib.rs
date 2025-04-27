@@ -69,6 +69,9 @@ pub mod state {
 #[cfg(not(target_family = "wasm"))]
 pub use state::*;
 
+#[cfg(target_family = "wasm")]
+pub use pages::edit_post::*;
+
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[cfg(target_family = "wasm")]
@@ -82,6 +85,5 @@ pub fn hydrate() {
 	#[cfg(feature = "hydrate")]
 	{
 		leptos::mount::hydrate_islands();
-		// leptos::mount::mount_to_body(|| EditPost(EditPostProps { post: PostDetails::default() }));
 	}
 }
