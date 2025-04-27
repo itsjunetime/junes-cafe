@@ -23,7 +23,6 @@ server_fn = { version = "0.8.0-beta", default-features = false, features = ["mul
 js-sys = "0.3.77"
 gloo-timers = { version = "0.3.0", features = ["futures"] }
 gloo-console = "0.3.0"
->>>>>>> e3c3433 (wip)
 shared_data = { path = "../shared_data" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]

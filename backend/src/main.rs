@@ -13,7 +13,8 @@ use axum::{
 use axum_server::accept::Accept;
 use http::{Method, StatusCode};
 use leptos::prelude::*;
-use tower_cache::{cache::SendLinearMap, options::CacheOptions, CacheLayer};
+use leptos_axum::handle_server_fns_with_context;
+use tower_cache::options::CacheOptions;
 use tower_http::services::ServeDir;
 use tower_no_ai::NoAiLayer;
 use tower_sessions::{
@@ -183,7 +184,6 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 	let (tx_state, tx_layer) = Tx::<Postgres>::setup(pool);
 
 	let leptos_config = get_configuration(None)?;
-	// let leptos_config = get_configuration(None).await?;
 	let leptos_opts = leptos_config.leptos_options;
 	let addr = leptos_opts.site_addr;
 	let pkg_dir = format!("{}/{}", leptos_opts.site_root, leptos_opts.site_pkg_dir);
@@ -197,6 +197,7 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 	let invalidator = cache_options.invalidator();
 
 	let state = AxumState { leptos_opts, tx_state, invalidator };
+    let server_fn_state = state.clone();
 
 	let app = Router::<AxumState>::new()
 		.route("/sitemap.xml", get(robots::get_sitemap_xml))
@@ -215,10 +216,14 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 		.route("/api/edit_post/{id}", post(blog_api::edit_post))
 		.route("/login", get(pages::login::login_html))
 		.route("/api/login", post(backend::auth::login))
+		.nest_service("/api/assets/", ServeDir::new(asset_dir))
+        .route("/api/{fn_name}", post(move |req| handle_server_fns_with_context(
+            move || provide_context(server_fn_state.clone()),
+            req
+        )))
 		.route("/admin/new_post", get(pages::edit_post::new_post))
 		.route("/admin/edit_post/{id}", get(pages::edit_post::edit_post_handler))
 		.route("/admin", get(pages::admin::admin))
-		.nest_service("/api/assets/", ServeDir::new(asset_dir))
 		.nest_service("/pkg/", ServeDir::new(pkg_dir))
 		// I want to be able to upload 10mb assets if I so please.
 		.layer(DefaultBodyLimit::max(10 * 1024 * 1024))

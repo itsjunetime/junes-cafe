@@ -13,7 +13,7 @@ pub const RSS_ICON: &str = include_str!("../../assets/rss-icon.svg");
 #[cfg(feature = "sqlx")]
 use sqlx::{Row, FromRow, postgres::PgRow};
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
 pub struct Post {
 	#[cfg_attr(feature = "sqlx", sqlx(try_from = "i32"))]
@@ -46,7 +46,7 @@ impl Post {
 // We can thankfully just derive Deserialize for this because when it's returned
 // through JSON, it'll be given to us with the tags in an array, not a string,
 // but when it's given from a row, it'll be in text.
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Tags(pub Vec<String>);
 
 #[cfg(feature = "sqlx")]

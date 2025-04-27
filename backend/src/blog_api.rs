@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use tower_cache::invalidator::Invalidator;
 use tower_sessions::Session;
 use axum_sqlx_tx::Tx;
 use sqlx::{query, query_as, Executor, Postgres, Row};
@@ -86,34 +85,18 @@ pub async fn get_post_for_user<'e, E: Executor<'e, Database = Postgres>>(
 	}
 
 	q.fetch_one(tx).await
-}
-
-pub async fn get_post_json(
-	session: Session,
-	tx: Tx<Postgres>,
-	path: Path<i32>
-) -> Result<Json<Post>, (StatusCode, String)> {
-	get_post(session, tx, path)
-		.await
-		.map(Json)
-		.map_err(|e| {
-			eprintln!("Couldn't get post: {e:?}");
-			match e {
-				sqlx::Error::RowNotFound => (StatusCode::NOT_FOUND, "Post not found".into()),
-				_ => (StatusCode::INTERNAL_SERVER_ERROR, format!("Couldn't retrieve post: {e:?}"))
-			}
-		})
+        .inspect(|v| println!("🐈 got post {v:?}"))
 }
 
 pub async fn submit_post(
 	session: Session,
 	mut tx: Tx<Postgres>,
 	// inval: Invalidator,
-	Json(payload): Json<PostReq>
+	payload: PostReq
 ) -> (StatusCode, String) {
 	let username = check_auth!(session);
 
-	println!("New post being submitted by user {username}");
+	println!("New post being submitted by user {username}: {payload:?}");
 
 	let details = post_details(payload);
 
@@ -218,7 +201,7 @@ fn post_details(payload: PostReq) -> SqlPostDetails {
 	SqlPostDetails { content, html, title, draft, tags }
 }
 
-fn inval_all_for_post(id: i32, inval: &Invalidator) {
+/*fn inval_all_for_post(id: i32, inval: &Invalidator) {
 	let post_page = format!("/post/{id}");
 	inval.invalidate_all_with_pred(|(_, uri)| {
 		let path = uri.path();
@@ -228,4 +211,4 @@ fn inval_all_for_post(id: i32, inval: &Invalidator) {
 			path == "/sitemap.xml" ||
 			path == "/index.xml"
 	});
-}
+}*/

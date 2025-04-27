@@ -61,6 +61,7 @@ pub mod state {
 	{
 		let state: AxumState = expect_context();
 		leptos_axum::extract_with_state(&state).await
+			.map_err(ServerFnError::from)
 			.map(|t| (t, expect_context()))
 	}
 }
@@ -82,7 +83,8 @@ pub fn hydrate() {
 
 	#[cfg(feature = "hydrate")]
 	{
+		use pages::edit_post::*;
 		leptos::mount::hydrate_islands();
-		leptos::mount::mount_to_body(pages::edit_post::EditPostWithoutContext);
+		// leptos::mount::mount_to_body(|| EditPost(EditPostProps { post: PostDetails::default() }));
 	}
 }
