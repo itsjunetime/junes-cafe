@@ -4,7 +4,6 @@ use leptos::{either::Either, prelude::*, wasm_bindgen::JsCast, task::spawn_local
 use serde::{Deserialize, Serialize};
 use server_fn::codec::{MultipartData, Json};
 use web_sys::{FileList, FormData, HtmlTextAreaElement};
-use gloo_console::log;
 use shared_data::{BASE_STYLE, md_to_html, PostReq};
 
 #[cfg(not(target_family = "wasm"))]
@@ -170,9 +169,6 @@ const POST_BODY_INPUT_ID: &str = "post-body-input";
 const POST_BODY_INPUT_ID_SEL: &str = "#post-body-input";
 
 fn update_text(post: RwSignal<PostDetails>, update: impl FnOnce(&mut String)) {
-	println!("we are inside update!");
-	log!("we are inside update!");
-
 	post.update(|p| update(&mut p.content));
 	let current_len = post.read_untracked().content.len();
 
@@ -190,22 +186,11 @@ fn update_text(post: RwSignal<PostDetails>, update: impl FnOnce(&mut String)) {
 	let scroll_height = target.scroll_height();
 	target.style(format!("height: {scroll_height}px"));
 
-	log!("Got before spawn");
-
 	spawn_local(async move {
-
-		log!("Inside spawn, before timeout");
-
 		gloo_timers::future::TimeoutFuture::new((current_len / 100) as u32).await;
 
-		log!("Inside spawn, after timeout");
-
 		let new_len = post.read_untracked().content.len();
-
-		log!("checking equality");
-
 		if new_len == current_len {
-			log!("they're equal!");
 			// wanna clone this so we don't lock `post` during all of `md_to_html`
 			let clone_content = post.read_untracked().content.clone();
 			let rendered = md_to_html(&clone_content);
@@ -223,138 +208,135 @@ pub fn edit_post(post: PostDetails) -> impl IntoView {
 
 	let (read_post, write_post) = post.clone().split();
 	view!{{ move || match &*read_submission.read() {
-        SubmissionState::Resolved(res) => Either::Left(Either::Left(resolved_view(res, is_new_post, write_submission))),
-        SubmissionState::Loading => Either::Left(Either::Right("
-            <style>
-            body::after {
-                content: \"\";
-                position: absolute;
-                left: 50%;
-                top: 50%;
-                height:60px;
-                width:60px;
-                margin:0px auto;
-                animation: rotation .6s infinite linear;
-                border-left:6px solid rgba(0,174,239,.15);
-                border-right:6px solid rgba(0,174,239,.15);
-                border-bottom:6px solid rgba(0,174,239,.15);
-                border-top:6px solid rgba(0,174,239,.8);
-                border-radius:100%;
-            }
-            @keyframes rotation {
-                from {transform: rotate(0deg);}
-                to {transform: rotate(359deg);}
-            }
-            </style>
-        ")),
-        SubmissionState::Preparing => Either::Right(view!{
-            <style>{ BASE_STYLE }</style>
-            <style>{ EDIT_STYLE }</style>
-            <div id="article-content">
-                <h1>"New Post"</h1>
-                <input
-                    placeholder="title"
-                    value=move || read_post.read().title.clone()
-                    on:input:target=move |ev| {
-                        write_post.update(|p| p.title = ev.target().value());
-                        log!("title is now", &read_post.read().title);
-                    }
-                />
-                <br/><br/>
-                <div id="edit-and-render">
-                    <textarea
-                        id={ POST_BODY_INPUT_ID }
-                        placeholder="what's goin on? :)"
-                        on:input:target=move |ev| update_text(post, |c| *c = ev.target().value())
-                        prop:value=move || post.read().content.clone()
-                        disabled=move || *read_asset.read() == AssetUploadState::Uploading
-                    >
-                    {move || read_post.read().content.clone()}
-                    </textarea>
-                    <span id="rendered" inner_html=move || read_post.read().rendered_content.clone()>
-                    </span>
-                </div>
-                <br/><br/>
-                <label
-                    for="asset-upload"
-                    class="upload-details"
-                    on:drop=move |ev| match ev.data_transfer() {
-                        Some(dt) => upload_asset(dt.files(), write_asset, post),
-                        None => write_asset.set(AssetUploadState::PreflightError(Cow::Borrowed("Event had no DataTransfer")))
-                    }
-                    on:dragover=move |ev| ev.prevent_default()
-                    on:dragenter=move |ev| ev.prevent_default()
-                >
-                {
-                    move || match &*read_asset.read() {
-                        AssetUploadState::None => Cow::Borrowed("Drop asset here to upload"),
-                        AssetUploadState::PreflightError(err) =>
-                            Cow::Owned(format!("Couldn't upload asset: {err}")),
-                        AssetUploadState::Uploading => Cow::Borrowed("Uploading asset..."),
-                        AssetUploadState::Resolved(res) => match res {
-                            Ok((id, true)) => Cow::Owned(format!("Asset uploaded to id {id}")),
-                            Ok((id, false)) => Cow::Owned(format!("Asset uploaded to id {id}. processing...")),
-                            Err((status, err)) => Cow::Owned(format!("Asset failed to upload with code {status}, error: '{err}'"))
-                        }
-                    }
-                }
-                </label>
-                <input
-                    id="asset-upload"
-                    type="file"
-                    style="display: none;"
-                    on:change:target=move |ev| upload_asset(ev.target().files(), write_asset, post)
-                />
-                <br/>
-                <div id="tags">
-                    <h3 id="tag-title">"Tags"</h3>
-                    <span>
-                        <input id="new-tag-input" on:change:target=move |ev| {
-                            let new_tag = ev.target().value();
-                            if !new_tag.is_empty() {
-                                write_post.update(|p| _ = p.tags.insert(new_tag));
-                                ev.target().set_value("");
-                            }
-                        }/>
-                        { move || {
-                            read_post.read()
-                                .tags
-                                .iter()
-                                .map(|tag| {
-                                    // mm don't like both of the clones but like. Who cares
-                                    let tag = tag.to_owned();
-                                    let to_remove = tag.clone();
-                                    view!{
-                                        <span class="tag">
-                                            { tag }
-                                            <button on:click=move |_| write_post.update(|post| _ = post.tags.remove(&to_remove))>
-                                                "x"
-                                            </button>
-                                        </span>
-                                    }
-                                })
-                                .collect_view()
-                        }}
-                    </span>
-                </div>
-                <br/><br/>
-                <button id="publish-button" on:click:target=move |_| submit_or_edit_post_outer(read_post, false, write_submission)>
-                    "Publish"
-                </button>
-                { move || {
-                    let post = read_post.read();
-                    if post.draft || post.id.is_none() {
-                        Either::Left(view! {
-                            <button id="draft-button" on:click=move |_| submit_or_edit_post_outer(read_post, true, write_submission)>
-                                "Save as Draft"
-                            </button>
-                        })
-                    } else {
-                        Either::Right(())
-                    }
-                }}
-            </div>
-        }),
+		SubmissionState::Resolved(res) => Either::Left(Either::Left(resolved_view(res, is_new_post, write_submission))),
+		SubmissionState::Loading => Either::Left(Either::Right("
+			<style>
+			body::after {
+				content: \"\";
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				height:60px;
+				width:60px;
+				margin:0px auto;
+				animation: rotation .6s infinite linear;
+				border-left:6px solid rgba(0,174,239,.15);
+				border-right:6px solid rgba(0,174,239,.15);
+				border-bottom:6px solid rgba(0,174,239,.15);
+				border-top:6px solid rgba(0,174,239,.8);
+				border-radius:100%;
+			}
+			@keyframes rotation {
+				from {transform: rotate(0deg);}
+				to {transform: rotate(359deg);}
+			}
+			</style>
+		")),
+		SubmissionState::Preparing => Either::Right(view!{
+			<style>{ BASE_STYLE }</style>
+			<style>{ EDIT_STYLE }</style>
+			<div id="article-content">
+				<h1>"New Post"</h1>
+				<input
+					placeholder="title"
+					value=move || read_post.read().title.clone()
+					on:input:target=move |ev| write_post.update(|p| p.title = ev.target().value())
+				/>
+				<br/><br/>
+				<div id="edit-and-render">
+					<textarea
+						id={ POST_BODY_INPUT_ID }
+						placeholder="what's goin on? :)"
+						on:input:target=move |ev| update_text(post, |c| *c = ev.target().value())
+						prop:value=move || post.read().content.clone()
+						disabled=move || *read_asset.read() == AssetUploadState::Uploading
+					>
+					{move || read_post.read().content.clone()}
+					</textarea>
+					<span id="rendered" inner_html=move || read_post.read().rendered_content.clone()>
+					</span>
+				</div>
+				<br/><br/>
+				<label
+					for="asset-upload"
+					class="upload-details"
+					on:drop=move |ev| match ev.data_transfer() {
+						Some(dt) => upload_asset(dt.files(), write_asset, post),
+						None => write_asset.set(AssetUploadState::PreflightError(Cow::Borrowed("Event had no DataTransfer")))
+					}
+					on:dragover=move |ev| ev.prevent_default()
+					on:dragenter=move |ev| ev.prevent_default()
+				>
+				{
+					move || match &*read_asset.read() {
+						AssetUploadState::None => Cow::Borrowed("Drop asset here to upload"),
+						AssetUploadState::PreflightError(err) =>
+							Cow::Owned(format!("Couldn't upload asset: {err}")),
+						AssetUploadState::Uploading => Cow::Borrowed("Uploading asset..."),
+						AssetUploadState::Resolved(res) => match res {
+							Ok((id, true)) => Cow::Owned(format!("Asset uploaded to id {id}")),
+							Ok((id, false)) => Cow::Owned(format!("Asset uploaded to id {id}. processing...")),
+							Err((status, err)) => Cow::Owned(format!("Asset failed to upload with code {status}, error: '{err}'"))
+						}
+					}
+				}
+				</label>
+				<input
+					id="asset-upload"
+					type="file"
+					style="display: none;"
+					on:change:target=move |ev| upload_asset(ev.target().files(), write_asset, post)
+				/>
+				<br/>
+				<div id="tags">
+					<h3 id="tag-title">"Tags"</h3>
+					<span>
+						<input id="new-tag-input" on:change:target=move |ev| {
+							let new_tag = ev.target().value();
+							if !new_tag.is_empty() {
+								write_post.update(|p| _ = p.tags.insert(new_tag));
+								ev.target().set_value("");
+							}
+						}/>
+						{ move || {
+							read_post.read()
+								.tags
+								.iter()
+								.map(|tag| {
+									// mm don't like both of the clones but like. Who cares
+									let tag = tag.to_owned();
+									let to_remove = tag.clone();
+									view!{
+										<span class="tag">
+											{ tag }
+											<button on:click=move |_| write_post.update(|post| _ = post.tags.remove(&to_remove))>
+												"x"
+											</button>
+										</span>
+									}
+								})
+								.collect_view()
+						}}
+					</span>
+				</div>
+				<br/><br/>
+				<button id="publish-button" on:click:target=move |_| submit_or_edit_post_outer(read_post, false, write_submission)>
+					"Publish"
+				</button>
+				{ move || {
+					let post = read_post.read();
+					if post.draft || post.id.is_none() {
+						Either::Left(view! {
+							<button id="draft-button" on:click=move |_| submit_or_edit_post_outer(read_post, true, write_submission)>
+								"Save as Draft"
+							</button>
+						})
+					} else {
+						Either::Right(())
+					}
+				}}
+			</div>
+		}),
 	}}}
 }
 
@@ -463,8 +445,6 @@ fn upload_asset(
 			}
 		};
 
-        log!("form: ", &form);
-
 		let form_data = MultipartData::Client(form.into());
 		let asset_id = match receive_asset(form_data).await {
 			Err(e) => {
@@ -510,6 +490,8 @@ fn submit_or_edit_post_outer(
 
 	spawn_local(async move {
 		let post = post.read_untracked();
+		gloo_console::log!(format!("About to submit post {post:?}"));
+
 		let resp = submit_or_edit_post(PostReq {
 			id: post.id,
 			title: post.title.clone(),
@@ -531,7 +513,11 @@ async fn submit_or_edit_post(req: PostReq) -> Result<String, ServerFnError> {
 
 	let ((session, tx), resp): ((Session, Tx<Postgres>), _) = backend::ext().await?;
 
-	let (code, id) = crate::blog_api::submit_post(session, tx, req).await;
+	let (code, id) = if let Some(id) = req.id {
+		crate::blog_api::edit_post(session, tx, id, req).await
+	} else {
+		crate::blog_api::submit_post(session, tx, req).await
+	};
 
 	resp.set_status(code);
 	Ok(id)

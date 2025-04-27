@@ -79,11 +79,8 @@ pub fn hydrate() {
 	#[cfg(target_family = "wasm")]
 	console_error_panic_hook::set_once();
 
-	gloo_console::log!("yunh");
-
 	#[cfg(feature = "hydrate")]
 	{
-		use pages::edit_post::*;
 		leptos::mount::hydrate_islands();
 		// leptos::mount::mount_to_body(|| EditPost(EditPostProps { post: PostDetails::default() }));
 	}

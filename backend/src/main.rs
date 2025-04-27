@@ -197,7 +197,7 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 	let invalidator = cache_options.invalidator();
 
 	let state = AxumState { leptos_opts, tx_state, invalidator };
-    let server_fn_state = state.clone();
+	let server_fn_state = state.clone();
 
 	let app = Router::<AxumState>::new()
 		.route("/sitemap.xml", get(robots::get_sitemap_xml))
@@ -213,14 +213,13 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 		.route("/post/{id}", get(post::get_post_view))
 		.route("/page/{id}", get(home::get_page_view))
 		.route("/font/{id}", get(fonts::get_font))
-		.route("/api/edit_post/{id}", post(blog_api::edit_post))
 		.route("/login", get(pages::login::login_html))
 		.route("/api/login", post(backend::auth::login))
 		.nest_service("/api/assets/", ServeDir::new(asset_dir))
-        .route("/api/{fn_name}", post(move |req| handle_server_fns_with_context(
-            move || provide_context(server_fn_state.clone()),
-            req
-        )))
+		.route("/api/{fn_name}", post(move |req| handle_server_fns_with_context(
+			move || provide_context(server_fn_state.clone()),
+			req
+		)))
 		.route("/admin/new_post", get(pages::edit_post::new_post))
 		.route("/admin/edit_post/{id}", get(pages::edit_post::edit_post_handler))
 		.route("/admin", get(pages::admin::admin))

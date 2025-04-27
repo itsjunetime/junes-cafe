@@ -2,7 +2,7 @@ use itertools::Itertools;
 use tower_sessions::Session;
 use axum_sqlx_tx::Tx;
 use sqlx::{query, query_as, Executor, Postgres, Row};
-use axum::{http::StatusCode, extract::Path, response::Json};
+use axum::{http::StatusCode, extract::Path};
 use shared_data::{Post, PostReq};
 use backend::{auth::get_username, check_auth};
 
@@ -85,7 +85,6 @@ pub async fn get_post_for_user<'e, E: Executor<'e, Database = Postgres>>(
 	}
 
 	q.fetch_one(tx).await
-        .inspect(|v| println!("🐈 got post {v:?}"))
 }
 
 pub async fn submit_post(
@@ -145,8 +144,8 @@ pub async fn edit_post(
 	session: Session,
 	mut tx: Tx<Postgres>,
 	// inval: Invalidator,
-	Path(id): Path<i32>,
-	Json(payload): Json<PostReq>
+	id: u32,
+	payload: PostReq
 ) -> (StatusCode, String) {
 	_ = check_auth!(session);
 
@@ -166,14 +165,14 @@ pub async fn edit_post(
 		.bind(details.tags)
 		.bind(reading_time)
 		.bind(details.draft)
-		.bind(id)
+		.bind(id as i32)
 		.execute(&mut tx)
 		.await
 		.map_or_else(
 			|e| print_and_ret!("Couldn't update/edit post with id {id}: {e:?}"),
 			|_| {
 				// inval_all_for_post(id, &inval);
-				(StatusCode::OK, "OK".into())
+				(StatusCode::OK, id.to_string())
 			}
 		)
 }
