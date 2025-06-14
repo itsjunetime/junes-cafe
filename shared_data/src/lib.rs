@@ -161,7 +161,7 @@ blockquote {
 	content: "#";
 	position: relative;
 	left: -30px;
-	max-wdth: 0px;
+	max-width: 0px;
 	display: inline-block;
 	color: coral;
 }

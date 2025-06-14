@@ -51,10 +51,8 @@ pub async fn upload_asset(session: Session, mut form: multer::Multipart<'_>) -> 
 				let asset_path = std::path::Path::new(&asset_dir);
 				let mut save_path = asset_path.join(&file_name);
 
-				if let Some(ref name) = name {
-					if let Some(ext) = name.split('.').next_back() {
-						_ = save_path.set_extension(ext);
-					}
+				if let Some(ext) = name.as_ref().and_then(|n| n.split('.').next_back()) {
+					_ = save_path.set_extension(ext);
 				}
 
 				let res = std::fs::write(&save_path, asset_data)

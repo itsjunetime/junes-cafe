@@ -31,10 +31,10 @@ pub fn md_to_html(input: &str) -> String {
 
 	let events = events.filter_map(|ev| match ev {
 		Event::Start(Tag::CodeBlock(kind)) => {
-			if let CodeBlockKind::Fenced(lang) = kind {
-				if let Some(syn) = syntax_set.find_syntax_by_token(&lang) {
-					syntax = syn;
-				}
+			if let CodeBlockKind::Fenced(lang) = kind &&
+				let Some(syn) = syntax_set.find_syntax_by_token(&lang)
+			{
+				syntax = syn;
 			}
 			in_code_block = true;
 			None
