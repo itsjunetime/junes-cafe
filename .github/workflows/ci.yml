@@ -22,7 +22,7 @@ jobs:
           targets: wasm32-unknown-unknown, x86_64-unknown-linux-gnu
           toolchain: nightly
       - name: Install cargo-leptos
-        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/leptos-rs/cargo-leptos/releases/download/v0.2.33/cargo-leptos-installer.sh | sh
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/leptos-rs/cargo-leptos/releases/download/v0.2.35/cargo-leptos-installer.sh | sh
       - name: Build backend
         run: cargo leptos build --release
       - name: Stop currently-running backend
@@ -56,4 +56,3 @@ jobs:
           script: |
             sudo /usr/bin/systemctl daemon-reload
             sudo /usr/bin/systemctl start itsjunetime.service
-            sudo /usr/sbin/nginx -s reload

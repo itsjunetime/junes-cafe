@@ -1,5 +1,4 @@
 #![feature(if_let_guard)]
-#![feature(tcp_quickack)]
 
 use std::{future::{ready, Ready}, os::linux::net::TcpStreamExt};
 
@@ -10,7 +9,7 @@ use argon2::{
 use axum::{
 	extract::DefaultBodyLimit, routing::{get, post}, Router
 };
-use axum_server::accept::Accept;
+use axum_server::{accept::Accept, tls_rustls::RustlsConfig};
 use http::{Method, StatusCode};
 use leptos::prelude::*;
 use leptos_axum::handle_server_fns_with_context;
@@ -105,6 +104,16 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 	}
 
 	println!("Storing assets to/Reading assets from {asset_dir}");
+
+	let cert_file = dotenv::var("CERT_FILE")?;
+	let key_file = dotenv::var("KEY_FILE")?;
+	println!("Creating server config with cert file {cert_file:?} and key file {key_file:?}");
+
+	let rustls_config = RustlsConfig::from_pem_file(
+		cert_file, key_file
+	).await
+	.inspect_err(|e| eprintln!("Couldn't make rustls config: {e}"))?;
+
 	println!("Trying to connect to postgres...");
 
 	let pool = PgPoolOptions::new()
@@ -233,29 +242,9 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 
 	println!("Serving axum at http://{addr}...");
 
-	axum_server::bind(addr)
-		.acceptor(QuickAckAcceptor)
+	axum_server::bind_rustls(addr, rustls_config)
 		.serve(app.into_make_service())
 		.await?;
 
 	Ok(())
-}
-
-#[derive(Clone)]
-struct QuickAckAcceptor;
-
-impl<S> Accept<TcpStream, S> for QuickAckAcceptor {
-	type Stream = TcpStream;
-	type Service = S;
-	type Future = Ready<std::io::Result<(Self::Stream, Self::Service)>>;
-
-	fn accept(&self, stream: TcpStream, service: S) -> Self::Future {
-		ready(
-			stream.into_std()
-				.and_then(|s| {
-					s.set_quickack(true)?;
-					TcpStream::from_std(s)
-				}).map(|s| (s, service))
-		)
-	}
 }
