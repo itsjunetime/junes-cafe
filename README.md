@@ -36,36 +36,6 @@ server_admin ALL=NOPASSWD: /usr/sbin/nginx -s reload
 ```
 
 6. Copy your tls crt and keys to wherever you want on the system
-7. Add to http block in /etc/nginx/nginx.conf:
-
-```nginx
-server {
-	listen 443 ssl;
-	server_name .itsjuneti.me;
-
-	ssl_certificate /path/to/server.crt
-	ssl_certificate_key /path/to/server_crt.key
-
-	location /assets {
-		root /home/server_admin/server_files/assets;
-	}
-
-	location ~ ^/admin(/.*)$ {
-		root /home/server_admin/server_files;
-		try_files $1 /index.html =404;
-	}
-
-	location ~ ^/.*\.(js|wasm)$ {
-		root /home/server_admin/server_files;
-		try_files $uri /index.html =404;
-	}
-
-	location / {
-		proxy_pass http://127.0.0.1:8080;
-		proxy_set_header Host $host;
-	}
-}
-```
 
 8. Write the following to `/etc/systemd/system/itsjunetime.service`:
 
@@ -81,7 +51,9 @@ Restart=always
 User=server_admin
 ExecStart=/home/server_admin/server_files/backend
 WorkingDirectory=/home/server_admin/server_files/
-Environment="LEPTOS_SITE_ROOT=/home/server_admin/server_files LEPTOS_SITE_PKG_DIR=pkg LEPTOS_SITE_ADDR=127.0.0.1:8080"
+Environment=LEPTOS_SITE_ROOT=/home/server_admin/server_files LEPTOS_SITE_PKG_DIR=pkg LEPTOS_SITE_ADDR=0.0.0.0:443
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target
@@ -93,6 +65,7 @@ WantedBy=multi-user.target
 DATABASE_URL="postgres://server_admin:password@127.0.0.1/server_database"
 BASE_PASSWORD="password"
 BASE_USERNAME="june"
-BACKEND_PORT=8080
 ASSET_DIR="/home/server_admin/server_files/assets"
+CERT_FILE="/path/to/tls/cert/chain.crt"
+KEY_FILE="/path/to/tls/private/key.key"
 ```

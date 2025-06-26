@@ -1,7 +1,5 @@
 #![feature(if_let_guard)]
 
-use std::{future::{ready, Ready}, os::linux::net::TcpStreamExt};
-
 use argon2::{
 	password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
 	Argon2
@@ -9,7 +7,7 @@ use argon2::{
 use axum::{
 	extract::DefaultBodyLimit, routing::{get, post}, Router
 };
-use axum_server::{accept::Accept, tls_rustls::RustlsConfig};
+use axum_server::tls_rustls::RustlsConfig;
 use http::{Method, StatusCode};
 use leptos::prelude::*;
 use leptos_axum::handle_server_fns_with_context;
@@ -27,7 +25,6 @@ use sqlx::{
 	Postgres,
 	postgres::PgPoolOptions,
 };
-use tokio::net::TcpStream;
 use backend::AxumState;
 
 mod images;
@@ -79,7 +76,6 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 
 	let username = dotenv::var("BASE_USERNAME");
 
-	// let backend_port = dotenv_num!("BACKEND_PORT", 444, u16);
 	let num_connections = dotenv_num!("DB_CONNECTIONS", 80, u32);
 
 	let Ok(db_url) = dotenv::var("DATABASE_URL") else {
@@ -240,7 +236,7 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 		.layer(NoAiLayer::new("https://fsn1-speed.hetzner.com/10GB.bin"))
 		.with_state(state);
 
-	println!("Serving axum at http://{addr}...");
+	println!("Serving axum at https://{addr}...");
 
 	axum_server::bind_rustls(addr, rustls_config)
 		.serve(app.into_make_service())

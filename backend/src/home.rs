@@ -1,4 +1,4 @@
-use http::{header::HOST, HeaderMap};
+use axum_extra::extract::Host;
 use tower_sessions::Session;
 use sqlx::Postgres;
 use axum_sqlx_tx::Tx;
@@ -6,23 +6,24 @@ use axum::{response::Html, extract::Path};
 use horrorshow::{html, Raw, RenderOnce, TemplateBuffer, Template};
 use crate::{blog_api::get_post_list, post_list::PostList, Post};
 
-pub async fn get_home_view(session: Session, tx: Tx<Postgres>, headers: HeaderMap) -> Html<String> {
-	get_page_view(session, tx, Path(0), headers).await
+pub async fn get_home_view(session: Session, tx: Tx<Postgres>, host: Host) -> Html<String> {
+	get_page_view(session, tx, Path(0), host).await
 }
 
 pub async fn get_page_view(
 	session: Session,
 	mut tx: Tx<Postgres>,
 	Path(page): Path<u32>,
-	headers: HeaderMap
+	Host(host): Host,
 ) -> Html<String> {
 	let posts = get_post_list(Some(session), &mut tx, 10, page * 10).await;
 	let show_next = posts.as_ref().is_ok_and(|p| p.len() == 10);
+
+	println!("host: {host}");
+
 	Html(PostList {
 		content: Posts(posts),
-		title: headers.get(HOST)
-			.and_then(|h| h.to_str().ok())
-			.unwrap_or("itsjuneti.me"),
+		title: &host,
 		next_page_btn: show_next,
 		current_page: page
 	}.into_string()

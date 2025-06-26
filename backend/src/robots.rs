@@ -24,7 +24,7 @@ impl<E> From<E> for ErrorOnDebug<E> {
 	}
 }
 
-#[cfg_attr(not(debug_assertions), expect(dead_code))]
+#[cfg_attr(not(debug_assertions), expect(unused_variables))]
 pub fn desc_if_debug(error: impl Display) -> Cow<'static, str> {
 	#[cfg(debug_assertions)]
 	{ Cow::Owned(format!("Internal Error: {error}")) }
