@@ -39,7 +39,7 @@ horrorshow = { version = "0.8.4", default-features = false, features = ["std", "
 rss = { version = "2.0.7", default-features = false }
 sitewriter = { version = "1.0.4", default-features = false }
 chrono = { version = "0.4.35", default-features = false }
-tower-http = { version = "0.6.0", default-features = false, features = ["fs"] }
+tower-http = { version = "0.6.0", default-features = false, features = ["fs", "trace"] }
 tower-no-ai = "0.2.0"
 tower-sessions = "0.14.0"
 tower-cache = { git = "https://github.com/itsjunetime/tower-cache.git", features = ["axum"] }
@@ -47,7 +47,7 @@ oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] 
 leptos_axum = { version = "0.8.0-rc2", default-features = false }
 argon2 = { version = "0.5.3", features = ["std"] }
 tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde_urlencoded = "0.7.1"
 multer = "*"
 itertools = "*"

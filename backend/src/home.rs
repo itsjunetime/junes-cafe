@@ -19,8 +19,6 @@ pub async fn get_page_view(
 	let posts = get_post_list(Some(session), &mut tx, 10, page * 10).await;
 	let show_next = posts.as_ref().is_ok_and(|p| p.len() == 10);
 
-	println!("host: {host}");
-
 	Html(PostList {
 		content: Posts(posts),
 		title: &host,

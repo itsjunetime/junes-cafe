@@ -12,7 +12,7 @@ use http::{Method, StatusCode};
 use leptos::prelude::*;
 use leptos_axum::handle_server_fns_with_context;
 use tower_cache::options::CacheOptions;
-use tower_http::services::ServeDir;
+use tower_http::{services::ServeDir, trace::TraceLayer};
 use tower_no_ai::NoAiLayer;
 use tower_sessions::{
 	MemoryStore,
@@ -26,6 +26,7 @@ use sqlx::{
 	postgres::PgPoolOptions,
 };
 use backend::AxumState;
+use tracing_subscriber::EnvFilter;
 
 mod images;
 mod home;
@@ -72,6 +73,7 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 
 	tracing_subscriber::fmt()
 		.with_max_level(tracing::Level::DEBUG)
+		.with_env_filter(EnvFilter::from_default_env())
 		.init();
 
 	let username = dotenv::var("BASE_USERNAME");
@@ -233,6 +235,7 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 		.layer(DefaultBodyLimit::max(10 * 1024 * 1024))
 		.layer(SessionManagerLayer::new(session_store))
 		.layer(tx_layer)
+		.layer(TraceLayer::new_for_http())
 		.layer(NoAiLayer::new("https://fsn1-speed.hetzner.com/10GB.bin"))
 		.with_state(state);
 
