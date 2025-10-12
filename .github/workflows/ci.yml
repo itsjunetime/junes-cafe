@@ -42,7 +42,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_SSH_PORT }}
-          source: "target/production/backend,frontend/dist/*,target/site/pkg/*"
+          source: "target/production/backend,target/site/pkg/*"
           target: /home/junkie/server_files/
           strip_components: 2
           overwrite: true
