@@ -24,6 +24,7 @@ js-sys = "0.3.77"
 gloo-timers = { version = "0.3.0", features = ["futures"] }
 gloo-console = "0.3.0"
 shared_data = { path = "../shared_data" }
+any_spawner = "0.3.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 axum = { version = "0.8.1", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form", "macros", "tracing"] }

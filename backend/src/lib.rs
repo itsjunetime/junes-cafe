@@ -86,4 +86,7 @@ pub fn hydrate() {
 	{
 		leptos::mount::hydrate_islands();
 	}
+
+	// It's fine if it's already set, we're just being safe here
+	_ = any_spawner::Executor::init_wasm_bindgen();
 }

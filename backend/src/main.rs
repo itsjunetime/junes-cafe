@@ -203,6 +203,8 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 
 	let invalidator = cache_options.invalidator();
 
+	any_spawner::Executor::init_tokio()?;
+
 	let state = AxumState { leptos_opts, tx_state, invalidator };
 	let server_fn_state = state.clone();
 

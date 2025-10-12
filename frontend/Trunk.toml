@@ -1,5 +1,0 @@
-[build]
-pattern_preload = "<link rel=\"preload\" href=\"{base}{wasm}\" as=\"fetch\" type=\"application/wasm\" crossorigin>"
-
-[[proxy]]
-backend = "http://localhost:3000/api/"
