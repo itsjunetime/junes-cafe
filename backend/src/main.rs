@@ -103,14 +103,23 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 
 	println!("Storing assets to/Reading assets from {asset_dir}");
 
-	let cert_file = dotenv::var("CERT_FILE")?;
-	let key_file = dotenv::var("KEY_FILE")?;
-	println!("Creating server config with cert file {cert_file:?} and key file {key_file:?}");
+	let cert_file = dotenv::var("CERT_FILE");
+	let key_file = dotenv::var("KEY_FILE");
 
-	let rustls_config = RustlsConfig::from_pem_file(
-		cert_file, key_file
-	).await
-	.inspect_err(|e| eprintln!("Couldn't make rustls config: {e}"))?;
+	let rustls_config = match (cert_file, key_file) {
+		(Ok(_), Err(_)) | (Err(_), Ok(_)) =>
+			return Err("You have to set either BOTH `CERT_FILE` and `KEY_FILE` or neither".into()),
+		(Ok(c_f), Ok(k_f)) => {
+			println!("Creating server config with cert file {c_f:?} and key file {k_f:?}");
+			Some(RustlsConfig::from_pem_file(c_f, k_f)
+				.await
+				.inspect_err(|e| eprintln!("Couldn't make rustls config: {e}"))?)
+		},
+		(Err(_), Err(_)) => {
+			println!("Creating server config without tls");
+			None
+		}
+	};
 
 	println!("Trying to connect to postgres...");
 
@@ -243,9 +252,15 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 
 	println!("Serving axum at https://{addr}...");
 
-	axum_server::bind_rustls(addr, rustls_config)
-		.serve(app.into_make_service())
-		.await?;
+	if let Some(rustls_config) = rustls_config {
+		axum_server::bind_rustls(addr, rustls_config)
+			.serve(app.into_make_service())
+			.await?;
+	} else {
+		axum_server::bind(addr)
+			.serve(app.into_make_service())
+			.await?;
+	}
 
 	Ok(())
 }
