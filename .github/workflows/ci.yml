@@ -35,6 +35,7 @@ jobs:
           script: |
             sudo /usr/bin/systemctl stop itsjunetime.service
             rm /home/junkie/server_files/frontend* 2>/dev/null || :
+            rm /home/junkie/pkg/* 2>/dev/null || :
       - name: SCP files
         uses: appleboy/scp-action@v0.1.7
         with:

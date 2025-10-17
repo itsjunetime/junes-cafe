@@ -69,7 +69,7 @@ bin-features = ["ssr"]
 lib-features = ["hydrate"]
 lib-profile-release = "production"
 bin-profile-release = "production"
-hash-files = true
+# hash-files = true
 
 # leptos needs this for the `island` macro
 [lints.rust]
