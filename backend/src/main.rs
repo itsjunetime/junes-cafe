@@ -1,5 +1,7 @@
 #![feature(if_let_guard)]
 
+use core::{net::{Ipv4Addr, SocketAddr, SocketAddrV4}, str::FromStr};
+
 use argon2::{
 	password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
 	Argon2
@@ -200,7 +202,18 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 	let (tx_state, tx_layer) = Tx::<Postgres>::setup(pool);
 
 	let leptos_config = get_configuration(None)?;
-	let leptos_opts = leptos_config.leptos_options;
+	let mut leptos_opts = leptos_config.leptos_options;
+	let backend_port = dotenv::var("BACKEND_PORT")
+		.ok()
+		.and_then(|p| <u16 as FromStr>::from_str(&p)
+			.inspect_err(|e| println!("Couldn't convert {p:?} to a u16: {e}; leaving site_addr as {:?}", leptos_opts.site_addr))
+			.ok()
+		);
+
+	if let Some(port) = backend_port {
+		leptos_opts.site_addr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, port));
+	}
+
 	let addr = leptos_opts.site_addr;
 	let pkg_dir = format!("{}/{}", leptos_opts.site_root, leptos_opts.site_pkg_dir);
 	println!("Packages at {pkg_dir} served at /pkg");
