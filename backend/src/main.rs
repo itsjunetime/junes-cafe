@@ -50,43 +50,43 @@ macro_rules! print_and_ret{
 	}
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-	// We want to read this one first so that there's the least amount of time between this being
-	// loaded into memory and being cleared from memory
-	let password = dotenv::var("BASE_PASSWORD");
-	// Reset it so nobody else can somehow read it from the env
-	// SAFETY: This is safe because the program is completely single-threaded at this point, so no
-	// other threads can be reading from or writing to the env. That's also why we don't start up
-	// the tokio runtime until after this - so that we can be certain about the single-threadedness
-	unsafe { std::env::remove_var("BASE_PASSWORD"); }
-
-	main_with_password(password)
+struct Config {
+	base_password: Option<String>,
+	base_username: Option<String>,
+	database_url: String,
+	asset_dir: String,
+	rustls_config: Option<RustlsConfig>,
+	db_connections: u32,
+	backend_port: Option<u16>
 }
 
-#[tokio::main]
-async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(), Box<dyn std::error::Error>> {
-	macro_rules! dotenv_num{
-		($key:expr, $default:expr, $type:ident) => {
-			dotenv::var($key).ok()
-				.and_then(|v| v.parse::<$type>().ok())
-				.unwrap_or($default)
+async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
+	let systemd_creds_dir = std::env::var("CREDENTIALS_DIRECTORY");
+
+	let base_username = dotenv::var("BASE_USERNAME").ok();
+	let (base_password, db_url) = match systemd_creds_dir {
+		Ok(dir) => {
+			let (a, b) = tokio::join!(
+				tokio::fs::read_to_string(format!("{dir}/base_password")),
+				tokio::fs::read_to_string(dir + "/database_url")
+			);
+
+			(a.ok(), b.ok())
 		}
-	}
+		Err(_) => {
+			let (a, b) = (
+				dotenv::var("BASE_PASSWORD"),
+				dotenv::var("DATABASE_URL")
+			);
 
-	tracing_subscriber::fmt()
-		.with_max_level(tracing::Level::DEBUG)
-		.with_env_filter(EnvFilter::from_default_env())
-		.init();
+			(a.ok(), b.ok())
+		}
+	};
 
-	let username = dotenv::var("BASE_USERNAME");
-
-	let num_connections = dotenv_num!("DB_CONNECTIONS", 80, u32);
-
-	let Ok(db_url) = dotenv::var("DATABASE_URL") else {
+	let Some(database_url) = db_url else {
 		return Err("DATABASE_URL is not set in .env (or is not valid unicode), and is necessary to connect to postgres. Please set it and retry.".into());
 	};
 
-	// Verifying that ASSET_DIR is a valid directory and is not readonly
 	let Some(asset_dir) = dotenv::var("ASSET_DIR").ok().into_iter().find(|d| !d.is_empty()) else {
 		return Err("ASSET_DIR var is not set in .env, and it is necessary to determine where to place assets uploaded as part of posts. Please set it and retry.".into());
 	};
@@ -123,11 +123,46 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 		}
 	};
 
+	let db_connections = dotenv::var("DB_CONNECTIONS")
+		.ok()
+		.and_then(|n| n.parse()
+			.inspect_err(|e| println!("Can't parse value for DB_CONNECTIONS ({n:?}) to u16: {e}"))
+			.ok()
+		)
+		.unwrap_or(80);
+
+	let backend_port = dotenv::var("BACKEND_PORT")
+		.ok()
+		.and_then(|p| <u16 as FromStr>::from_str(&p)
+			.inspect_err(|e| println!("Couldn't convert BACKEND_PORT {p:?} to a u16: {e}"))
+			.ok()
+		);
+
+	Ok(Config {
+		base_password,
+		base_username,
+		database_url,
+		asset_dir,
+		rustls_config,
+		backend_port,
+		db_connections
+	})
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	tracing_subscriber::fmt()
+		.with_max_level(tracing::Level::DEBUG)
+		.with_env_filter(EnvFilter::from_default_env())
+		.init();
+
+	let config = load_config().await?;
+
 	println!("Trying to connect to postgres...");
 
 	let pool = PgPoolOptions::new()
-		.max_connections(num_connections)
-		.connect(&db_url)
+		.max_connections(config.db_connections)
+		.connect(&config.database_url)
 		.await?;
 
 	println!("Connected to postgres...");
@@ -159,8 +194,8 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 	);").execute(&pool)
 		.await?;
 
-	match (username, password) {
-		(Ok(name), Ok(pass)) => {
+	match (config.base_username, config.base_password) {
+		(Some(name), Some(pass)) => {
 			println!("Adding user {name} to the db if not already exists (else updating password)");
 
 			let salt = SaltString::generate(&mut OsRng);
@@ -188,7 +223,7 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 				.execute(&pool)
 				.await?;
 		},
-		(Err(_), Err(_)) => println!("No base user specified; adding more users will be difficult"),
+		(None, None) => println!("No base user specified; adding more users will be difficult"),
 		_ => {
 			return Err("Either a base username or password was specified, but not the other. Cannot proceed; please specify both or neither.".into());
 		}
@@ -203,14 +238,8 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 
 	let leptos_config = get_configuration(None)?;
 	let mut leptos_opts = leptos_config.leptos_options;
-	let backend_port = dotenv::var("BACKEND_PORT")
-		.ok()
-		.and_then(|p| <u16 as FromStr>::from_str(&p)
-			.inspect_err(|e| println!("Couldn't convert {p:?} to a u16: {e}; leaving site_addr as {:?}", leptos_opts.site_addr))
-			.ok()
-		);
 
-	if let Some(port) = backend_port {
+	if let Some(port) = config.backend_port {
 		leptos_opts.site_addr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, port));
 	}
 
@@ -246,7 +275,7 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 		.route("/font/{id}", get(fonts::get_font))
 		.route("/login", get(pages::login::login_html))
 		.route("/api/login", post(backend::auth::login))
-		.nest_service("/api/assets/", ServeDir::new(asset_dir))
+		.nest_service("/api/assets/", ServeDir::new(config.asset_dir))
 		.route("/api/{fn_name}", post(move |req| handle_server_fns_with_context(
 			move || provide_context(server_fn_state.clone()),
 			req
@@ -265,7 +294,7 @@ async fn main_with_password(password: Result<String, dotenv::Error>) -> Result<(
 
 	println!("Serving axum at https://{addr}...");
 
-	if let Some(rustls_config) = rustls_config {
+	if let Some(rustls_config) = config.rustls_config {
 		axum_server::bind_rustls(addr, rustls_config)
 			.serve(app.into_make_service())
 			.await?;
