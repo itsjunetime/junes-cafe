@@ -66,7 +66,7 @@ impl RenderOnce for PostView {
 						#post-text {
 							padding: 12px;
 						}
-					&	#post-text img {
+						#post-text img {
 							max-width: 100%;
 						}
 						#tag-title {
@@ -76,6 +76,7 @@ impl RenderOnce for PostView {
 							margin-top: 6px;
 						}
 					");
+					link(rel = "preconnect", href = "/font/maple-mono");
 					meta(name = "viewport", content = "width=device-width, initial-scale=1");
 				}
 				body {

@@ -45,6 +45,7 @@ pub async fn login_html(
 						color: red;
 					}
 				");
+				link(rel = "preconnect", href = "/font/maple-mono");
 				meta(name = "viewport", content = "width=device-width, initial-scale=1");
 			}
 			body {

@@ -19,6 +19,7 @@ impl<C> RenderOnce for PostList<'_, C> where C: RenderOnce + 'static {
 					style : Raw(shared_data::BASE_STYLE);
 					style : Raw(shared_data::POST_LIST_STYLE);
 					meta(name = "viewport", content = "width=device-width, initial-scale=1");
+					link(rel = "preconnect", href = "/font/maple-mono");
 				}
 				body {
 					div(id = "home-title") {

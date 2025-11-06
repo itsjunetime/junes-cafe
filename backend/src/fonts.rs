@@ -50,6 +50,7 @@ impl RenderOnce for LicensePage {
 						head {
 							title : "itsjuneti.me (licenses)";
 							style : Raw(shared_data::BASE_STYLE);
+							link(rel = "preconnect", href = "/font/maple-mono");
 						}
 						body {
 							h1 : "Dependencies";
