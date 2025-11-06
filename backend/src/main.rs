@@ -10,10 +10,10 @@ use axum::{
 	extract::DefaultBodyLimit, routing::{get, post}, Router
 };
 use axum_server::tls_rustls::RustlsConfig;
-use http::{Method, StatusCode};
+// use http::{Method, StatusCode};
 use leptos::prelude::*;
 use leptos_axum::handle_server_fns_with_context;
-use tower_cache::options::CacheOptions;
+// use tower_cache::options::CacheOptions;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tower_no_ai::NoAiLayer;
 use tower_sessions::{
@@ -247,16 +247,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let pkg_dir = format!("{}/{}", leptos_opts.site_root, leptos_opts.site_pkg_dir);
 	println!("Packages at {pkg_dir} served at /pkg");
 
-	let cache_options = CacheOptions::new(
+	/*let cache_options = CacheOptions::new(
 		Some(StatusCode::OK..StatusCode::INTERNAL_SERVER_ERROR),
 		Some(Method::GET)
-	);
+	);*/
 
-	let invalidator = cache_options.invalidator();
+	// let invalidator = cache_options.invalidator();
 
 	any_spawner::Executor::init_tokio()?;
 
-	let state = AxumState { leptos_opts, tx_state, invalidator };
+	// let state = AxumState { leptos_opts, tx_state, invalidator };
+	let state = AxumState { leptos_opts, tx_state };
 	let server_fn_state = state.clone();
 
 	let app = Router::<AxumState>::new()

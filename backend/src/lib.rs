@@ -7,14 +7,14 @@ pub mod state {
 	use axum_sqlx_tx::State;
 	use sqlx::Postgres;
 	use http::request::Parts;
-	use tower_cache::invalidator::Invalidator;
+	// use tower_cache::invalidator::Invalidator;
 	use leptos::prelude::*;
 
 	#[derive(Clone)]
 	pub struct AxumState {
 		pub tx_state: State<Postgres>,
 		pub leptos_opts: LeptosOptions,
-		pub invalidator: Invalidator
+		// pub invalidator: Invalidator
 	}
 
 	impl FromRef<AxumState> for State<Postgres> {
@@ -29,11 +29,11 @@ pub mod state {
 		}
 	}
 
-	impl FromRef<AxumState> for Invalidator {
+	/*impl FromRef<AxumState> for Invalidator {
 		fn from_ref(input: &AxumState) -> Self {
 			input.invalidator.clone()
 		}
-	}
+	}*/
 
 	impl FromRequestParts<AxumState> for State<Postgres> {
 		type Rejection = std::convert::Infallible;

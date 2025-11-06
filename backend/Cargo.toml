@@ -28,7 +28,7 @@ any_spawner = "0.3.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 axum = { version = "0.8.1", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form", "macros", "tracing"] }
-axum-extra = { version = "0.10", default-features = false }
+axum-extra = { version = "0.12", default-features = false }
 axum-server = { version = "0.7.1", default-features = false, features = ["tls-rustls"] }
 # axum-server = { path = "../../../foss/axum-server/", default-features = false, features = ["tls-rustls"] }
 rustls = { version = "*", features = ["brotli", "zlib"] }
@@ -43,7 +43,7 @@ chrono = { version = "0.4.35", default-features = false }
 tower-http = { version = "0.6.0", default-features = false, features = ["fs", "trace"] }
 tower-no-ai = "0.2.0"
 tower-sessions = "0.14.0"
-tower-cache = { git = "https://github.com/itsjunetime/tower-cache.git", features = ["axum"] }
+# tower-cache = { git = "https://github.com/itsjunetime/tower-cache.git", features = ["axum"] }
 oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
 leptos_axum = { version = "0.8.0-rc2", default-features = false }
 argon2 = { version = "0.5.3", features = ["std"] }
