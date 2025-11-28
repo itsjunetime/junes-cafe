@@ -38,7 +38,7 @@ pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebu
 
 	let urls = posts.into_iter()
 		.map(|post| UrlEntry {
-			loc: format!("https://itsjuneti.me/post/{}", post.id).parse().unwrap(),
+			loc: format!("https://june.cat/post/{}", post.id).parse().unwrap(),
 			lastmod: DateTime::from_timestamp(post.created_at as i64, 0),
 			changefreq: Some(ChangeFreq::Never),
 			priority: None
@@ -58,7 +58,7 @@ pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sq
 	let items = posts.into_iter()
 		.map(|post| Item {
 			title: Some(post.title),
-			link: Some(format!("https://itsjuneti.me/post/{}", post.id)),
+			link: Some(format!("https://june.cat/post/{}", post.id)),
 			author: Some("junewelker@gmail.com".into()),
 			categories: post.tags.0
 				.into_iter()
@@ -70,7 +70,7 @@ pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sq
 			pub_date: DateTime::from_timestamp(post.created_at as i64, 0)
 				.map(|dt| dt.to_rfc2822()),
 			source: Some(Source {
-				url: "https://itsjuneti.me/index.xml".into(),
+				url: "https://june.cat/index.xml".into(),
 				title: None
 			}),
 			content: Some(post.html),
@@ -79,8 +79,8 @@ pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sq
 		.collect::<Vec<_>>();
 
 	let channel = Channel {
-		title: "itsjuneti.me".into(),
-		link: "https://itsjuneti.me".into(),
+		title: "june.cat".into(),
+		link: "https://june.cat".into(),
 		description: "A blog about various tech topics but mainly rust".into(),
 		language: Some("en_US".into()),
 		managing_editor: Some("junewelker@gmail.com".into()),
