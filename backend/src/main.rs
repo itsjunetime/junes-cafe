@@ -13,6 +13,7 @@ use axum_server::tls_rustls::RustlsConfig;
 // use http::{Method, StatusCode};
 use leptos::prelude::*;
 use leptos_axum::handle_server_fns_with_context;
+use server_fn::ServerFn;
 // use tower_cache::options::CacheOptions;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tower_no_ai::NoAiLayer;
@@ -30,7 +31,7 @@ use sqlx::{
 use backend::AxumState;
 use tracing_subscriber::EnvFilter;
 
-use crate::pages::edit_post::SubmitOrEditPost;
+use crate::pages::edit_post::{ReceiveAsset, SubmitOrEditPost};
 
 mod images;
 mod home;
@@ -262,7 +263,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let state = AxumState { leptos_opts, tx_state };
 	let server_fn_state = state.clone();
 
-	server_fn::axum::register_explicit::<SubmitOrEditPost>();
+	println!("submit_or_edit_post exists at {}", SubmitOrEditPost::PATH);
+	println!("upload_asset exists at {}", ReceiveAsset::PATH);
 
 	let app = Router::<AxumState>::new()
 		.route("/sitemap.xml", get(robots::get_sitemap_xml))
@@ -281,7 +283,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/login", get(pages::login::login_html))
 		.route("/api/login", post(backend::auth::login))
 		.nest_service("/api/assets/", ServeDir::new(config.asset_dir))
-		.route("/api/{fn_name}", post(move |req| handle_server_fns_with_context(
+		.route("/api/{*fn_name}", post(move |req| handle_server_fns_with_context(
 			move || provide_context(server_fn_state.clone()),
 			req
 		)))

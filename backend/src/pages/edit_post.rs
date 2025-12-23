@@ -464,7 +464,7 @@ fn upload_asset(
 }
 
 #[server(input = leptos::server_fn::codec::MultipartFormData)]
-async fn receive_asset(form: MultipartData) -> Result<String, ServerFnError> {
+pub async fn receive_asset(form: MultipartData) -> Result<String, ServerFnError> {
 	let MultipartData::Server(form) = form else {
 		return Err(ServerFnError::Deserialization("We got a non-server MultipartData".into()));
 	};
