@@ -463,7 +463,7 @@ fn upload_asset(
 	});
 }
 
-#[server(input = leptos::server_fn::codec::MultipartFormData)]
+#[server(input = leptos::server_fn::codec::MultipartFormData, endpoint = "/api/receive_asset")]
 pub async fn receive_asset(form: MultipartData) -> Result<String, ServerFnError> {
 	let MultipartData::Server(form) = form else {
 		return Err(ServerFnError::Deserialization("We got a non-server MultipartData".into()));
@@ -505,7 +505,7 @@ fn submit_or_edit_post_outer(
 	});
 }
 
-#[server(input = Json)]
+#[server(input = Json, endpoint = "submit_or_edit_post")]
 pub async fn submit_or_edit_post(req: PostReq) -> Result<String, ServerFnError> {
 	use tower_sessions::Session;
 	use axum_sqlx_tx::Tx;
