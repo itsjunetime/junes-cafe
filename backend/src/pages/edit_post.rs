@@ -506,7 +506,7 @@ fn submit_or_edit_post_outer(
 }
 
 #[server(input = Json)]
-async fn submit_or_edit_post(req: PostReq) -> Result<String, ServerFnError> {
+pub async fn submit_or_edit_post(req: PostReq) -> Result<String, ServerFnError> {
 	use tower_sessions::Session;
 	use axum_sqlx_tx::Tx;
 	use sqlx::Postgres;

@@ -30,6 +30,8 @@ use sqlx::{
 use backend::AxumState;
 use tracing_subscriber::EnvFilter;
 
+use crate::pages::edit_post::SubmitOrEditPost;
+
 mod images;
 mod home;
 mod post_list;
@@ -259,6 +261,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	// let state = AxumState { leptos_opts, tx_state, invalidator };
 	let state = AxumState { leptos_opts, tx_state };
 	let server_fn_state = state.clone();
+
+	server_fn::axum::register_explicit::<SubmitOrEditPost>();
 
 	let app = Router::<AxumState>::new()
 		.route("/sitemap.xml", get(robots::get_sitemap_xml))
