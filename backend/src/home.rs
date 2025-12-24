@@ -120,7 +120,11 @@ impl RenderOnce for Posts {
 						);
 						div(class = "post-footer") {
 							span(class = "post-time") {
-								: "Posted at ";
+								@ if post.draft {
+									: "Drafted at ";
+								} else {
+									: "Posted at ";
+								}
 								strong : shared_data::title_time_string(post.created_at);
 							}
 							span(class = "tag-group") {

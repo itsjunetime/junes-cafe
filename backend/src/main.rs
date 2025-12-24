@@ -271,6 +271,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/index.xml", get(robots::get_rss_xml))
 		.route("/robots.txt", get(robots::get_robots_txt))
 		.route("/licenses", get(fonts::get_license_page))
+		// todo get a favicon
+		.route("/favicon.ico", get(|| async { [0u8; 0] }))
 		// hmmmmmmm... caching... how do we insert 'sessions' as dependencies... who knows...
 		// We're putting this layer right here for now so that it only applies to the routes added
 		// before it is called. Those are the things that, at least at the moment, shouldn't really

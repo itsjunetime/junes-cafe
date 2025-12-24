@@ -87,6 +87,7 @@ impl RenderOnce for AdminPosts {
 				}
 				.action-links {
 					justify-content: flex-end;
+					align-items: center;
 				}
 				a {
 					text-decoration: none;
@@ -109,7 +110,7 @@ impl RenderOnce for AdminPosts {
 
 						div(class = "post-subtitle-box") {
 							span(class = "post-subtitle") {
-								: "by";
+								: "by ";
 								strong: Post::display_user(&post.username);
 								: ", ";
 								strong: shared_data::title_time_string(post.created_at);
@@ -126,6 +127,11 @@ impl RenderOnce for AdminPosts {
 						}
 
 						span(class = "action-links") {
+							@ if post.draft {
+								stong(style = "color: red") {
+									: "(draft)"
+								}
+							}
 							a(class = "action-link", href = format_args!("/post/{}", post.id)): "View";
 							a(class = "action-link", href = format_args!("/admin/edit_post/{}", post.id)): "Edit"
 						}

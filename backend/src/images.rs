@@ -83,7 +83,7 @@ pub async fn upload_asset(session: Session, mut form: multer::Multipart<'_>) -> 
 							},
 							&oxipng::Options {
 								fix_errors: true,
-								deflate: oxipng::Deflaters::Libdeflater { compression: 12 },
+								deflater: oxipng::Deflater::Libdeflater { compression: 12 },
 								..Default::default()
 							}
 						) {

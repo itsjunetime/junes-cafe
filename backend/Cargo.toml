@@ -10,15 +10,15 @@ crate-type = ["cdylib", "rlib"]
 serde = { version = "1.0.197", features = ["serde_derive"] }
 serde_json = "1.0.120"
 build-info = "0.0.42"
-leptos = { version = "0.8.0-rc2", default-features = false, features = ["nightly", "rustls", "islands"] }
-leptos_router = { version = "0.8.0-rc2", default-features = false, features = ["nightly"] }
+leptos = { version = "0.8.15", default-features = false, features = ["nightly", "rustls", "islands"] }
+leptos_router = { version = "0.8.11", default-features = false, features = ["nightly"] }
 wasm-bindgen = "0.2.93"
 http = "1.1.0"
 const_format = "0.2.32"
 uuid = { version = "1.10.0", features = ["serde"] }
 web-sys = { version = "0.3.70", features = ["DataTransfer", "FileList", "File", "FormData"] }
 wasm-bindgen-futures = "0.4.43"
-leptos_meta = { version = "0.8.0-rc2", default-features = false }
+leptos_meta = { version = "0.8.5", default-features = false }
 server_fn = { version = "0.8.0-beta", default-features = false, features = ["multipart"] }
 js-sys = "0.3.77"
 gloo-timers = { version = "0.3.0", features = ["futures"] }
@@ -27,29 +27,29 @@ shared_data = { path = "../shared_data" }
 any_spawner = "0.3.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-axum = { version = "0.8.1", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form", "macros", "tracing"] }
+axum = { version = "0.8", default-features = false, features = ["multipart", "query", "json", "tokio", "http1", "http2", "form", "macros", "tracing"] }
 axum-extra = { version = "0.12", default-features = false }
-axum-server = { version = "0.7.1", default-features = false, features = ["tls-rustls"] }
+axum-server = { version = "0.8", default-features = false, features = ["tls-rustls"] }
 # axum-server = { path = "../../../foss/axum-server/", default-features = false, features = ["tls-rustls"] }
 rustls = { version = "*", features = ["brotli", "zlib"] }
-tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
-dotenv = "0.15.0"
-axum-sqlx-tx = "0.10.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+dotenv = "0.15"
+axum-sqlx-tx = "0.10"
 sqlx = { workspace = true }
-horrorshow = { version = "0.8.4", default-features = false, features = ["std", "ops"] }
-rss = { version = "2.0.7", default-features = false }
-sitewriter = { version = "1.0.4", default-features = false }
-chrono = { version = "0.4.35", default-features = false }
-tower-http = { version = "0.6.0", default-features = false, features = ["fs", "trace"] }
-tower-no-ai = "0.2.0"
-tower-sessions = "0.14.0"
+horrorshow = { version = "0.8", default-features = false, features = ["std", "ops"] }
+rss = { version = "2", default-features = false }
+sitewriter = { version = "1", default-features = false }
+chrono = { version = "0.4", default-features = false }
+tower-http = { version = "0.6", default-features = false, features = ["fs", "trace"] }
+tower-no-ai = "0.2"
+tower-sessions = "0.14"
 # tower-cache = { git = "https://github.com/itsjunetime/tower-cache.git", features = ["axum"] }
-oxipng = { version = "9.0.0", default-features = false, features = ["parallel"] }
-leptos_axum = { version = "0.8.0-rc2", default-features = false }
-argon2 = { version = "0.5.3", features = ["std"] }
-tracing = "0.1.40"
+oxipng = { version = "10", default-features = false, features = ["parallel"] }
+leptos_axum = { version = "0.8", default-features = false }
+argon2 = { version = "0.5", features = ["std"] }
+tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-serde_urlencoded = "0.7.1"
+serde_urlencoded = "0.7"
 multer = "*"
 itertools = "*"
 
