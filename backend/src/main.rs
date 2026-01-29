@@ -128,13 +128,16 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 			.ok()
 		);
 
+	let pg_opts = PgConnectOptions::default()
+		.username(&pg_user)
+		.password(&pg_user_password)
+		.database(&pg_database);
+	println!("opts are {pg_opts:?}");
+
 	Ok(Config {
 		base_password,
 		base_username,
-		pg_opts: PgConnectOptions::default()
-			.username(&pg_user)
-			.password(&pg_user_password)
-			.database(&pg_database),
+		pg_opts,
 		asset_dir,
 		rustls_config,
 		backend_port,
