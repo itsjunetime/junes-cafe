@@ -132,7 +132,6 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 		.username(&pg_user)
 		.password(&pg_user_password)
 		.database(&pg_database);
-	println!("opts are {pg_opts:?}");
 
 	Ok(Config {
 		base_password,
