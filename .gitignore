@@ -1,4 +1,5 @@
 /target
-.env
 frontend/dist
 .DS_Store
+.env
+.password.txt

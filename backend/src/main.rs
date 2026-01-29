@@ -1,6 +1,7 @@
 #![feature(if_let_guard)]
 
 use core::{net::{Ipv4Addr, SocketAddr, SocketAddrV4}, str::FromStr};
+use std::env;
 
 use argon2::{
 	password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
@@ -24,9 +25,7 @@ use tower_sessions::{
 use axum_sqlx_tx::Tx;
 use shared_data::Post;
 use sqlx::{
-	query,
-	Postgres,
-	postgres::PgPoolOptions,
+	Postgres, postgres::{PgConnectOptions, PgPoolOptions}, query
 };
 use backend::AxumState;
 use tracing_subscriber::EnvFilter;
@@ -54,9 +53,9 @@ macro_rules! print_and_ret{
 }
 
 struct Config {
-	base_password: Option<String>,
-	base_username: Option<String>,
-	database_url: String,
+	base_password: String,
+	base_username: String,
+	pg_opts: PgConnectOptions,
 	asset_dir: String,
 	rustls_config: Option<RustlsConfig>,
 	db_connections: u32,
@@ -64,37 +63,25 @@ struct Config {
 }
 
 async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
-	let systemd_creds_dir = std::env::var("CREDENTIALS_DIRECTORY");
+	let base_username = env::var("BASE_USERNAME")
+		.map_err(|_| "BASE_USERNAME env var not present")?;
+	let base_password_file = env::var("BASE_PASSWORD_FILE")
+		.map_err(|_| "BASE_USER_PASSWORD_FILE env var not set")?;
+	let base_password = fs_err::read_to_string(&base_password_file)?;
 
-	let base_username = dotenv::var("BASE_USERNAME").ok();
-	let (base_password, db_url) = match systemd_creds_dir {
-		Ok(dir) => {
-			let (a, b) = tokio::join!(
-				tokio::fs::read_to_string(format!("{dir}/base_password")),
-				tokio::fs::read_to_string(dir + "/database_url")
-			);
+	let pg_user = env::var("PG_USER")
+		.map_err(|_| "PG_USER env var not present")?;
+	let pg_database = env::var("PG_DATABASE")
+		.map_err(|_| "PG_DATABASE env var not present")?;
+	let pg_user_password_file = env::var("PG_USER_PASSWORD_FILE")
+		.map_err(|_| "PG_USER_PASSWORD_FILE env var not set")?;
+	let pg_user_password = fs_err::read_to_string(&pg_user_password_file)?;
 
-			(a.ok(), b.ok())
-		}
-		Err(_) => {
-			let (a, b) = (
-				dotenv::var("BASE_PASSWORD"),
-				dotenv::var("DATABASE_URL")
-			);
-
-			(a.ok(), b.ok())
-		}
-	};
-
-	let Some(database_url) = db_url else {
-		return Err("DATABASE_URL is not set in .env (or is not valid unicode), and is necessary to connect to postgres. Please set it and retry.".into());
-	};
-
-	let Some(asset_dir) = dotenv::var("ASSET_DIR").ok().into_iter().find(|d| !d.is_empty()) else {
+	let Some(asset_dir) = env::var("ASSET_DIR").ok().into_iter().find(|d| !d.is_empty()) else {
 		return Err("ASSET_DIR var is not set in .env, and it is necessary to determine where to place assets uploaded as part of posts. Please set it and retry.".into());
 	};
 
-	let permissions = match std::fs::metadata(&asset_dir) {
+	let permissions = match fs_err::metadata(&asset_dir) {
 		Ok(mtd) => mtd.permissions(),
 		Err(err) => {
 			eprintln!("ASSET_DIR does not point to a valid directory: {err:?}");
@@ -108,8 +95,8 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 
 	println!("Storing assets to/Reading assets from {asset_dir}");
 
-	let cert_file = dotenv::var("CERT_FILE");
-	let key_file = dotenv::var("KEY_FILE");
+	let cert_file = env::var("CERT_FILE");
+	let key_file = env::var("KEY_FILE");
 
 	let rustls_config = match (cert_file, key_file) {
 		(Ok(_), Err(_)) | (Err(_), Ok(_)) =>
@@ -126,7 +113,7 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 		}
 	};
 
-	let db_connections = dotenv::var("DB_CONNECTIONS")
+	let db_connections = env::var("DB_CONNECTIONS")
 		.ok()
 		.and_then(|n| n.parse()
 			.inspect_err(|e| println!("Can't parse value for DB_CONNECTIONS ({n:?}) to u16: {e}"))
@@ -134,7 +121,7 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 		)
 		.unwrap_or(80);
 
-	let backend_port = dotenv::var("BACKEND_PORT")
+	let backend_port = env::var("BACKEND_PORT")
 		.ok()
 		.and_then(|p| <u16 as FromStr>::from_str(&p)
 			.inspect_err(|e| println!("Couldn't convert BACKEND_PORT {p:?} to a u16: {e}"))
@@ -144,7 +131,10 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 	Ok(Config {
 		base_password,
 		base_username,
-		database_url,
+		pg_opts: PgConnectOptions::default()
+			.username(&pg_user)
+			.password(&pg_user_password)
+			.database(&pg_database),
 		asset_dir,
 		rustls_config,
 		backend_port,
@@ -165,7 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let pool = PgPoolOptions::new()
 		.max_connections(config.db_connections)
-		.connect(&config.database_url)
+		.connect_with(config.pg_opts)
 		.await?;
 
 	println!("Connected to postgres...");
@@ -197,40 +187,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	);").execute(&pool)
 		.await?;
 
-	match (config.base_username, config.base_password) {
-		(Some(name), Some(pass)) => {
-			println!("Adding user {name} to the db if not already exists (else updating password)");
+	println!("Adding user {} to the db if not already exists (else updating password)", config.base_username);
 
-			let salt = SaltString::generate(&mut OsRng);
-			let argon = Argon2::default();
+	let salt = SaltString::generate(&mut OsRng);
+	let argon = Argon2::default();
 
-			let hash = match argon.hash_password(pass.as_bytes(), &salt) {
-				Ok(hash) => hash.to_string(),
-				Err(err) => {
-					eprintln!("Couldn't hash the given password at .env:BASE_PASSWORD: {err:?}");
-					return Err(err.into());
-				}
-			};
-
-			// We insert the user into the db, but if there's a conflict (if the username already
-			// exists), then we just leave it be, since the hash for the same password can change.
-			// If you want to change the password, you'll have to manually go into the database and
-			// clear the user.
-			query("INSERT INTO users (username, hashed_pass)
-					VALUES ($1, $2)
-					ON CONFLICT (username) DO UPDATE
-					SET hashed_pass = EXCLUDED.hashed_pass
-					WHERE users.username = EXCLUDED.username
-			;").bind(name)
-				.bind(hash)
-				.execute(&pool)
-				.await?;
-		},
-		(None, None) => println!("No base user specified; adding more users will be difficult"),
-		_ => {
-			return Err("Either a base username or password was specified, but not the other. Cannot proceed; please specify both or neither.".into());
+	let hash = match argon.hash_password(config.base_password.as_bytes(), &salt) {
+		Ok(hash) => hash.to_string(),
+		Err(err) => {
+			eprintln!("Couldn't hash the given password at .env:BASE_PASSWORD: {err:?}");
+			return Err(err.into());
 		}
 	};
+
+	// We insert the user into the db, but if there's a conflict (if the username already
+	// exists), then we just leave it be, since the hash for the same password can change.
+	// If you want to change the password, you'll have to manually go into the database and
+	// clear the user.
+	query("INSERT INTO users (username, hashed_pass)
+			VALUES ($1, $2)
+			ON CONFLICT (username) DO UPDATE
+			SET hashed_pass = EXCLUDED.hashed_pass
+			WHERE users.username = EXCLUDED.username
+	;").bind(config.base_username)
+		.bind(hash)
+		.execute(&pool)
+		.await?;
 
 	// Set up sessions for authentication
 	// And if we have to restart the server, then we're ok with losing sessions, so do an only
