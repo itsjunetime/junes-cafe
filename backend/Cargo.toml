@@ -42,7 +42,7 @@ sitewriter = { version = "1", default-features = false }
 chrono = { version = "0.4", default-features = false }
 tower-http = { version = "0.6", default-features = false, features = ["fs", "trace"] }
 tower-no-ai = "0.2"
-tower-sessions = "0.14"
+tower-sessions = "0.15"
 # tower-cache = { git = "https://github.com/itsjunetime/tower-cache.git", features = ["axum"] }
 oxipng = { version = "10", default-features = false, features = ["parallel"] }
 leptos_axum = { version = "0.8", default-features = false }

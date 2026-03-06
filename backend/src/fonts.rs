@@ -3,19 +3,14 @@ use horrorshow::{html, Raw, helper::doctype, RenderOnce, TemplateBuffer, Templat
 use std::sync::OnceLock;
 use crate::post_list::PostList;
 
-static MAPLE_MONO_LIGHT: &[u8] = include_bytes!("../../fonts/maple-mono/woff2/MapleMono-Light.woff2");
-static ISENHEIM_REGULAR: &[u8] = include_bytes!("../../fonts/isenheim/fonts/OpenType-PS/Isenheim_Regulier.otf");
+static MAPLE_MONO_LIGHT: &[u8] = include_bytes!("../../fonts/maple-mono/woff2/var/MapleMono[wght]-VF.woff2");
 
 pub async fn get_font(Path(id): Path<String>) -> ([(HeaderName, &'static str); 1], &'static [u8]) {
 	(
 		// cache for a month
 		[(header::CACHE_CONTROL, "2592000")],
 		// error tolerance babey
-		if id.contains("maple") {
-			MAPLE_MONO_LIGHT
-		} else {
-			ISENHEIM_REGULAR
-		}
+		MAPLE_MONO_LIGHT
 	)
 }
 
@@ -68,11 +63,6 @@ impl RenderOnce for LicensePage {
 
 							h1: "Fonts";
 							ul {
-								li {
-									a(href = "https://www.tunera.xyz/fonts/isenheim/") : "Isenheim";
-									: ": ";
-									a(href = "https://www.tunera.xyz/licenses/sil-open-font-license-1.1/") : "SIL Open Font License v1.1";
-								}
 								li {
 									a(href = "https://github.com/subframe7536/maple-font") : "Maple Mono";
 									: ": ";
