@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use tower_sessions::Session;
 use axum_sqlx_tx::Tx;
-use sqlx::{query, query_as, Executor, Postgres, Row};
+use sqlx::{AssertSqlSafe, Executor, Postgres, Row, query, query_as};
 use axum::{http::StatusCode, extract::Path};
 use shared_data::{Post, PostReq};
 use backend::{auth::get_username, check_auth};
@@ -40,7 +40,7 @@ pub async fn get_post_list_with_user(
 		LIMIT {count} \
 		OFFSET {offset} \
 	;");
-	let mut q = query_as::<_, Post>(&q_string);
+	let mut q = query_as::<_, Post>(AssertSqlSafe(q_string));
 
 	if let Some(name) = username {
 		q = q.bind(name);
@@ -78,7 +78,7 @@ pub async fn get_post_for_user<'e, E: Executor<'e, Database = Postgres>>(
 		{where_clause}\
 	;");
 
-	let mut q = query_as::<_, Post>(&query_str).bind(id as i32);
+	let mut q = query_as::<_, Post>(AssertSqlSafe(query_str)).bind(id as i32);
 
 	if let Some(name) = username {
 		q = q.bind(name);

@@ -5,7 +5,7 @@ use crate::post_list::PostList;
 
 static MAPLE_MONO_LIGHT: &[u8] = include_bytes!("../../fonts/maple-mono/woff2/var/MapleMono[wght]-VF.woff2");
 
-pub async fn get_font(Path(id): Path<String>) -> ([(HeaderName, &'static str); 1], &'static [u8]) {
+pub async fn get_font(Path(_id): Path<String>) -> ([(HeaderName, &'static str); 1], &'static [u8]) {
 	(
 		// cache for a month
 		[(header::CACHE_CONTROL, "2592000")],

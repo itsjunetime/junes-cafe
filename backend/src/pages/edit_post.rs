@@ -1,8 +1,12 @@
 use std::{borrow::Cow, collections::HashSet, fmt::Write};
 
-use leptos::{either::Either, prelude::*, wasm_bindgen::JsCast, task::spawn_local};
+use leptos::{
+	either::Either,
+	prelude::{*, server_fn::codec::{MultipartData, Json}},
+	wasm_bindgen::JsCast,
+	task::spawn_local
+};
 use serde::{Deserialize, Serialize};
-use server_fn::codec::{MultipartData, Json};
 use web_sys::{FileList, FormData, HtmlTextAreaElement};
 use shared_data::{BASE_STYLE, md_to_html, PostReq};
 
@@ -463,7 +467,7 @@ fn upload_asset(
 	});
 }
 
-#[server(input = leptos::server_fn::codec::MultipartFormData, endpoint = "receive_asset")]
+#[server(input = leptos::prelude::server_fn::codec::MultipartFormData, endpoint = "receive_asset")]
 pub async fn receive_asset(form: MultipartData) -> Result<String, ServerFnError> {
 	let MultipartData::Server(form) = form else {
 		return Err(ServerFnError::Deserialization("We got a non-server MultipartData".into()));

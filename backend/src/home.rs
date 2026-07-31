@@ -1,3 +1,4 @@
+#[expect(deprecated)]
 use axum_extra::extract::Host;
 use tower_sessions::Session;
 use sqlx::Postgres;
@@ -6,10 +7,12 @@ use axum::{response::Html, extract::Path};
 use horrorshow::{html, Raw, RenderOnce, TemplateBuffer, Template};
 use crate::{blog_api::get_post_list, post_list::PostList, Post};
 
+#[expect(deprecated)]
 pub async fn get_home_view(session: Session, tx: Tx<Postgres>, host: Host) -> Html<String> {
 	get_page_view(session, tx, Path(0), host).await
 }
 
+#[expect(deprecated)]
 pub async fn get_page_view(
 	session: Session,
 	mut tx: Tx<Postgres>,
