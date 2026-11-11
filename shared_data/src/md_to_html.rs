@@ -1,15 +1,16 @@
 use std::{io::Cursor, sync::OnceLock};
 
-use syntect::{
-	highlighting::{Color, Theme, ThemeSet},
-	parsing::SyntaxSet,
-	html::{append_highlighted_html_for_styled_line, IncludeBackground},
-	easy::HighlightLines,
-	util::LinesWithEndings,
-};
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, Tag, TagEnd};
+use syntect::{
+	easy::HighlightLines,
+	highlighting::{Color, Theme, ThemeSet},
+	html::{IncludeBackground, append_highlighted_html_for_styled_line},
+	parsing::SyntaxSet,
+	util::LinesWithEndings
+};
 
-static FRAPPE_THEME: &[u8] = include_bytes!("../../fonts/catppuccin_syntax/themes/Catppuccin Frappe.tmTheme");
+static FRAPPE_THEME: &[u8] =
+	include_bytes!("../../fonts/catppuccin_syntax/themes/Catppuccin Frappe.tmTheme");
 
 pub fn md_to_html(input: &str) -> String {
 	static THEME: OnceLock<Theme> = OnceLock::new();
@@ -31,19 +32,20 @@ pub fn md_to_html(input: &str) -> String {
 
 	let events = events.filter_map(|ev| match ev {
 		Event::Start(Tag::CodeBlock(kind)) => {
-			if let CodeBlockKind::Fenced(lang) = kind &&
-				let Some(syn) = syntax_set.find_syntax_by_token(&lang)
+			if let CodeBlockKind::Fenced(lang) = kind
+				&& let Some(syn) = syntax_set.find_syntax_by_token(&lang)
 			{
 				syntax = syn;
 			}
 			in_code_block = true;
 			None
-		},
+		}
 		Event::End(TagEnd::CodeBlock) => {
 			let mut highlighter = HighlightLines::new(syntax, theme);
 			let color = theme.settings.background.unwrap_or(Color::BLACK);
 			let lang = syntax.name.to_lowercase();
-			let mut output = format!(r#"<pre class="language-{lang}"><code class="language-{lang}">"#);
+			let mut output =
+				format!(r#"<pre class="language-{lang}"><code class="language-{lang}">"#);
 
 			for line in LinesWithEndings::from(&to_highlight) {
 				// if we fail to highlight, it's kinda whatever
@@ -61,11 +63,11 @@ pub fn md_to_html(input: &str) -> String {
 			to_highlight.clear();
 			in_code_block = false;
 			Some(Event::Html(CowStr::from(output)))
-		},
+		}
 		Event::Text(t) if in_code_block => {
 			to_highlight.push_str(&t);
 			None
-		},
+		}
 		e => Some(e)
 	});
 

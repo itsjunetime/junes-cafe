@@ -1,10 +1,10 @@
-use tower_sessions::Session;
+use axum::{extract::Path, http::StatusCode, response::Html};
 use axum_sqlx_tx::Tx;
-use axum::{response::Html, extract::Path, http::StatusCode};
-use sqlx::Postgres;
-use shared_data::Post;
-use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, Template, helper::doctype};
 use backend::auth::get_username;
+use horrorshow::{Raw, RenderOnce, Template, TemplateBuffer, helper::doctype, html};
+use shared_data::Post;
+use sqlx::Postgres;
+use tower_sessions::Session;
 
 use crate::blog_api::get_post;
 

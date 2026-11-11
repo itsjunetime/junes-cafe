@@ -11,7 +11,7 @@ pub const MATRIX_ICON: &str = include_str!("../../assets/matrix.svg");
 pub const RSS_ICON: &str = include_str!("../../assets/rss-icon.svg");
 
 #[cfg(feature = "sqlx")]
-use sqlx::{Row, FromRow, postgres::PgRow};
+use sqlx::{FromRow, Row, postgres::PgRow};
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 #[cfg_attr(feature = "sqlx", derive(sqlx::FromRow))]
@@ -52,13 +52,14 @@ pub struct Tags(pub Vec<String>);
 #[cfg(feature = "sqlx")]
 impl FromRow<'_, PgRow> for Tags {
 	fn from_row(row: &PgRow) -> sqlx::Result<Self> {
-		row.try_get::<&str, _>("tags")
-			.map(|t| Self(
+		row.try_get::<&str, _>("tags").map(|t| {
+			Self(
 				t.split(',')
 					.filter(|t| !t.is_empty())
 					.map(str::to_string)
 					.collect()
-			))
+			)
+		})
 	}
 }
 
@@ -73,15 +74,15 @@ pub struct PostReq {
 
 #[must_use]
 pub fn title_time_string(time: u64) -> String {
-	time.try_into()
-		.map_or_else(
-			|_| "200 years in the future???".into(),
-			|time| DateTime::from_timestamp(time, 0)
-				.map_or_else(
-					|| "an unknown time".into(),
-					|dt| dt.naive_utc().format("%H:%M on %b %-d, %Y").to_string()
-				)
-		)
+	time.try_into().map_or_else(
+		|_| "200 years in the future???".into(),
+		|time| {
+			DateTime::from_timestamp(time, 0).map_or_else(
+				|| "an unknown time".into(),
+				|dt| dt.naive_utc().format("%H:%M on %b %-d, %Y").to_string()
+			)
+		}
+	)
 }
 
 pub static BASE_STYLE: &str = r##"

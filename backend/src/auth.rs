@@ -1,25 +1,33 @@
 use argon2::{
-	password_hash::{PasswordHash, PasswordVerifier},
-	Argon2
+	Argon2,
+	password_hash::{PasswordVerifier, phc::PasswordHash}
 };
-use serde::{Serialize, Deserialize};
-use sqlx::{query, Postgres, Row};
+use axum::{Form, response::Redirect};
 use axum_sqlx_tx::Tx;
+use serde::{Deserialize, Serialize};
+use sqlx::{Postgres, Row, query};
 use tower_sessions::Session;
-use axum::{response::Redirect, Form};
 
 pub const USERNAME_KEY: &str = "authenticated_username";
 
 pub async fn get_username(session: &Session) -> Option<String> {
-	session.get::<String>(crate::auth::USERNAME_KEY).await.ok().flatten()
+	session
+		.get::<String>(crate::auth::USERNAME_KEY)
+		.await
+		.ok()
+		.flatten()
 }
 
 #[macro_export]
-macro_rules! check_auth{
+macro_rules! check_auth {
 	($session:ident) => {
 		match $crate::auth::get_username(&$session).await {
 			Some(user) => user,
-			None => return (StatusCode::UNAUTHORIZED, "User did not login (/apiv2/login) first".to_string())
+			None =>
+				return (
+					StatusCode::UNAUTHORIZED,
+					"User did not login (/apiv2/login) first".to_string()
+				),
 		}
 	};
 }
@@ -40,20 +48,21 @@ pub struct LoginParams {
 pub async fn login(
 	mut tx: Tx<Postgres>,
 	session: Session,
-	Form(LoginParams { username, password, redir_to }): Form<LoginParams>,
+	Form(LoginParams {
+		username,
+		password,
+		redir_to
+	}): Form<LoginParams>
 ) -> Redirect {
 	let err = |err_msg: &'static str| -> Redirect {
-		Redirect::to(
-			&format!(
-				"/login?{}",
-				serde_urlencoded::to_string(
-					LoginQuery {
-						redir_to: redir_to.clone(),
-						err_msg: Some(err_msg.to_string())
-					}
-				).unwrap()
-			)
-		)
+		Redirect::to(&format!(
+			"/login?{}",
+			serde_urlencoded::to_string(LoginQuery {
+				redir_to: redir_to.clone(),
+				err_msg: Some(err_msg.to_string())
+			})
+			.unwrap()
+		))
 	};
 	let all_good = || Redirect::to(redir_to.as_ref().map_or_else(|| "/admin", String::as_str));
 
@@ -83,23 +92,28 @@ pub async fn login(
 		.and_then(|row| row.try_get::<String, _>("hashed_pass"))
 		.inspect_err(|e| {
 			eprintln!("Database error when logging in: {e:?}");
-		}) else {
-			// It would make more sense to send an INTERNAL_SERVER_ERROR but that could expose a
-			// vulnerability if they were able to reliably cause a database error with a certain
-			// input, so we are just logging the error then giving them a generic response
-			return err("Incorrect username or password");
-		};
+		})
+	else {
+		// It would make more sense to send an INTERNAL_SERVER_ERROR but that could expose a
+		// vulnerability if they were able to reliably cause a database error with a certain
+		// input, so we are just logging the error then giving them a generic response
+		return err("Incorrect username or password");
+	};
 
-	let Ok(hash_struct) = PasswordHash::new(&hash)
-		.inspect_err(|e| {
-			eprintln!("Couldn't create password hash from hash in database ({e:?}); has anyone messed with your db?");
-		}) else {
-			return err("Incorrect username or password");
-		};
+	let Ok(hash_struct) = PasswordHash::new(&hash).inspect_err(|e| {
+		eprintln!(
+			"Couldn't create password hash from hash in database ({e:?}); has anyone messed with your db?"
+		);
+	}) else {
+		return err("Incorrect username or password");
+	};
 
 	match Argon2::default().verify_password(password.as_bytes(), &hash_struct) {
 		Ok(()) => {
-			println!("Trying to log in {username} with session_id {:?}", session.id());
+			println!(
+				"Trying to log in {username} with session_id {:?}",
+				session.id()
+			);
 
 			if let Err(e) = session.insert(USERNAME_KEY, username).await {
 				println!("Could not save session: {e}");
@@ -107,9 +121,9 @@ pub async fn login(
 			}
 
 			all_good()
-		},
+		}
 		Err(e) => {
-			if e == argon2::password_hash::Error::Password {
+			if e == argon2::password_hash::Error::PasswordInvalid {
 				println!("Given password is incorrect (ugh)");
 			} else {
 				println!("Password verification failed with error {e}");

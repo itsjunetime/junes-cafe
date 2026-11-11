@@ -1,21 +1,25 @@
-use crate::blog_api::get_post_list;
-use axum_sqlx_tx::Tx;
-use sqlx::Postgres;
-use axum::{http::StatusCode, response::IntoResponse};
-use sitewriter::{UrlEntry, ChangeFreq};
-use chrono::DateTime;
-use rss::{Item, Category, Source, Channel};
-
 use std::{borrow::Cow, fmt::Display};
+
+use axum::{http::StatusCode, response::IntoResponse};
+use axum_sqlx_tx::Tx;
+use chrono::DateTime;
+use rss::{Category, Channel, Item, Source};
+use sitewriter::{ChangeFreq, UrlEntry};
+use sqlx::Postgres;
+
+use crate::blog_api::get_post_list;
 
 pub(crate) struct ErrorOnDebug<E> {
 	error: E
 }
 
-impl<E> IntoResponse for ErrorOnDebug<E> where E: Display {
+impl<E> IntoResponse for ErrorOnDebug<E>
+where
+	E: Display
+{
 	fn into_response(self) -> axum::response::Response {
 		(StatusCode::INTERNAL_SERVER_ERROR, desc_if_debug(self.error)).into_response()
-}
+	}
 }
 
 impl<E> From<E> for ErrorOnDebug<E> {
@@ -27,18 +31,27 @@ impl<E> From<E> for ErrorOnDebug<E> {
 #[cfg_attr(not(debug_assertions), expect(unused_variables))]
 pub fn desc_if_debug(error: impl Display) -> Cow<'static, str> {
 	#[cfg(debug_assertions)]
-	{ Cow::Owned(format!("Internal Error: {error}")) }
+	{
+		Cow::Owned(format!("Internal Error: {error}"))
+	}
 
 	#[cfg(not(debug_assertions))]
-	{ Cow::Borrowed("We ran into an issue. Please try again later or report this if it keeps happening.") }
+	{
+		Cow::Borrowed(
+			"We ran into an issue. Please try again later or report this if it keeps happening."
+		)
+	}
 }
 
 pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sqlx::Error>> {
 	let posts = get_post_list(None, &mut tx, i32::MAX as u32, 0).await?;
 
-	let urls = posts.into_iter()
+	let urls = posts
+		.into_iter()
 		.map(|post| UrlEntry {
-			loc: format!("https://june.cat/post/{}", post.id).parse().unwrap(),
+			loc: format!("https://june.cat/post/{}", post.id)
+				.parse()
+				.unwrap(),
 			lastmod: DateTime::from_timestamp(post.created_at as i64, 0),
 			changefreq: Some(ChangeFreq::Never),
 			priority: None
@@ -51,24 +64,24 @@ pub async fn get_sitemap_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebu
 pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sqlx::Error>> {
 	let posts = get_post_list(None, &mut tx, i32::MAX as u32, 0).await?;
 
-	let last_update = posts.iter()
-		.map(|p| p.created_at)
-		.max();
+	let last_update = posts.iter().map(|p| p.created_at).max();
 
-	let items = posts.into_iter()
+	let items = posts
+		.into_iter()
 		.map(|post| Item {
 			title: Some(post.title),
 			link: Some(format!("https://june.cat/post/{}", post.id)),
 			author: Some("junewelker@gmail.com".into()),
-			categories: post.tags.0
+			categories: post
+				.tags
+				.0
 				.into_iter()
 				.map(|t| Category {
 					name: t,
 					domain: None
 				})
 				.collect(),
-			pub_date: DateTime::from_timestamp(post.created_at as i64, 0)
-				.map(|dt| dt.to_rfc2822()),
+			pub_date: DateTime::from_timestamp(post.created_at as i64, 0).map(|dt| dt.to_rfc2822()),
 			source: Some(Source {
 				url: "https://june.cat/index.xml".into(),
 				title: None
@@ -96,7 +109,7 @@ pub async fn get_rss_xml(mut tx: Tx<Postgres>) -> Result<String, ErrorOnDebug<sq
 			Category {
 				name: "Rustlang".into(),
 				domain: None
-			}
+			},
 		],
 		generator: Some("https://crates.io/crates/rss".into()),
 		ttl: Some("1440".into()),

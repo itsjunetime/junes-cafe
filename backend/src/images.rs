@@ -1,11 +1,15 @@
-use axum::http::StatusCode;
-use tower_sessions::Session;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use axum::http::StatusCode;
 use backend::check_auth;
+use tower_sessions::Session;
 
 use crate::print_and_ret;
 
-pub async fn upload_asset(session: Session, mut form: multer::Multipart<'_>) -> (StatusCode, String) {
+pub async fn upload_asset(
+	session: Session,
+	mut form: multer::Multipart<'_>
+) -> (StatusCode, String) {
 	check_auth!(session);
 
 	let mut name = None;
@@ -32,20 +36,22 @@ pub async fn upload_asset(session: Session, mut form: multer::Multipart<'_>) -> 
 				// the data or whatever, but I'm too lazy to do that.
 				let file_name = match SystemTime::now().duration_since(UNIX_EPOCH) {
 					Ok(t) => t.as_nanos().to_string(),
-					Err(e) => print_and_ret!("Couldn't get current time: {e:?}"),
+					Err(e) => print_and_ret!("Couldn't get current time: {e:?}")
 				};
 
 				// And then make sure we can actually get the data of the file
 				let asset_data = match field.bytes().await {
 					Ok(b) if !b.is_empty() => b,
-					Err(e) => print_and_ret!("Couldn't get asset data; you may have exceeded the 10mb limit ({e:?})"),
+					Err(e) => print_and_ret!(
+						"Couldn't get asset data; you may have exceeded the 10mb limit ({e:?})"
+					),
 					_ => print_and_ret!(StatusCode::BAD_REQUEST, "Sent an empty asset")
 				};
 
 				// And create the file to save it at
 				let asset_dir = match dotenv::var("ASSET_DIR") {
 					Ok(d) => d,
-					Err(e) => print_and_ret!("Couldn't get ASSET_DIR: {e:?}"),
+					Err(e) => print_and_ret!("Couldn't get ASSET_DIR: {e:?}")
 				};
 
 				let asset_path = std::path::Path::new(&asset_dir);
@@ -55,20 +61,20 @@ pub async fn upload_asset(session: Session, mut form: multer::Multipart<'_>) -> 
 					_ = save_path.set_extension(ext);
 				}
 
-				let res = std::fs::write(&save_path, asset_data)
-					.map_or_else(
-						|e| print_and_ret!("Couldn't save the asset to {save_path:?}: {e:?}"),
-						|()| {
-							let path = save_path.file_name()
-								.and_then(|s| s.to_os_string().into_string().ok())
-								.unwrap();
+				let res = std::fs::write(&save_path, asset_data).map_or_else(
+					|e| print_and_ret!("Couldn't save the asset to {save_path:?}: {e:?}"),
+					|()| {
+						let path = save_path
+							.file_name()
+							.and_then(|s| s.to_os_string().into_string().ok())
+							.unwrap();
 
-							// let asset_path = format!("/api/assets/{path}");
-							// inval.invalidate_all_with_pred(|(_, uri)| uri.path() == asset_path);
+						// let asset_path = format!("/api/assets/{path}");
+						// inval.invalidate_all_with_pred(|(_, uri)| uri.path() == asset_path);
 
-							(StatusCode::OK, path)
-						}
-					);
+						(StatusCode::OK, path)
+					}
+				);
 
 				if name.is_some_and(|name| name.ends_with("png")) {
 					tokio::spawn(async move {
@@ -93,10 +99,13 @@ pub async fn upload_asset(session: Session, mut form: multer::Multipart<'_>) -> 
 				}
 
 				return res;
-			},
+			}
 			Err(err) => print_and_ret!("Couldn't get all fields of request: {err:?}")
 		}
 	}
 
-	(StatusCode::BAD_REQUEST, "Form didn't contain the requisite 'file' field".into())
+	(
+		StatusCode::BAD_REQUEST,
+		"Form didn't contain the requisite 'file' field".into()
+	)
 }

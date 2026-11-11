@@ -1,20 +1,20 @@
-use itertools::Itertools;
-use tower_sessions::Session;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use axum::{extract::Path, http::StatusCode};
 use axum_sqlx_tx::Tx;
-use sqlx::{AssertSqlSafe, Executor, Postgres, Row, query, query_as};
-use axum::{http::StatusCode, extract::Path};
-use shared_data::{Post, PostReq};
 use backend::{auth::get_username, check_auth};
+use itertools::Itertools;
+use shared_data::{Post, PostReq};
+use sqlx::{AssertSqlSafe, Executor, Postgres, Row, query, query_as};
+use tower_sessions::Session;
 
 use crate::print_and_ret;
-
-use std::time::{SystemTime, UNIX_EPOCH};
 
 pub async fn get_post_list(
 	session: Option<Session>,
 	tx: &mut Tx<Postgres>,
 	count: u32,
-	offset: u32,
+	offset: u32
 ) -> Result<Vec<Post>, sqlx::Error> {
 	let username = match session {
 		Some(s) => get_username(&s).await,
@@ -27,11 +27,12 @@ pub async fn get_post_list_with_user(
 	tx: &mut Tx<Postgres>,
 	count: u32,
 	offset: u32,
-	username: Option<String>,
+	username: Option<String>
 ) -> Result<Vec<Post>, sqlx::Error> {
 	let username_clause = username.as_ref().map_or("", |_| "u.username = $1 OR");
 
-	let q_string = format!("SELECT \
+	let q_string = format!(
+		"SELECT \
 		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, p.draft, u.username \
 		FROM posts p \
 		LEFT JOIN users u ON u.id = p.created_by_user \
@@ -39,7 +40,8 @@ pub async fn get_post_list_with_user(
 		ORDER BY id DESC \
 		LIMIT {count} \
 		OFFSET {offset} \
-	;");
+	;"
+	);
 	let mut q = query_as::<_, Post>(AssertSqlSafe(q_string));
 
 	if let Some(name) = username {
@@ -71,12 +73,14 @@ pub async fn get_post_for_user<'e, E: Executor<'e, Database = Postgres>>(
 		"WHERE (p.id = $1 AND p.draft IS NOT TRUE)"
 	};
 
-	let query_str = format!("SELECT \
+	let query_str = format!(
+		"SELECT \
 		p.id, p.created_at, p.title, p.html, p.orig_markdown, p.tags, p.reading_time, p.draft, u.username \
 		FROM \
 		posts p LEFT JOIN users u ON u.id = p.created_by_user \
 		{where_clause}\
-	;");
+	;"
+	);
 
 	let mut q = query_as::<_, Post>(AssertSqlSafe(query_str)).bind(id as i32);
 
@@ -100,44 +104,59 @@ pub async fn submit_post(
 	let details = post_details(payload);
 
 	if details.content.is_empty() || details.title.is_empty() {
-		return (StatusCode::BAD_REQUEST, "The title or content of the post are empty".into());
+		return (
+			StatusCode::BAD_REQUEST,
+			"The title or content of the post are empty".into()
+		);
 	}
 
 	// Because the UNIX_EPOCH is inherently UTC, the timestamp is for UTC
 	// I know this conversion (`as i64`) is not safe, technically, but I doubt this site
 	// will survive long enough that we'll get a timestamp higher than i64::MAX
-	let Ok(created_at) = SystemTime::now().duration_since(UNIX_EPOCH).map(|c| c.as_secs() as i64) else {
+	let Ok(created_at) = SystemTime::now()
+		.duration_since(UNIX_EPOCH)
+		.map(|c| c.as_secs() as i64)
+	else {
 		print_and_ret!("Time has gone backwards?? what the fuck")
 	};
 
 	// we're just assuming the average wpm for these articles is 220
 	let minutes = details.reading_time();
 
-	query("INSERT INTO posts
+	query(
+		"INSERT INTO posts
 		(created_by_user, created_at, title, html, orig_markdown, tags, reading_time, draft)
 		SELECT id, $1, $2, $3, $4, $5, $6, $7 FROM users WHERE username = $8
 		RETURNING id
-	;").bind(created_at)
-		.bind(details.title)
-		.bind(details.html)
-		.bind(details.content)
-		.bind(details.tags)
-		.bind(minutes as i32)
-		.bind(details.draft)
-		.bind(username)
-		.fetch_one(&mut tx)
-		.await
-		.map_or_else(
-			|e| print_and_ret!("Failed to create new post: {e}"),
-			|r| r.try_get::<i32, _>("id")
-				.map_or_else(
-					|e| print_and_ret!(StatusCode::CREATED, "Post created at {created_at} returned no id: {e}"),
-					|i| {
-						// inval_all_for_post(i, &inval);
-						(StatusCode::OK, i.to_string())
-					}
-				)
-		)
+	;"
+	)
+	.bind(created_at)
+	.bind(details.title)
+	.bind(details.html)
+	.bind(details.content)
+	.bind(details.tags)
+	.bind(minutes as i32)
+	.bind(details.draft)
+	.bind(username)
+	.fetch_one(&mut tx)
+	.await
+	.map_or_else(
+		|e| print_and_ret!("Failed to create new post: {e}"),
+		|r| {
+			r.try_get::<i32, _>("id").map_or_else(
+				|e| {
+					print_and_ret!(
+						StatusCode::CREATED,
+						"Post created at {created_at} returned no id: {e}"
+					)
+				},
+				|i| {
+					// inval_all_for_post(i, &inval);
+					(StatusCode::OK, i.to_string())
+				}
+			)
+		}
+	)
 }
 
 pub async fn edit_post(
@@ -152,7 +171,10 @@ pub async fn edit_post(
 	let details = post_details(payload);
 
 	if details.content.is_empty() || details.title.is_empty() {
-		return (StatusCode::BAD_REQUEST, "The title or content of the post are now empty".into())
+		return (
+			StatusCode::BAD_REQUEST,
+			"The title or content of the post are now empty".into()
+		);
 	}
 
 	let reading_time = details.reading_time() as i32;
@@ -194,10 +216,22 @@ impl SqlPostDetails {
 
 // Returns an err string or (Text, HTML, Title, Tags)
 fn post_details(payload: PostReq) -> SqlPostDetails {
-	let PostReq { id: _, content, title, tags, draft } = payload;
+	let PostReq {
+		id: _,
+		content,
+		title,
+		tags,
+		draft
+	} = payload;
 	let html = shared_data::md_to_html(&content);
 	let tags = Itertools::intersperse(tags.iter().map(String::as_str), ",").collect::<String>();
-	SqlPostDetails { content, html, title, draft, tags }
+	SqlPostDetails {
+		content,
+		html,
+		title,
+		draft,
+		tags
+	}
 }
 
 /*fn inval_all_for_post(id: i32, inval: &Invalidator) {

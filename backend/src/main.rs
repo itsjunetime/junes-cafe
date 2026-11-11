@@ -1,52 +1,53 @@
-use core::{net::{Ipv4Addr, SocketAddr, SocketAddrV4}, str::FromStr};
+use core::{
+	net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+	str::FromStr
+};
 use std::env;
 
-use argon2::{
-	password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-	Argon2
-};
+use argon2::{Argon2, password_hash::PasswordHasher};
 use axum::{
-	extract::DefaultBodyLimit, routing::{get, post}, Router
+	Router,
+	extract::DefaultBodyLimit,
+	routing::{get, post}
 };
 use axum_server::tls_rustls::RustlsConfig;
-// use http::{Method, StatusCode};
-use leptos::prelude::{*, server_fn::ServerFn};
-use leptos_axum::handle_server_fns_with_context;
 // use tower_cache::options::CacheOptions;
-use tower_http::{services::ServeDir, trace::TraceLayer};
-use tower_no_ai::NoAiLayer;
-use tower_sessions::{
-	MemoryStore,
-	SessionManagerLayer
-};
 use axum_sqlx_tx::Tx;
+use backend::AxumState;
+// use http::{Method, StatusCode};
+use leptos::prelude::{server_fn::ServerFn, *};
+use leptos_axum::handle_server_fns_with_context;
 use shared_data::Post;
 use sqlx::{
-	Postgres, postgres::{PgConnectOptions, PgPoolOptions}, query
+	Postgres,
+	postgres::{PgConnectOptions, PgPoolOptions},
+	query
 };
-use backend::AxumState;
+use tower_http::{services::ServeDir, trace::TraceLayer};
+use tower_no_ai::NoAiLayer;
+use tower_sessions::{MemoryStore, SessionManagerLayer};
 use tracing_subscriber::EnvFilter;
 
 use crate::pages::edit_post::{ReceiveAsset, SubmitOrEditPost};
 
-mod images;
-mod home;
-mod post_list;
-mod post;
-mod robots;
-mod fonts;
 mod blog_api;
+mod fonts;
+mod home;
+mod images;
 mod pages;
+mod post;
+mod post_list;
+mod robots;
 
 #[macro_export]
-macro_rules! print_and_ret{
+macro_rules! print_and_ret {
 	($err: expr, $ret_str: expr) => {{
 		eprintln!($ret_str);
 		return ($err, format!($ret_str));
 	}};
 	($ret_str:expr) => {
 		print_and_ret!(StatusCode::INTERNAL_SERVER_ERROR, $ret_str)
-	}
+	};
 }
 
 struct Config {
@@ -60,21 +61,23 @@ struct Config {
 }
 
 async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
-	let base_username = env::var("BASE_USERNAME")
-		.map_err(|_| "BASE_USERNAME env var not present")?;
-	let base_password_file = env::var("BASE_PASSWORD_FILE")
-		.map_err(|_| "BASE_USER_PASSWORD_FILE env var not set")?;
+	let base_username =
+		env::var("BASE_USERNAME").map_err(|_| "BASE_USERNAME env var not present")?;
+	let base_password_file =
+		env::var("BASE_PASSWORD_FILE").map_err(|_| "BASE_USER_PASSWORD_FILE env var not set")?;
 	let base_password = fs_err::read_to_string(&base_password_file)?;
 
-	let pg_user = env::var("PG_USER")
-		.map_err(|_| "PG_USER env var not present")?;
-	let pg_database = env::var("PG_DATABASE")
-		.map_err(|_| "PG_DATABASE env var not present")?;
-	let pg_user_password_file = env::var("PG_USER_PASSWORD_FILE")
-		.map_err(|_| "PG_USER_PASSWORD_FILE env var not set")?;
+	let pg_user = env::var("PG_USER").map_err(|_| "PG_USER env var not present")?;
+	let pg_database = env::var("PG_DATABASE").map_err(|_| "PG_DATABASE env var not present")?;
+	let pg_user_password_file =
+		env::var("PG_USER_PASSWORD_FILE").map_err(|_| "PG_USER_PASSWORD_FILE env var not set")?;
 	let pg_user_password = fs_err::read_to_string(&pg_user_password_file)?;
 
-	let Some(asset_dir) = env::var("ASSET_DIR").ok().into_iter().find(|d| !d.is_empty()) else {
+	let Some(asset_dir) = env::var("ASSET_DIR")
+		.ok()
+		.into_iter()
+		.find(|d| !d.is_empty())
+	else {
 		return Err("ASSET_DIR var is not set in .env, and it is necessary to determine where to place assets uploaded as part of posts. Please set it and retry.".into());
 	};
 
@@ -82,7 +85,7 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 		Ok(mtd) => mtd.permissions(),
 		Err(err) => {
 			eprintln!("ASSET_DIR does not point to a valid directory: {err:?}");
-			return Err(err.into())
+			return Err(err.into());
 		}
 	};
 
@@ -96,14 +99,17 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 	let key_file = env::var("KEY_FILE");
 
 	let rustls_config = match (cert_file, key_file) {
-		(Ok(_), Err(_)) | (Err(_), Ok(_)) =>
-			return Err("You have to set either BOTH `CERT_FILE` and `KEY_FILE` or neither".into()),
+		(Ok(_), Err(_)) | (Err(_), Ok(_)) => {
+			return Err("You have to set either BOTH `CERT_FILE` and `KEY_FILE` or neither".into());
+		}
 		(Ok(c_f), Ok(k_f)) => {
 			println!("Creating server config with cert file {c_f:?} and key file {k_f:?}");
-			Some(RustlsConfig::from_pem_file(c_f, k_f)
-				.await
-				.inspect_err(|e| eprintln!("Couldn't make rustls config: {e}"))?)
-		},
+			Some(
+				RustlsConfig::from_pem_file(c_f, k_f)
+					.await
+					.inspect_err(|e| eprintln!("Couldn't make rustls config: {e}"))?
+			)
+		}
 		(Err(_), Err(_)) => {
 			println!("Creating server config without tls");
 			None
@@ -112,18 +118,20 @@ async fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 
 	let db_connections = env::var("DB_CONNECTIONS")
 		.ok()
-		.and_then(|n| n.parse()
-			.inspect_err(|e| println!("Can't parse value for DB_CONNECTIONS ({n:?}) to u16: {e}"))
-			.ok()
-		)
+		.and_then(|n| {
+			n.parse()
+				.inspect_err(|e| {
+					println!("Can't parse value for DB_CONNECTIONS ({n:?}) to u16: {e}")
+				})
+				.ok()
+		})
 		.unwrap_or(80);
 
-	let backend_port = env::var("BACKEND_PORT")
-		.ok()
-		.and_then(|p| <u16 as FromStr>::from_str(&p)
+	let backend_port = env::var("BACKEND_PORT").ok().and_then(|p| {
+		<u16 as FromStr>::from_str(&p)
 			.inspect_err(|e| println!("Couldn't convert BACKEND_PORT {p:?} to a u16: {e}"))
 			.ok()
-		);
+	});
 
 	let pg_opts = PgConnectOptions::default()
 		.username(&pg_user)
@@ -162,7 +170,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	// Make sure the table that we're working on exists
 	// This doesn't verify that it exists with these exact datatypes in each column, which would
 	// be ideal, but I can't find a way to easily do that so I'm not going to for now
-	query("CREATE TABLE IF NOT EXISTS posts (
+	query(
+		"CREATE TABLE IF NOT EXISTS posts (
 		id serial PRIMARY KEY,
 		created_by_user BIGINT NOT NULL,
 		created_at BIGINT NOT NULL,
@@ -172,26 +181,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		tags text,
 		reading_time INT NOT NULL,
 		draft bool NOT NULL
-	);").execute(&pool)
-		.await?;
+	);"
+	)
+	.execute(&pool)
+	.await?;
 
 	println!("Set up posts table in DB...");
 
 	// We just assume that if you have an account, you can post. Maybe we can add more
 	// fine-grained controls later. Doesn't really matter for now tho.
-	query("CREATE TABLE IF NOT EXISTS users (
+	query(
+		"CREATE TABLE IF NOT EXISTS users (
 		id serial PRIMARY KEY,
 		username text NOT NULL UNIQUE,
 		hashed_pass text NOT NULL
-	);").execute(&pool)
-		.await?;
+	);"
+	)
+	.execute(&pool)
+	.await?;
 
-	println!("Adding user {} to the db if not already exists (else updating password)", config.base_username);
+	println!(
+		"Adding user {} to the db if not already exists (else updating password)",
+		config.base_username
+	);
 
-	let salt = SaltString::generate(&mut OsRng);
 	let argon = Argon2::default();
-
-	let hash = match argon.hash_password(config.base_password.as_bytes(), &salt) {
+	let hash = match argon.hash_password(config.base_password.as_bytes()) {
 		Ok(hash) => hash.to_string(),
 		Err(err) => {
 			eprintln!("Couldn't hash the given password at .env:BASE_PASSWORD: {err:?}");
@@ -203,15 +218,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	// exists), then we just leave it be, since the hash for the same password can change.
 	// If you want to change the password, you'll have to manually go into the database and
 	// clear the user.
-	query("INSERT INTO users (username, hashed_pass)
+	query(
+		"INSERT INTO users (username, hashed_pass)
 			VALUES ($1, $2)
 			ON CONFLICT (username) DO UPDATE
 			SET hashed_pass = EXCLUDED.hashed_pass
 			WHERE users.username = EXCLUDED.username
-	;").bind(config.base_username)
-		.bind(hash)
-		.execute(&pool)
-		.await?;
+	;"
+	)
+	.bind(config.base_username)
+	.bind(hash)
+	.execute(&pool)
+	.await?;
 
 	// Set up sessions for authentication
 	// And if we have to restart the server, then we're ok with losing sessions, so do an only
@@ -241,7 +259,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	any_spawner::Executor::init_tokio()?;
 
 	// let state = AxumState { leptos_opts, tx_state, invalidator };
-	let state = AxumState { leptos_opts, tx_state };
+	let state = AxumState {
+		leptos_opts,
+		tx_state
+	};
 	let server_fn_state = state.clone();
 
 	println!("submit_or_edit_post exists at {}", SubmitOrEditPost::PATH);
@@ -266,12 +287,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.route("/login", get(pages::login::login_html))
 		.route("/api/login", post(backend::auth::login))
 		.nest_service("/api/assets/", ServeDir::new(config.asset_dir))
-		.route("/api/{*fn_name}", post(move |req| handle_server_fns_with_context(
-			move || provide_context(server_fn_state.clone()),
-			req
-		)))
+		.route(
+			"/api/{*fn_name}",
+			post(move |req| {
+				handle_server_fns_with_context(
+					move || provide_context(server_fn_state.clone()),
+					req
+				)
+			})
+		)
 		.route("/admin/new_post", get(pages::edit_post::new_post))
-		.route("/admin/edit_post/{id}", get(pages::edit_post::edit_post_handler))
+		.route(
+			"/admin/edit_post/{id}",
+			get(pages::edit_post::edit_post_handler)
+		)
 		.route("/admin", get(pages::admin::admin))
 		.nest_service("/pkg/", ServeDir::new(pkg_dir))
 		// I want to be able to upload 10mb assets if I so please.

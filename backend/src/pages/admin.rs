@@ -1,13 +1,12 @@
 use axum_sqlx_tx::Tx;
 use backend::auth::get_username;
-use horrorshow::{html, Raw, RenderOnce, Template};
+use horrorshow::{Raw, RenderOnce, Template, html};
 use shared_data::Post;
 use sqlx::Postgres;
 use tower_sessions::Session;
 
-use crate::{blog_api::get_post_list_with_user, post_list::PostList, robots::desc_if_debug};
-
 use super::{HtmlOrRedirect, RedirLocation};
+use crate::{blog_api::get_post_list_with_user, post_list::PostList, robots::desc_if_debug};
 
 pub async fn admin(session: Session, mut tx: Tx<Postgres>) -> HtmlOrRedirect<Box<str>> {
 	let Some(username) = get_username(&session).await else {
@@ -24,7 +23,8 @@ pub async fn admin(session: Session, mut tx: Tx<Postgres>) -> HtmlOrRedirect<Box
 				title: "Admin",
 				next_page_btn: false,
 				current_page: 0
-			}.into_string()
+			}
+			.into_string()
 			.unwrap()
 			.into()
 		),
@@ -34,7 +34,8 @@ pub async fn admin(session: Session, mut tx: Tx<Postgres>) -> HtmlOrRedirect<Box
 				title: "Admin",
 				next_page_btn: false,
 				current_page: 0
-			}.into_string()
+			}
+			.into_string()
 			.unwrap()
 			.into()
 		)

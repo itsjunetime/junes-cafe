@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use horrorshow::{helper::doctype, html, Raw};
 use axum::extract::Query;
-use backend::auth::{get_username, LoginQuery};
+use backend::auth::{LoginQuery, get_username};
+use horrorshow::{Raw, helper::doctype, html};
 use tower_sessions::Session;
 
 use super::{HtmlOrRedirect, RedirLocation};

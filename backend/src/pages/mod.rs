@@ -1,10 +1,10 @@
 use std::{borrow::Cow, str::FromStr};
 
 #[cfg(not(target_family = "wasm"))]
-pub mod login;
-#[cfg(not(target_family = "wasm"))]
 pub mod admin;
 pub mod edit_post;
+#[cfg(not(target_family = "wasm"))]
+pub mod login;
 
 pub enum HtmlOrRedirect<H> {
 	Html(H),
@@ -29,7 +29,7 @@ impl Redirect {
 		let mut eventual_dest: Cow<str> = match self.redir_to {
 			RedirLocation::Admin => "/admin".into(),
 			RedirLocation::NewPost => "/admin/new_post".into(),
-			RedirLocation::EditPost(id) => format!("/admin/edit_post/{id}").into(),
+			RedirLocation::EditPost(id) => format!("/admin/edit_post/{id}").into()
 		};
 
 		if self.force_login {
@@ -50,9 +50,12 @@ impl FromStr for RedirLocation {
 			"admin" => Ok(Self::Admin),
 			"admin/new_post" => Ok(Self::NewPost),
 			_ if s.starts_with(EDIT_POST_PREFIX) => {
-				let id: u32 = s.trim_start_matches(EDIT_POST_PREFIX).parse().map_err(|_| ())?;
+				let id: u32 = s
+					.trim_start_matches(EDIT_POST_PREFIX)
+					.parse()
+					.map_err(|_| ())?;
 				Ok(Self::EditPost(id))
-			},
+			}
 			_ => Err(())
 		}
 	}
@@ -63,7 +66,8 @@ impl<H: axum::response::IntoResponse> axum::response::IntoResponse for HtmlOrRed
 	fn into_response(self) -> axum::response::Response {
 		match self {
 			Self::Html(s) => axum::response::Html(s).into_response(),
-			Self::Redirect(redir) => axum::response::Redirect::temporary(&redir.url()).into_response()
+			Self::Redirect(redir) =>
+				axum::response::Redirect::temporary(&redir.url()).into_response(),
 		}
 	}
 }

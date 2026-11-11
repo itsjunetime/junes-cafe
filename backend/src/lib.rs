@@ -5,15 +5,15 @@ pub mod auth;
 pub mod state {
 	use axum::extract::{FromRef, FromRequestParts};
 	use axum_sqlx_tx::State;
-	use sqlx::Postgres;
 	use http::request::Parts;
 	// use tower_cache::invalidator::Invalidator;
 	use leptos::prelude::*;
+	use sqlx::Postgres;
 
 	#[derive(Clone)]
 	pub struct AxumState {
 		pub tx_state: State<Postgres>,
-		pub leptos_opts: LeptosOptions,
+		pub leptos_opts: LeptosOptions
 		// pub invalidator: Invalidator
 	}
 
@@ -49,7 +49,10 @@ pub mod state {
 	impl FromRequestParts<AxumState> for LeptosOptions {
 		type Rejection = std::convert::Infallible;
 
-		async fn from_request_parts(_: &mut Parts, state: &AxumState) -> Result<Self,Self::Rejection> {
+		async fn from_request_parts(
+			_: &mut Parts,
+			state: &AxumState
+		) -> Result<Self, Self::Rejection> {
 			Ok(Self::from_ref(state))
 		}
 	}
@@ -60,18 +63,17 @@ pub mod state {
 		<T as FromRequestParts<AxumState>>::Rejection: std::fmt::Debug
 	{
 		let state: AxumState = expect_context();
-		leptos_axum::extract_with_state(&state).await
+		leptos_axum::extract_with_state(&state)
+			.await
 			.map_err(ServerFnError::from)
 			.map(|t| (t, expect_context()))
 	}
 }
 
-#[cfg(not(target_family = "wasm"))]
-pub use state::*;
-
 #[cfg(target_family = "wasm")]
 pub use pages::edit_post::*;
-
+#[cfg(not(target_family = "wasm"))]
+pub use state::*;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[cfg(target_family = "wasm")]

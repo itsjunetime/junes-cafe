@@ -2,28 +2,35 @@ use std::{borrow::Cow, collections::HashSet, fmt::Write};
 
 use leptos::{
 	either::Either,
-	prelude::{*, server_fn::codec::{MultipartData, Json}},
-	wasm_bindgen::JsCast,
-	task::spawn_local
+	prelude::{
+		server_fn::codec::{Json, MultipartData},
+		*
+	},
+	task::spawn_local,
+	wasm_bindgen::JsCast
 };
 use serde::{Deserialize, Serialize};
+use shared_data::{BASE_STYLE, PostReq, md_to_html};
 use web_sys::{FileList, FormData, HtmlTextAreaElement};
-use shared_data::{BASE_STYLE, md_to_html, PostReq};
 
 #[cfg(not(target_family = "wasm"))]
 mod ssr {
-	use axum::{extract::{FromRef, FromRequestParts, Path, State}, response::{IntoResponse, Response}, RequestExt};
-	use backend::{auth::get_username, AxumState};
-	use http::{request::Parts, HeaderName, HeaderValue, Request, StatusCode};
-	use leptos_axum::ResponseOptions;
+	use std::borrow::Cow;
+
+	use axum::{
+		RequestExt,
+		extract::{FromRef, FromRequestParts, Path, State},
+		response::{IntoResponse, Response}
+	};
+	use backend::{AxumState, auth::get_username};
+	use http::{HeaderName, HeaderValue, Request, StatusCode, request::Parts};
 	use leptos::{either::Either, prelude::*};
+	use leptos_axum::ResponseOptions;
 	use sqlx::{Pool, Postgres};
 	use tower_sessions::Session;
 
-	use std::borrow::Cow;
-
+	use super::{super::Redirect, EditPost, PostDetails};
 	use crate::pages::RedirLocation;
-	use super::{EditPost, PostDetails, super::Redirect};
 
 	pub async fn new_post(
 		session: Session,
@@ -40,7 +47,7 @@ mod ssr {
 	) -> Response {
 		let mut parts: Parts = req.extract_parts().await.unwrap();
 		let Ok(Path(path)) = Path::<u32>::from_request_parts(&mut parts, &state).await else {
-			return "You need to provide a path".into_response()
+			return "You need to provide a path".into_response();
 		};
 
 		edit_post_handler_inner(req, state, session, Some(path)).await
@@ -50,7 +57,7 @@ mod ssr {
 		req: Request<axum::body::Body>,
 		state: AxumState,
 		session: Session,
-		path: Option<u32>,
+		path: Option<u32>
 	) -> Response {
 		let handler = leptos_axum::render_app_async(move || {
 			let session = session.clone();
@@ -58,12 +65,7 @@ mod ssr {
 			Suspend::new(async move {
 				let pool = Pool::from_ref(&state.tx_state);
 
-				edit_post_shell(
-					session,
-					LeptosOptions::from_ref(&state),
-					pool,
-					path
-				).await
+				edit_post_shell(session, LeptosOptions::from_ref(&state), pool, path).await
 			})
 		});
 
@@ -80,13 +82,18 @@ mod ssr {
 			let url = Redirect {
 				force_login: true,
 				redir_to: id.map_or(RedirLocation::NewPost, RedirLocation::EditPost)
-			}.url().into_owned();
+			}
+			.url()
+			.into_owned();
 
 			let resp: ResponseOptions = expect_context();
 			resp.set_status(StatusCode::TEMPORARY_REDIRECT);
-			resp.append_header(HeaderName::from_static("location"), HeaderValue::from_str(url.as_ref()).unwrap());
+			resp.append_header(
+				HeaderName::from_static("location"),
+				HeaderValue::from_str(url.as_ref()).unwrap()
+			);
 
-			return Either::Right(view!{
+			return Either::Right(view! {
 				<!DOCTYPE html>
 				<html lang="en">
 					<head>
@@ -96,7 +103,7 @@ mod ssr {
 						<a href={ url }>"You need to log in"</a>
 					</body>
 				</html>
-			})
+			});
 		};
 
 		let post = match id {
@@ -112,13 +119,17 @@ mod ssr {
 				// TODO: How to handle these errors? We need to tell the user but leptos' return types
 				// are strongly typed depending on the content of the page so we can't just return
 				// early
-				Err(sqlx::Error::RowNotFound) => Either::Right(Cow::Borrowed("No such post found!")),
+				Err(sqlx::Error::RowNotFound) =>
+					Either::Right(Cow::Borrowed("No such post found!")),
 				Err(e) => Either::Right(format!("Couldn't get post: {e}").into())
 			},
-			None => Either::Left(PostDetails { id: None, ..PostDetails::default() })
+			None => Either::Left(PostDetails {
+				id: None,
+				..PostDetails::default()
+			})
 		};
 
-		Either::Left(view!{
+		Either::Left(view! {
 			<!DOCTYPE html>
 			<html lang="en">
 				<head>
@@ -211,7 +222,7 @@ pub fn edit_post(post: PostDetails) -> impl IntoView {
 	let (read_submission, write_submission) = signal(SubmissionState::Preparing);
 
 	let (read_post, write_post) = post.clone().split();
-	view!{{ move || match &*read_submission.read() {
+	view! {{ move || match &*read_submission.read() {
 		SubmissionState::Resolved(res) => Either::Left(Either::Left(resolved_view(res, is_new_post, write_submission))),
 		SubmissionState::Loading => Either::Left(Either::Right("
 			<style>
@@ -425,16 +436,20 @@ fn upload_asset(
 
 		let len = files.length();
 		if len != 1 {
-			return Err(format!("Only 1 file can be uploaded at a time ({len} were submitted)").into());
+			return Err(
+				format!("Only 1 file can be uploaded at a time ({len} were submitted)").into()
+			);
 		}
 
-		let file = files.item(0)
-			.ok_or(Cow::Borrowed("files.item(0) returned None despite verifying one existed in the list"))?;
+		let file = files.item(0).ok_or(Cow::Borrowed(
+			"files.item(0) returned None despite verifying one existed in the list"
+		))?;
 
-		let form_data = FormData::new()
-			.map_err(|e| Cow::Owned(format!("Couldn't create FormData: {e:?}")))?;
+		let form_data =
+			FormData::new().map_err(|e| Cow::Owned(format!("Couldn't create FormData: {e:?}")))?;
 
-		form_data.append_with_blob_and_filename("file", &file, &file.name())
+		form_data
+			.append_with_blob_and_filename("file", &file, &file.name())
 			.map_err(|e| Cow::Owned(format!("Couldn't append to form: {e:?}")))?;
 
 		Ok(form_data)
@@ -454,27 +469,31 @@ fn upload_asset(
 			Err(e) => {
 				asset.set(AssetUploadState::Resolved(Err((401, format!("{e:?}")))));
 				return;
-			},
+			}
 			Ok(u) => u
 		};
 
-		let is_image = asset_id.split('.')
+		let is_image = asset_id
+			.split('.')
 			.next_back()
 			.is_some_and(|ext| ["jpeg", "jpg", "png", "webp", "heic", "heif"].contains(&ext));
 		let exclamation = if is_image { "!" } else { "" };
 
-		update_text(post, |c| writeln!(c, "\n\n{exclamation}[Asset](/api/assets/{asset_id})\n").unwrap());
+		update_text(post, |c| {
+			writeln!(c, "\n\n{exclamation}[Asset](/api/assets/{asset_id})\n").unwrap()
+		});
 	});
 }
 
 #[server(input = leptos::prelude::server_fn::codec::MultipartFormData, endpoint = "receive_asset")]
 pub async fn receive_asset(form: MultipartData) -> Result<String, ServerFnError> {
 	let MultipartData::Server(form) = form else {
-		return Err(ServerFnError::Deserialization("We got a non-server MultipartData".into()));
+		return Err(ServerFnError::Deserialization(
+			"We got a non-server MultipartData".into()
+		));
 	};
 
-	let (session, resp): (tower_sessions::Session, _) =
-		backend::ext().await?;
+	let (session, resp): (tower_sessions::Session, _) = backend::ext().await?;
 
 	match crate::images::upload_asset(session, form).await {
 		(http::StatusCode::OK, path) => Ok(path),
@@ -502,7 +521,8 @@ fn submit_or_edit_post_outer(
 			content: post.content.clone(),
 			tags: post.tags.clone(),
 			draft
-		}).await;
+		})
+		.await;
 
 		let status = resp.map_err(|e| format!("{e:?}"));
 		submission.set(SubmissionState::Resolved(status));
@@ -511,9 +531,9 @@ fn submit_or_edit_post_outer(
 
 #[server(input = Json, endpoint = "submit_or_edit_post")]
 pub async fn submit_or_edit_post(req: PostReq) -> Result<String, ServerFnError> {
-	use tower_sessions::Session;
 	use axum_sqlx_tx::Tx;
 	use sqlx::Postgres;
+	use tower_sessions::Session;
 
 	let ((session, tx), resp): ((Session, Tx<Postgres>), _) = backend::ext().await?;
 
@@ -526,7 +546,6 @@ pub async fn submit_or_edit_post(req: PostReq) -> Result<String, ServerFnError> 
 	resp.set_status(code);
 	Ok(id)
 }
-
 
 const EDIT_STYLE: &str = "
 #article-content {

@@ -1,6 +1,6 @@
-use horrorshow::{RenderOnce, TemplateBuffer, html, Raw, helper::doctype, box_html};
-use build_info::{VersionControl, GitInfo};
-use shared_data::{RSS_ICON, MATRIX_ICON, GITHUB_ICON, BLUESKY_ICON};
+use build_info::{GitInfo, VersionControl};
+use horrorshow::{Raw, RenderOnce, TemplateBuffer, box_html, helper::doctype, html};
+use shared_data::{BLUESKY_ICON, GITHUB_ICON, MATRIX_ICON, RSS_ICON};
 
 pub struct PostList<'title, C: RenderOnce + 'static> {
 	pub content: C,
@@ -9,7 +9,10 @@ pub struct PostList<'title, C: RenderOnce + 'static> {
 	pub current_page: u32
 }
 
-impl<C> RenderOnce for PostList<'_, C> where C: RenderOnce + 'static {
+impl<C> RenderOnce for PostList<'_, C>
+where
+	C: RenderOnce + 'static
+{
 	fn render_once(self, tmpl: &mut TemplateBuffer) {
 		tmpl << html! {
 			: doctype::HTML;
@@ -41,7 +44,10 @@ impl<C> RenderOnce for PostList<'_, C> where C: RenderOnce + 'static {
 	}
 }
 
-fn page_selector_and_credits(current_page: u32, next_page_btn: bool) -> Box<dyn horrorshow::RenderBox> {
+fn page_selector_and_credits(
+	current_page: u32,
+	next_page_btn: bool
+) -> Box<dyn horrorshow::RenderBox> {
 	let build = crate::fonts::build();
 
 	box_html! {

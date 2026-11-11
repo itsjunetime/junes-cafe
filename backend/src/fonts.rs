@@ -1,9 +1,16 @@
-use axum::{response::Html, extract::Path, http::{HeaderName, header}};
-use horrorshow::{html, Raw, helper::doctype, RenderOnce, TemplateBuffer, Template};
 use std::sync::OnceLock;
+
+use axum::{
+	extract::Path,
+	http::{HeaderName, header},
+	response::Html
+};
+use horrorshow::{Raw, RenderOnce, Template, TemplateBuffer, helper::doctype, html};
+
 use crate::post_list::PostList;
 
-static MAPLE_MONO_LIGHT: &[u8] = include_bytes!("../../fonts/maple-mono/woff2/var/MapleMono[wght]-VF.woff2");
+static MAPLE_MONO_LIGHT: &[u8] =
+	include_bytes!("../../fonts/maple-mono/woff2/var/MapleMono[wght]-VF.woff2");
 
 pub async fn get_font(Path(_id): Path<String>) -> ([(HeaderName, &'static str); 1], &'static [u8]) {
 	(
@@ -17,13 +24,16 @@ pub async fn get_font(Path(_id): Path<String>) -> ([(HeaderName, &'static str); 
 build_info::build_info!(pub fn build);
 
 pub async fn get_license_page() -> Html<String> {
-	Html(PostList {
-		content: LicensePage,
-		title: "itsjuneti.me (licenses)",
-		next_page_btn: false,
-		current_page: 0
-	}.into_string()
-	.unwrap())
+	Html(
+		PostList {
+			content: LicensePage,
+			title: "itsjuneti.me (licenses)",
+			next_page_btn: false,
+			current_page: 0
+		}
+		.into_string()
+		.unwrap()
+	)
 }
 
 struct LicensePage;

@@ -1,11 +1,12 @@
+use axum::{extract::Path, response::Html};
 #[expect(deprecated)]
 use axum_extra::extract::Host;
-use tower_sessions::Session;
-use sqlx::Postgres;
 use axum_sqlx_tx::Tx;
-use axum::{response::Html, extract::Path};
-use horrorshow::{html, Raw, RenderOnce, TemplateBuffer, Template};
-use crate::{blog_api::get_post_list, post_list::PostList, Post};
+use horrorshow::{Raw, RenderOnce, Template, TemplateBuffer, html};
+use sqlx::Postgres;
+use tower_sessions::Session;
+
+use crate::{Post, blog_api::get_post_list, post_list::PostList};
 
 #[expect(deprecated)]
 pub async fn get_home_view(session: Session, tx: Tx<Postgres>, host: Host) -> Html<String> {
@@ -17,18 +18,21 @@ pub async fn get_page_view(
 	session: Session,
 	mut tx: Tx<Postgres>,
 	Path(page): Path<u32>,
-	Host(host): Host,
+	Host(host): Host
 ) -> Html<String> {
 	let posts = get_post_list(Some(session), &mut tx, 10, page * 10).await;
 	let show_next = posts.as_ref().is_ok_and(|p| p.len() == 10);
 
-	Html(PostList {
-		content: Posts(posts),
-		title: &host,
-		next_page_btn: show_next,
-		current_page: page
-	}.into_string()
-	.unwrap())
+	Html(
+		PostList {
+			content: Posts(posts),
+			title: &host,
+			next_page_btn: show_next,
+			current_page: page
+		}
+		.into_string()
+		.unwrap()
+	)
 }
 
 struct Posts(Result<Vec<Post>, sqlx::Error>);
@@ -36,10 +40,11 @@ struct Posts(Result<Vec<Post>, sqlx::Error>);
 impl RenderOnce for Posts {
 	fn render_once(self, tmpl: &mut TemplateBuffer) {
 		match self.0 {
-			Err(sqlx::Error::RowNotFound) => tmpl << html! { },
+			Err(sqlx::Error::RowNotFound) => tmpl << html! {},
 			Err(_) => tmpl << html! { span { : "Ran into an error while retrieving posts" } },
-			Ok(posts) => tmpl << html! {
-				style : Raw(r#"
+			Ok(posts) => {
+				tmpl << html! {
+					style : Raw(r#"
 				.post {
 					padding: 12px;
 					background-color: var(--main-background);
@@ -93,47 +98,48 @@ impl RenderOnce for Posts {
 					align-self: flex-end;
 				}
 				"#);
-				@ for post in posts {
-					div(class = "post", id = format_args!("post-{}", post.id)) {
-						a(href = format_args!("/post/{}", post.id), class="post-header") {
-							h2(class = "post-title") : post.title.clone();
-							span(class = "post-subtitle-box") {
-								span(class = "post-subtitle") {
-									: " by ";
-									: Post::display_user(&post.username);
-									: ", ";
-									@ if post.reading_time == 0 {
-										: "a quick read";
-									} else {
-										strong {
-											: post.reading_time
+					@ for post in posts {
+						div(class = "post", id = format_args!("post-{}", post.id)) {
+							a(href = format_args!("/post/{}", post.id), class="post-header") {
+								h2(class = "post-title") : post.title.clone();
+								span(class = "post-subtitle-box") {
+									span(class = "post-subtitle") {
+										: " by ";
+										: Post::display_user(&post.username);
+										: ", ";
+										@ if post.reading_time == 0 {
+											: "a quick read";
+										} else {
+											strong {
+												: post.reading_time
+											}
+											: " minute read";
 										}
-										: " minute read";
 									}
 								}
 							}
-						}
-						div(class = "post-content") : Raw(
-							// only do the first 5 paragraphs since it's gonna hide past that
-							post.html.split("</p>")
-								.take(4)
-								.collect::<Vec<&str>>()
-								.join("</p>")
-								 + "</p>"
-						);
-						div(class = "post-footer") {
-							span(class = "post-time") {
-								@ if post.draft {
-									: "Drafted at ";
-								} else {
-									: "Posted at ";
+							div(class = "post-content") : Raw(
+								// only do the first 5 paragraphs since it's gonna hide past that
+								post.html.split("</p>")
+									.take(4)
+									.collect::<Vec<&str>>()
+									.join("</p>")
+									 + "</p>"
+							);
+							div(class = "post-footer") {
+								span(class = "post-time") {
+									@ if post.draft {
+										: "Drafted at ";
+									} else {
+										: "Posted at ";
+									}
+									strong : shared_data::title_time_string(post.created_at);
 								}
-								strong : shared_data::title_time_string(post.created_at);
-							}
-							span(class = "tag-group") {
-								@ for tag in post.tags.0 {
-									span(class = "tag") {
-										: tag;
+								span(class = "tag-group") {
+									@ for tag in post.tags.0 {
+										span(class = "tag") {
+											: tag;
+										}
 									}
 								}
 							}
